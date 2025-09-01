@@ -2,11 +2,9 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/db/migrations"
-	"github.com/easy-comerce/backend/internal/route"
 	"github.com/easy-comerce/backend/pkg/config"
 )
 
@@ -16,14 +14,10 @@ func main() {
 	// Initialize database
 	db.InitDB(cfg)
 
-	// Run SQL migrations only
+	// Run SQL migrations
+	log.Println("Running SQL migrations...")
 	if err := migrations.RunMigrations(); err != nil {
-		log.Printf("Warning: Failed to run migrations: %v", err)
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
-
-	mux := http.NewServeMux()
-	route.RegisterRoutes(mux)
-
-	log.Printf("Server starting on port %s", cfg.Port)
-	http.ListenAndServe(":"+cfg.Port, mux)
+	log.Println("SQL migrations completed successfully")
 }
