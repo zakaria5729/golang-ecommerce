@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -20,27 +21,14 @@ func NewCategoryRepository() *CategoryRepository {
 func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, isActive *bool) ([]Category, error) {
 	var categories []Category
 
-	// Build select fields dynamically
-	selectFields := []string{"id", "title", "created_at", "updated_at"}
-
-	// Add include fields to select
-	for _, field := range include {
-		switch field {
-		case "sub_title", "image_url", "is_active", "parent_id":
-			selectFields = append(selectFields, field)
-		}
-	}
-
-	// Create query with selected fields
+	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	// Apply filters
 	if parentID != nil {
-		query = query.Where("parent_id = ?", *parentID)
+		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
 	if isActive != nil {
-		query = query.Where("is_active = ?", *isActive)
+		query = query.Where(CategoryIsActive+" = ?", *isActive)
 	}
 
 	err := query.Find(&categories).Error
@@ -50,21 +38,10 @@ func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, 
 func (r *CategoryRepository) GetCategoryByID(id uint, include []string) (*Category, error) {
 	var category Category
 
-	// Build select fields dynamically
-	selectFields := []string{"id", "title", "created_at", "updated_at"}
-
-	// Add include fields to select
-	for _, field := range include {
-		switch field {
-		case "sub_title", "image_url", "is_active", "parent_id":
-			selectFields = append(selectFields, field)
-		}
-	}
-
-	// Create query with selected fields
+	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	err := query.Where("id = ?", id).First(&category).Error
+	err := query.Where(CategoryID+" = ?", id).First(&category).Error
 	if err != nil {
 		return nil, err
 	}
@@ -82,4 +59,10 @@ func (r *CategoryRepository) UpdateCategory(category *Category) error {
 
 func (r *CategoryRepository) DeleteCategory(id uint) error {
 	return r.db.Delete(&Category{}, id).Error
+}
+
+func (r *CategoryRepository) getSelectableFields(include []string) []string {
+	defaultFields := []string{CategoryID, CategoryTitle, CategoryCreatedAt, CategoryUpdatedAt}
+	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryIsActive, CategoryParentID}
+	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }

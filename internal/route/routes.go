@@ -6,9 +6,20 @@ import (
 	"github.com/easy-comerce/backend/internal/handler"
 )
 
+const (
+	versionV1 = "/v1"
+)
+
 func RegisterRoutes(mux *http.ServeMux) {
-	// Category routes
-	categoryHandler := handler.NewCategoryHandler()
-	mux.HandleFunc("/api/v1/categories", categoryHandler.GetAllCategories)
-	mux.HandleFunc("/api/v1/categories/", categoryHandler.GetCategoryByID)
+	registerCategoryRoutes(mux)
+}
+
+func registerCategoryRoutes(mux *http.ServeMux) {
+	handler := handler.NewCategoryHandler()
+
+	mux.HandleFunc("GET "+versionV1+"/categories", handler.GetAllCategories)
+	mux.HandleFunc("GET "+versionV1+"/categories/{id}", handler.GetCategoryByID)
+	mux.HandleFunc("POST "+versionV1+"/categories", handler.CreateCategory)
+	mux.HandleFunc("PUT "+versionV1+"/categories/{id}", handler.UpdateCategory)
+	mux.HandleFunc("DELETE "+versionV1+"/categories/{id}", handler.DeleteCategory)
 }

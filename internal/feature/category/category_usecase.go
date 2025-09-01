@@ -1,8 +1,7 @@
 package category
 
 import (
-	"fmt"
-	"strings"
+	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type CategoryUseCase struct {
@@ -16,44 +15,13 @@ func NewCategoryUseCase() *CategoryUseCase {
 }
 
 func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDStr string, isActiveStr string) ([]Category, error) {
-	// Parse include parameter
-	var include []string
-	if includeStr != "" {
-		include = strings.Split(includeStr, ",")
-		for i, field := range include {
-			include[i] = strings.TrimSpace(field)
-		}
-	}
-
-	// Parse parent_id parameter
-	var parentID *uint
-	if parentIDStr != "" && parentIDStr != "null" {
-		if id, err := parseUint(parentIDStr); err == nil {
-			parentID = &id
-		}
-	}
-
-	// Parse is_active parameter
-	var isActive *bool
-	if isActiveStr != "" {
-		active := isActiveStr == "true"
-		isActive = &active
-	}
-
-	return uc.repo.GetAllCategories(include, parentID, isActive)
+	parentID, _ := utils.ParseUint(parentIDStr)
+	isActive := utils.ParseBoolPtr(isActiveStr)
+	return uc.repo.GetAllCategories(utils.ParseCommaSeparatedString(includeStr), parentID, isActive)
 }
 
 func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Category, error) {
-	// Parse include parameter
-	var include []string
-	if includeStr != "" {
-		include = strings.Split(includeStr, ",")
-		for i, field := range include {
-			include[i] = strings.TrimSpace(field)
-		}
-	}
-
-	return uc.repo.GetCategoryByID(id, include)
+	return uc.repo.GetCategoryByID(id, utils.ParseCommaSeparatedString(includeStr))
 }
 
 func (uc *CategoryUseCase) CreateCategory(category *Category) error {
@@ -66,11 +34,4 @@ func (uc *CategoryUseCase) UpdateCategory(category *Category) error {
 
 func (uc *CategoryUseCase) DeleteCategory(id uint) error {
 	return uc.repo.DeleteCategory(id)
-}
-
-// Helper function to parse uint
-func parseUint(s string) (uint, error) {
-	var result uint
-	_, err := fmt.Sscanf(s, "%d", &result)
-	return result, err
 }

@@ -11,10 +11,7 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Initialize database
 	db.InitDB(cfg)
-
-	// Run SQL migrations
 	log.Println("Running SQL migrations...")
 	if err := migrations.RunMigrations(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
