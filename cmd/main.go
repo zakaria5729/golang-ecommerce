@@ -21,13 +21,9 @@ func main() {
 	mux := http.NewServeMux()
 	route.RegisterRoutes(mux)
 
-	// Apply middleware stack
 	handler := middleware.ChainMiddleware(
 		middleware.RecoveryMiddleware,
-		middleware.LoggingMiddleware,
 		middleware.CORSMiddleware,
-		middleware.SecurityMiddleware,
-		middleware.RateLimitMiddleware,
 	)(mux)
 
 	server := &http.Server{

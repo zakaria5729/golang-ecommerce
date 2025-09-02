@@ -1,18 +1,17 @@
 package category
 
 import (
+	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"gorm.io/gorm"
 )
 
 type Category struct {
-	gorm.Model
-	Title     string          `json:"title,omitempty" gorm:"not null; column:title"`
-	SubTitle  *string         `json:"sub_title,omitempty" gorm:"column:sub_title"`
-	ImageURL  *string         `json:"image_url,omitempty" gorm:"column:image_url"`
-	ParentID  *uint           `json:"parent_id,omitempty" gorm:"column:parent_id"`
-	IsActive  bool            `json:"is_active,omitempty" gorm:"default:true; column:is_active;"`
-	DeletedAt *gorm.DeletedAt `json:"-" gorm:"-"`
+	models.BaseModel
+	Title    string  `json:"title,omitempty" gorm:"not null; column:title"`
+	SubTitle *string `json:"sub_title,omitempty" gorm:"column:sub_title"`
+	ImageURL *string `json:"image_url,omitempty" gorm:"column:image_url"`
+	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
+	IsActive bool    `json:"is_active,omitempty" gorm:"default:true; column:is_active;"`
 }
 
 func (c *Category) Sanitize() {
