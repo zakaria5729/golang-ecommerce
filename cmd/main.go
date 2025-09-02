@@ -7,6 +7,7 @@ import (
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/internal/route"
 	"github.com/easy-comerce/backend/pkg/config"
+	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
 func main() {
@@ -20,9 +21,18 @@ func main() {
 	mux := http.NewServeMux()
 	route.RegisterRoutes(mux)
 
+	// Apply middleware stack
+	handler := middleware.ChainMiddleware(
+		middleware.RecoveryMiddleware,
+		middleware.LoggingMiddleware,
+		middleware.CORSMiddleware,
+		middleware.SecurityMiddleware,
+		middleware.RateLimitMiddleware,
+	)(mux)
+
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: handler,
 	}
 
 	log.Printf("Server starting on port %s", cfg.Port)
