@@ -1,6 +1,8 @@
 package category
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
@@ -221,8 +223,56 @@ func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
 	return count > 0, err
 }
 
+func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		rootID, err := r.findRootCategoryID(tx, categoryID)
+		if err != nil {
+			return err
+		}
+
+		result := tx.Model(&Category{}).
+			Where(constants.FieldID+" = ?", rootID).
+			Update(CategoryPriority, gorm.Expr(CategoryPriority+" + 1"))
+
+		return result.Error
+	})
+}
+
+func (r *CategoryRepository) findRootCategoryID(tx *gorm.DB, categoryID uint) (uint, error) {
+	currentID := categoryID
+	visited := make(map[uint]bool)
+
+	for {
+		if visited[currentID] {
+			return 0, fmt.Errorf("circular reference detected in category hierarchy")
+		}
+		visited[currentID] = true
+
+		var category Category
+		err := tx.Select(constants.FieldID, CategoryParentID).
+			Where(constants.FieldID+" = ?", currentID).
+			First(&category).Error
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, fmt.Errorf("category with ID %d not found", currentID)
+			}
+			return 0, err
+		}
+
+		if category.ParentID == nil {
+			return category.ID, nil
+		}
+		currentID = *category.ParentID
+	}
+}
+
 func (r *CategoryRepository) getSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, CategoryTitle, constants.FieldCreatedAt, constants.FieldUpdatedAt}
 	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryIsActive, CategoryParentID, CategoryPriority}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
+}
+
+func getPriority() int {
+	return 10
 }

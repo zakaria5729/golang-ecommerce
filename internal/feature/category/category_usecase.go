@@ -196,6 +196,14 @@ func (uc *CategoryUseCase) DeleteCategory(id uint) error {
 	return nil
 }
 
+func (uc *CategoryUseCase) IncrementPriority(categoryID uint) error {
+	if err := uc.repo.IncrementPriority(categoryID); err != nil {
+		fmt.Printf("Failed to increment priority for category %d: %v\n", categoryID, err)
+		return nil
+	}
+	return nil
+}
+
 func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
 	if id == 0 {
 		return nil, errors.New("invalid category ID")
