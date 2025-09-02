@@ -30,7 +30,9 @@ const (
 const (
 	DefaultPageSize = 20
 	MaxPageSize     = 100
-	MinPageSize     = 1
+	Include         = "include"
+	Page            = "page"
+	PageSize        = "page_size"
 )
 
 const (
@@ -72,4 +74,10 @@ const (
 	EnvStaging     = "staging"
 	EnvProduction  = "production"
 	EnvTest        = "test"
+)
+
+const (
+	FieldID        = "id"
+	FieldCreatedAt = "created_at"
+	FieldUpdatedAt = "updated_at"
 )

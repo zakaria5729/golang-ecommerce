@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
@@ -18,12 +19,13 @@ func NewCategoryUseCase() *CategoryUseCase {
 	}
 }
 
-func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDStr string, isActiveStr string) ([]Category, error) {
-	parentID, _ := utils.ParseUint(parentIDStr)
-	isActive := utils.ParseBoolPtr(isActiveStr)
+func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter string, isActiveFilter string, priorityFilter string) ([]Category, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
+	parentID, _ := utils.ParseUint(parentIDFilter)
+	isActive := utils.ParseBoolPtr(isActiveFilter)
+	priority := utils.ParseBoolPtr(priorityFilter)
 
-	categories, err := uc.repo.GetAllCategories(include, parentID, isActive)
+	categories, err := uc.repo.GetAllCategories(include, parentID, isActive, priority)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
@@ -31,14 +33,15 @@ func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDStr strin
 	return categories, nil
 }
 
-func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentIDStr string, isActiveStr string, pageStr string, limitStr string) (*utils.PaginatedResponse, error) {
-	page, limit := utils.ParsePagination(pageStr, limitStr, 20)
+func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentIDFilter string, isActiveFilter string, pageStr string, pageSizeStr string, priorityFilter string) (*models.PaginatedResponse, error) {
+	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
-	parentID, _ := utils.ParseUint(parentIDStr)
-	isActive := utils.ParseBoolPtr(isActiveStr)
 	include := utils.ParseCommaSeparatedString(includeStr)
+	parentID, _ := utils.ParseUint(parentIDFilter)
+	isActive := utils.ParseBoolPtr(isActiveFilter)
+	priority := utils.ParseBoolPtr(priorityFilter)
 
-	categories, total, err := uc.repo.GetAllCategoriesPaginated(include, parentID, isActive, page, limit)
+	categories, total, err := uc.repo.GetAllCategoriesPaginated(include, parentID, isActive, page, pageSize, priority)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
@@ -48,7 +51,7 @@ func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentID
 		categoryPtrs = append(categoryPtrs, &categories[i])
 	}
 
-	return utils.BuildPaginatedResponse(categoryPtrs, total, page, limit), nil
+	return utils.BuildPaginatedResponse(categoryPtrs, total, page, pageSize), nil
 }
 
 func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Category, error) {
@@ -257,14 +260,14 @@ func (uc *CategoryUseCase) validateUpdateRequest(req *Category) validator.Valida
 		errors = validator.MergeValidationErrors(
 			errors,
 			validator.ValidateMinLength(req.Title, "title", 2),
-			validator.ValidateMaxLength(req.Title, "title", 100),
+			validator.ValidateMaxLength(req.Title, "title", 120),
 		)
 	}
 
 	if req.SubTitle != nil && *req.SubTitle != "" {
 		errors = validator.MergeValidationErrors(
 			errors,
-			validator.ValidateMaxLength(*req.SubTitle, "sub_title", 200),
+			validator.ValidateMaxLength(*req.SubTitle, "sub_title", 255),
 		)
 	}
 

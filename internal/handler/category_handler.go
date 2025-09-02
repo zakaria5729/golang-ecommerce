@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	category "github.com/easy-comerce/backend/internal/feature/category"
+	"github.com/easy-comerce/backend/internal/feature/category"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -20,11 +21,13 @@ func NewCategoryHandler() *CategoryHandler {
 }
 
 func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	include := r.URL.Query().Get("include")
-	parentID := r.URL.Query().Get("parent_id")
-	isActive := r.URL.Query().Get("is_active")
+	q := r.URL.Query()
+	includeStr := q.Get(constants.Include)
+	parentIDFilter := q.Get(category.CategoryParentID)
+	isActiveFilter := q.Get(category.CategoryIsActive)
+	priorityFilter := q.Get(category.CategoryPriority)
 
-	categories, err := h.useCase.GetAllCategories(include, parentID, isActive)
+	categories, err := h.useCase.GetAllCategories(includeStr, parentIDFilter, isActiveFilter, priorityFilter)
 	if err != nil {
 		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
@@ -34,13 +37,15 @@ func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *http.Request) {
-	include := r.URL.Query().Get("include")
-	parentID := r.URL.Query().Get("parent_id")
-	isActive := r.URL.Query().Get("is_active")
-	page := r.URL.Query().Get("page")
-	limit := r.URL.Query().Get("limit")
+	q := r.URL.Query()
+	includeStr := q.Get(constants.Include)
+	pageStr := q.Get(constants.Page)
+	pageSizeStr := q.Get(constants.PageSize)
+	parentIDFilter := q.Get(category.CategoryParentID)
+	isActiveFilter := q.Get(category.CategoryIsActive)
+	priorityFilter := q.Get(category.CategoryPriority)
 
-	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(include, parentID, isActive, page, limit)
+	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(includeStr, parentIDFilter, isActiveFilter, pageStr, pageSizeStr, priorityFilter)
 	if err != nil {
 		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
@@ -50,14 +55,13 @@ func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *ht
 }
 
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := utils.ParseUint(idStr)
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
 		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
-	include := r.URL.Query().Get("include")
+	include := r.URL.Query().Get(constants.Include)
 	category, err := h.useCase.GetCategoryByID(*id, include)
 	if err != nil {
 		response.JSONError(w, "Category not found", http.StatusNotFound)
@@ -84,8 +88,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := utils.ParseUint(idStr)
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
 		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
 		return
@@ -107,8 +110,7 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := utils.ParseUint(idStr)
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
 		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
 		return
@@ -123,8 +125,7 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *CategoryHandler) ToggleCategoryStatus(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	id, err := utils.ParseUint(idStr)
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
 		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
 		return

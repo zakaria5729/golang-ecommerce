@@ -7,11 +7,12 @@ import (
 
 type Category struct {
 	models.BaseModel
-	Title    string  `json:"title,omitempty" gorm:"not null; column:title"`
+	Title    string  `json:"title" gorm:"not null; column:title"`
 	SubTitle *string `json:"sub_title,omitempty" gorm:"column:sub_title"`
 	ImageURL *string `json:"image_url,omitempty" gorm:"column:image_url"`
 	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
-	IsActive bool    `json:"is_active,omitempty" gorm:"default:true; column:is_active;"`
+	IsActive bool    `json:"is_active,omitempty" gorm:"default:true; column:is_active"`
+	Priority uint    `json:"priority,omitempty" gorm:"default:0; column:priority"`
 }
 
 func (c *Category) Sanitize() {
@@ -25,12 +26,10 @@ func (c *Category) Sanitize() {
 }
 
 const (
-	CategoryID        = "id"
-	CategoryTitle     = "title"
-	CategorySubTitle  = "sub_title"
-	CategoryImageURL  = "image_url"
-	CategoryParentID  = "parent_id"
-	CategoryIsActive  = "is_active"
-	CategoryCreatedAt = "created_at"
-	CategoryUpdatedAt = "updated_at"
+	CategoryTitle    = "title"
+	CategorySubTitle = "sub_title"
+	CategoryImageURL = "image_url"
+	CategoryParentID = "parent_id"
+	CategoryIsActive = "is_active"
+	CategoryPriority = "priority"
 )

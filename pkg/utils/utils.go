@@ -2,24 +2,14 @@ package utils
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/models"
 )
-
-type PaginatedResponse struct {
-	Data       any            `json:"data"`
-	Pagination PaginationMeta `json:"pagination"`
-}
-
-type PaginationMeta struct {
-	Page      int `json:"page"`
-	PageSize  int `json:"page_size"`
-	Total     int `json:"total"`
-	TotalPage int `json:"total_page"`
-}
 
 func ParseCommaSeparatedString(input string) []string {
 	var result []string
@@ -89,9 +79,9 @@ func ParseBoolPtr(s string) *bool {
 	return &result
 }
 
-func ParsePagination(pageStr, limitStr string, defaultLimit int) (page, limit int) {
+func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 	page = 1
-	limit = defaultLimit
+	pageSize = constants.DefaultPageSize
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -99,31 +89,45 @@ func ParsePagination(pageStr, limitStr string, defaultLimit int) (page, limit in
 		}
 	}
 
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
+	if pageSizeStr != "" {
+		if l, err := strconv.Atoi(pageSizeStr); err == nil && l > 0 && l <= constants.MaxPageSize {
+			pageSize = l
 		}
 	}
 
-	return page, limit
+	return page, pageSize
 }
 
-func CalculatePagination(total, page, limit int) (totalPages, offset int) {
-	totalPages = int(math.Ceil(float64(total) / float64(limit)))
-	offset = (page - 1) * limit
+func CalculatePagination(total, page, pageSize int) (totalPages, offset int) {
+	if pageSize <= 0 {
+		return 0, 0
+	}
+
+	totalPages = (total + pageSize - 1) / pageSize
+	if page < 1 {
+		page = 1
+	}
+
+	if totalPages > 0 && page > totalPages {
+		page = totalPages
+	}
+
+	offset = (page - 1) * pageSize
 	return totalPages, offset
 }
 
-func BuildPaginatedResponse(data any, total, page, limit int) *PaginatedResponse {
-	totalPages, _ := CalculatePagination(total, page, limit)
+func BuildPaginatedResponse(data any, total, page, pageSize int) *models.PaginatedResponse {
+	totalPages, _ := CalculatePagination(total, page, pageSize)
 
-	return &PaginatedResponse{
+	return &models.PaginatedResponse{
 		Data: data,
-		Pagination: PaginationMeta{
-			Page:      page,
-			PageSize:  limit,
-			Total:     total,
-			TotalPage: totalPages,
+		Pagination: models.PaginationMeta{
+			Page:          page,
+			PageSize:      pageSize,
+			TotalElements: total,
+			TotalPages:    totalPages,
+			IsFirst:       page == 1,
+			IsLast:        page >= totalPages,
 		},
 	}
 }

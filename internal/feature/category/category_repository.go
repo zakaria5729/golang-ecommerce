@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -18,7 +19,7 @@ func NewCategoryRepository() *CategoryRepository {
 	}
 }
 
-func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, isActive *bool) ([]Category, error) {
+func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, isActive *bool, priority *bool) ([]Category, error) {
 	var categories []Category
 
 	selectFields := r.getSelectableFields(include)
@@ -34,11 +35,15 @@ func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, 
 		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
+	if priority != nil {
+		query = query.Where(CategoryPriority+" = ?", *priority)
+	}
+
 	err := query.Find(&categories).Error
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, isActive *bool, page, limit int) ([]Category, int, error) {
+func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, isActive *bool, page, pageSize int, priority *bool) ([]Category, int, error) {
 	var categories []Category
 	var total int64
 
@@ -55,12 +60,16 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentI
 		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
+	if priority != nil {
+		query = query.Where(CategoryPriority+" = ?", *priority)
+	}
+
 	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Find(&categories).Error
+	offset := (page - 1) * pageSize
+	err := query.Offset(offset).Limit(pageSize).Find(&categories).Error
 
 	return categories, int(total), err
 }
@@ -72,7 +81,7 @@ func (r *CategoryRepository) GetCategoryByID(id uint, include []string) (*Catego
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
 	query = query.Where(CategoryIsActive+" = ?", true)
-	err := query.Where(CategoryID+" = ?", id).First(&category).Error
+	err := query.Where(constants.FieldID+" = ?", id).First(&category).Error
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +95,7 @@ func (r *CategoryRepository) GetCategoryByIDIncludeInactive(id uint, include []s
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	err := query.Where(CategoryID+" = ?", id).First(&category).Error
+	err := query.Where(constants.FieldID+" = ?", id).First(&category).Error
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +108,24 @@ func (r *CategoryRepository) CreateCategory(category *Category) error {
 }
 
 func (r *CategoryRepository) UpdateCategory(category *Category) error {
-	return r.db.Save(category).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var currentCategory Category
+		if err := tx.First(&currentCategory, category.ID).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(category).Error; err != nil {
+			return err
+		}
+
+		if currentCategory.IsActive != category.IsActive {
+			if err := r.updateSubcategoriesStatusRecursively(tx, category.ID, category.IsActive); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (r *CategoryRepository) DeleteCategory(id uint) error {
@@ -143,24 +169,13 @@ func (r *CategoryRepository) deleteSubcategoriesRecursively(tx *gorm.DB, parentI
 }
 
 func (r *CategoryRepository) UpdateCategoryStatus(id uint, isActive bool) error {
-	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&Category{}).Where(constants.FieldID+" = ?", id).Update(CategoryIsActive, isActive).Error; err != nil {
+			return err
 		}
-	}()
 
-	if err := tx.Model(&Category{}).Where(CategoryID+" = ?", id).Update(CategoryIsActive, isActive).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := r.updateSubcategoriesStatusRecursively(tx, id, isActive); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+		return r.updateSubcategoriesStatusRecursively(tx, id, isActive)
+	})
 }
 
 func (r *CategoryRepository) updateSubcategoriesStatusRecursively(tx *gorm.DB, parentID uint, isActive bool) error {
@@ -170,7 +185,7 @@ func (r *CategoryRepository) updateSubcategoriesStatusRecursively(tx *gorm.DB, p
 	}
 
 	for _, subcategory := range subcategories {
-		if err := tx.Model(&Category{}).Where(CategoryID+" = ?", subcategory.ID).Update(CategoryIsActive, isActive).Error; err != nil {
+		if err := tx.Model(&Category{}).Where(constants.FieldID+" = ?", subcategory.ID).Update(CategoryIsActive, isActive).Error; err != nil {
 			return err
 		}
 
@@ -184,7 +199,7 @@ func (r *CategoryRepository) updateSubcategoriesStatusRecursively(tx *gorm.DB, p
 
 func (r *CategoryRepository) CategoryExists(id uint) (bool, error) {
 	var count int64
-	err := r.db.Model(&Category{}).Where(CategoryID+" = ?", id).Count(&count).Error
+	err := r.db.Model(&Category{}).Where(constants.FieldID+" = ?", id).Count(&count).Error
 	return count > 0, err
 }
 
@@ -193,7 +208,7 @@ func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint
 	query := r.db.Model(&Category{}).Where(CategoryTitle+" = ?", title)
 
 	if excludeID != nil {
-		query = query.Where(CategoryID+" != ?", *excludeID)
+		query = query.Where(constants.FieldID+" != ?", *excludeID)
 	}
 
 	err := query.Count(&count).Error
@@ -207,7 +222,7 @@ func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
 }
 
 func (r *CategoryRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{CategoryID, CategoryTitle, CategoryCreatedAt, CategoryUpdatedAt}
-	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryIsActive, CategoryParentID}
+	defaultFields := []string{constants.FieldID, CategoryTitle, constants.FieldCreatedAt, constants.FieldUpdatedAt}
+	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryIsActive, CategoryParentID, CategoryPriority}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
