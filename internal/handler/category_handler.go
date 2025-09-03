@@ -24,10 +24,11 @@ func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Reques
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
 	parentIDFilter := q.Get(category.CategoryParentID)
-	isActiveFilter := q.Get(category.CategoryIsActive)
-	priorityFilter := q.Get(category.CategoryPriority)
+	showPriorityFilter := q.Get(category.CategoryPriority)
+	sortBy := q.Get("sort_by")
+	sortOrder := q.Get("sort_order")
 
-	categories, err := h.useCase.GetAllCategories(includeStr, parentIDFilter, isActiveFilter, priorityFilter)
+	categories, err := h.useCase.GetAllCategories(includeStr, parentIDFilter, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {
 		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
@@ -42,10 +43,11 @@ func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *ht
 	pageStr := q.Get(constants.Page)
 	pageSizeStr := q.Get(constants.PageSize)
 	parentIDFilter := q.Get(category.CategoryParentID)
-	isActiveFilter := q.Get(category.CategoryIsActive)
-	priorityFilter := q.Get(category.CategoryPriority)
+	showPriorityFilter := q.Get(category.CategoryPriority)
+	sortBy := q.Get(constants.SortBy)
+	sortOrder := q.Get(constants.SortOrder)
 
-	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(includeStr, parentIDFilter, isActiveFilter, pageStr, pageSizeStr, priorityFilter)
+	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(includeStr, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {
 		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return

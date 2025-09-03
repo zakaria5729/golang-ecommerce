@@ -2,12 +2,12 @@ package db
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/easy-comerce/backend/pkg/config"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -18,14 +18,15 @@ func InitDB(cfg config.Config) {
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormLogger.Default.LogMode(gormLogger.Info),
 	})
 
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "dbname", cfg.DBName)
+		panic(err)
 	}
 
-	log.Println("Database connected successfully")
+	logger.Logger.Info("Database connected successfully", "host", cfg.DBHost, "port", cfg.DBPort, "dbname", cfg.DBName)
 }
 
 func GetDB() *gorm.DB {

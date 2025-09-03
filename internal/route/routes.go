@@ -19,9 +19,9 @@ func registerCategoryRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET "+versionV1+"/categories", handler.GetAllCategories)
 	mux.HandleFunc("GET "+versionV1+"/categories/paginated", handler.GetAllCategoriesPaginated)
-	mux.HandleFunc("GET "+versionV1+"/categories/{id}", handler.GetCategoryByID)
+	mux.HandleFunc("GET "+versionV1+"/categories/id/{id}", handler.GetCategoryByID)
 	mux.HandleFunc("POST "+versionV1+"/categories", handler.CreateCategory)
-	mux.HandleFunc("PUT "+versionV1+"/categories/{id}", handler.UpdateCategory)
-	mux.HandleFunc("DELETE "+versionV1+"/categories/{id}", handler.DeleteCategory)
-	mux.HandleFunc("PATCH "+versionV1+"/categories/{id}/toggle", handler.ToggleCategoryStatus)
+	mux.HandleFunc("PUT "+versionV1+"/categories/id/{id}", handler.UpdateCategory)
+	mux.HandleFunc("DELETE "+versionV1+"/categories/id/{id}", handler.DeleteCategory)
+	mux.HandleFunc("PATCH "+versionV1+"/categories/id/{id}/toggle", handler.ToggleCategoryStatus)
 }

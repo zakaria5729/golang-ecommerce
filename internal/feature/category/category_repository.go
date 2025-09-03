@@ -21,49 +21,47 @@ func NewCategoryRepository() *CategoryRepository {
 	}
 }
 
-func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, isActive *bool, priority *bool) ([]Category, error) {
+func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, showPriority *bool, sortBy, sortOrder string) ([]Category, error) {
 	var categories []Category
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if isActive == nil {
-		query = query.Where(CategoryIsActive+" = ?", true)
-	} else {
-		query = query.Where(CategoryIsActive+" = ?", *isActive)
-	}
+	query = query.Where(CategoryIsActive+" = ?", true)
 
 	if parentID != nil {
 		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
-	if priority != nil {
-		query = query.Where(CategoryPriority+" = ?", *priority)
+	if showPriority != nil && *showPriority {
+		query = query.Where(CategoryPriority+" >= ?", getPriorityLimit())
+	}
+
+	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
+		query = query.Order(orderClause)
 	}
 
 	err := query.Find(&categories).Error
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, isActive *bool, page, pageSize int, priority *bool) ([]Category, int, error) {
+func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, page, pageSize int, showPriority *bool, sortBy, sortOrder string) ([]Category, int, error) {
 	var categories []Category
 	var total int64
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if isActive == nil {
-		query = query.Where(CategoryIsActive+" = ?", true)
-	} else {
-		query = query.Where(CategoryIsActive+" = ?", *isActive)
-	}
+	query = query.Where(CategoryIsActive+" = ?", true)
 
 	if parentID != nil {
 		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
-	if priority != nil {
-		query = query.Where(CategoryPriority+" = ?", *priority)
+	if showPriority != nil && *showPriority {
+		query = query.Where(CategoryPriority+" >= ?", getPriorityLimit())
+	}
+
+	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
+		query = query.Order(orderClause)
 	}
 
 	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
@@ -81,10 +79,9 @@ func (r *CategoryRepository) GetCategoryByID(id uint, include []string) (*Catego
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
-
 	query = query.Where(CategoryIsActive+" = ?", true)
-	err := query.Where(constants.FieldID+" = ?", id).First(&category).Error
-	if err != nil {
+
+	if err := query.Where(constants.FieldID+" = ?", id).First(&category).Error; err != nil {
 		return nil, err
 	}
 
@@ -97,8 +94,7 @@ func (r *CategoryRepository) GetCategoryByIDIncludeInactive(id uint, include []s
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	err := query.Where(constants.FieldID+" = ?", id).First(&category).Error
-	if err != nil {
+	if err := query.Where(constants.FieldID+" = ?", id).First(&category).Error; err != nil {
 		return nil, err
 	}
 
@@ -273,6 +269,6 @@ func (r *CategoryRepository) getSelectableFields(include []string) []string {
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
 
-func getPriority() int {
+func getPriorityLimit() uint {
 	return 10
 }

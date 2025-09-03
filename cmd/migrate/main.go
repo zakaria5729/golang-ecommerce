@@ -1,20 +1,20 @@
 package main
 
 import (
-	"log"
-
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/db/migrations"
 	"github.com/easy-comerce/backend/pkg/config"
+	"github.com/easy-comerce/backend/pkg/logger"
 )
 
 func main() {
 	cfg := config.Load()
 
 	db.InitDB(cfg)
-	log.Println("Running SQL migrations...")
+	logger.Logger.Info("Running SQL migrations...")
 	if err := migrations.RunMigrations(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		logger.Logger.Error("Failed to run migrations", "error", err)
+		panic(err)
 	}
-	log.Println("SQL migrations completed successfully")
+	logger.Logger.Info("SQL migrations completed successfully")
 }

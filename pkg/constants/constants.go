@@ -31,8 +31,19 @@ const (
 	DefaultPageSize = 20
 	MaxPageSize     = 100
 	Include         = "include"
+	All             = "all"
 	Page            = "page"
 	PageSize        = "page_size"
+	SortBy          = "sort_by"
+	SortOrder       = "sort_order"
+	SortOrderDesc   = "DESC"
+	SortOrderAsc    = "ASC"
+)
+
+const (
+	FieldID        = "id"
+	FieldCreatedAt = "created_at"
+	FieldUpdatedAt = "updated_at"
 )
 
 const (
@@ -74,10 +85,4 @@ const (
 	EnvStaging     = "staging"
 	EnvProduction  = "production"
 	EnvTest        = "test"
-)
-
-const (
-	FieldID        = "id"
-	FieldCreatedAt = "created_at"
-	FieldUpdatedAt = "updated_at"
 )

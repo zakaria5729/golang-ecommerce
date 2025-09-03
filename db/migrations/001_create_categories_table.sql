@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS categories (
 -- CREATE INDEX IF NOT EXISTS idx_categories_is_active ON categories(is_active);
 
 -- Insert some sample data
-INSERT INTO categories (title, sub_title, image_url, is_active) VALUES
-('Electronics', 'Electronic devices and gadgets', 'https://example.com/electronics.jpg', true),
-('Clothing', 'Fashion and apparel', 'https://example.com/clothing.jpg', true),
-('Books', 'Books and publications', 'https://example.com/books.jpg', true)
+INSERT INTO categories (title, sub_title, image_url, is_active, priority) VALUES
+('Electronics', 'Electronic devices and gadgets', 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Altja_j%C3%B5gi_Lahemaal.jpg/960px-Altja_j%C3%B5gi_Lahemaal.jpg', true, 0),
+('Clothing', 'Fashion and apparel', 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Altja_j%C3%B5gi_Lahemaal.jpg/960px-Altja_j%C3%B5gi_Lahemaal.jpg', true, 0),
+('Books', 'Books and publications', 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Altja_j%C3%B5gi_Lahemaal.jpg/960px-Altja_j%C3%B5gi_Lahemaal.jpg', true, 0)
 ON CONFLICT (id) DO NOTHING;
+

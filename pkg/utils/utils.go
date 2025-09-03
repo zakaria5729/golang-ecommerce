@@ -133,6 +133,19 @@ func BuildPaginatedResponse(data any, total, page, pageSize int) *models.Paginat
 }
 
 func BuildSelectFields(defaultFields []string, optionalFields []string, include []string) []string {
+	includeAll := false
+
+	for _, field := range include {
+		if strings.ToLower(field) == constants.All {
+			includeAll = true
+			break
+		}
+	}
+
+	if includeAll {
+		return []string{"*"}
+	}
+
 	selectFields := make([]string, len(defaultFields))
 	copy(selectFields, defaultFields)
 
@@ -148,6 +161,34 @@ func BuildSelectFields(defaultFields []string, optionalFields []string, include 
 	}
 
 	return selectFields
+}
+
+func BuildSortingOrder(sortBy string, sortOrder string, fields *[]string) string {
+	if sortBy == "" {
+		return ""
+	}
+
+	allowedFields := map[string]bool{
+		constants.FieldID:        true,
+		constants.FieldCreatedAt: true,
+		constants.FieldUpdatedAt: true,
+	}
+
+	if fields != nil && len(*fields) > 0 {
+		for _, field := range *fields {
+			allowedFields[field] = true
+		}
+	}
+
+	if !allowedFields[sortBy] {
+		return ""
+	}
+
+	if strings.EqualFold(sortOrder, constants.SortOrderDesc) {
+		return sortBy + " " + constants.SortOrderDesc
+	}
+
+	return sortBy + " " + constants.SortOrderAsc
 }
 
 func IsValidEmail(email string) bool {

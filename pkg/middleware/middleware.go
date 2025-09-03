@@ -1,23 +1,22 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/easy-comerce/backend/pkg/logger"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		log.Printf("HTTP Request: %s %s from %s (User-Agent: %s)",
-			r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+		logger.Logger.Info("HTTP Request", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr, "userAgent", r.UserAgent())
 
 		next.ServeHTTP(w, r)
 
 		duration := time.Since(start)
-		log.Printf("HTTP Response: %s %s completed in %s",
-			r.Method, r.URL.Path, duration.String())
+		logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", duration.String())
 	})
 }
 
@@ -41,7 +40,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v on %s %s", err, r.Method, r.URL.Path)
+				logger.Logger.Error("Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -88,7 +87,7 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 		}
 
 		if client.RequestCount >= 100 {
-			log.Printf("Rate limit exceeded for client %s on path %s", clientIP, r.URL.Path)
+			logger.Logger.Warn("Rate limit exceeded", "clientIP", clientIP, "path", r.URL.Path)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)

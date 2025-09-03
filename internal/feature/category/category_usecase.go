@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -19,30 +20,30 @@ func NewCategoryUseCase() *CategoryUseCase {
 	}
 }
 
-func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter string, isActiveFilter string, priorityFilter string) ([]Category, error) {
+func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter string, priorityFilter string, sortBy, sortOrder string) ([]Category, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
-	isActive := utils.ParseBoolPtr(isActiveFilter)
-	priority := utils.ParseBoolPtr(priorityFilter)
+	showPriority := utils.ParseBoolPtr(priorityFilter)
 
-	categories, err := uc.repo.GetAllCategories(include, parentID, isActive, priority)
+	categories, err := uc.repo.GetAllCategories(include, parentID, showPriority, sortBy, sortOrder)
 	if err != nil {
+		logger.Logger.Error("Failed to fetch categories", "error", err, "include", include, "parentID", parentID, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 
 	return categories, nil
 }
 
-func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentIDFilter string, isActiveFilter string, pageStr string, pageSizeStr string, priorityFilter string) (*models.PaginatedResponse, error) {
+func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentIDFilter string, pageStr string, pageSizeStr string, priorityFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	include := utils.ParseCommaSeparatedString(includeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
-	isActive := utils.ParseBoolPtr(isActiveFilter)
-	priority := utils.ParseBoolPtr(priorityFilter)
+	showPriority := utils.ParseBoolPtr(priorityFilter)
 
-	categories, total, err := uc.repo.GetAllCategoriesPaginated(include, parentID, isActive, page, pageSize, priority)
+	categories, total, err := uc.repo.GetAllCategoriesPaginated(include, parentID, page, pageSize, showPriority, sortBy, sortOrder)
 	if err != nil {
+		logger.Logger.Error("Failed to fetch categories paginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 
@@ -56,12 +57,14 @@ func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentID
 
 func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Category, error) {
 	if id == 0 {
+		logger.Logger.Error("Invalid category ID provided", "id", id)
 		return nil, errors.New("invalid category ID")
 	}
 
 	include := utils.ParseCommaSeparatedString(includeStr)
 	category, err := uc.repo.GetCategoryByID(id, include)
 	if err != nil {
+		logger.Logger.Error("Category not found", "error", err, "id", id, "include", include)
 		return nil, fmt.Errorf("category not found: %w", err)
 	}
 
@@ -198,7 +201,7 @@ func (uc *CategoryUseCase) DeleteCategory(id uint) error {
 
 func (uc *CategoryUseCase) IncrementPriority(categoryID uint) error {
 	if err := uc.repo.IncrementPriority(categoryID); err != nil {
-		fmt.Printf("Failed to increment priority for category %d: %v\n", categoryID, err)
+		logger.Logger.Error("Failed to increment priority for category", "categoryID", categoryID, "error", err)
 		return nil
 	}
 	return nil
