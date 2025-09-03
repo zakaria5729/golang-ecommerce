@@ -62,9 +62,9 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentI
 		query = query.Where(CategoryParentID+" = ?", *parentID)
 	}
 
-	if priority != nil {
-		query = query.Where(CategoryPriority+" = ?", *priority)
-	}
+	// if priority != nil {
+	// 	query = query.Where(CategoryPriority+" = ?", *priority)
+	// }
 
 	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
 		return nil, 0, err
