@@ -81,8 +81,18 @@ const (
 )
 
 const (
-	EnvDevelopment = "development"
-	EnvStaging     = "staging"
-	EnvProduction  = "production"
-	EnvTest        = "test"
+	EnvDev   = "dev"
+	EnvStage = "stage"
+	EnvProd  = "prod"
+)
+
+const (
+	EnvActiveEnv     = "ACTIVE_ENV"
+	EnvKeyPort       = "PORT"
+	EnvKeyDBHost     = "DB_HOST"
+	EnvKeyDBPort     = "DB_PORT"
+	EnvKeyDBUser     = "DB_USER"
+	EnvKeyDBPassword = "DB_PASSWORD"
+	EnvKeyDBName     = "DB_NAME"
+	EnvKeyDBSSLMode  = "DB_SSL_MODE"
 )

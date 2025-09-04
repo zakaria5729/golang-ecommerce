@@ -25,8 +25,8 @@ func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Reques
 	includeStr := q.Get(constants.Include)
 	parentIDFilter := q.Get(category.CategoryParentID)
 	showPriorityFilter := q.Get(category.CategoryPriority)
-	sortBy := q.Get("sort_by")
-	sortOrder := q.Get("sort_order")
+	sortBy := q.Get(constants.SortBy)
+	sortOrder := q.Get(constants.SortOrder)
 
 	categories, err := h.useCase.GetAllCategories(includeStr, parentIDFilter, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {

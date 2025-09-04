@@ -7,6 +7,7 @@ import (
 
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -41,6 +42,9 @@ func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, 
 	}
 
 	err := query.Find(&categories).Error
+	if err != nil {
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+	}
 	return categories, err
 }
 
@@ -65,11 +69,15 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentI
 	}
 
 	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
+		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	offset := (page - 1) * pageSize
 	err := query.Offset(offset).Limit(pageSize).Find(&categories).Error
+	if err != nil {
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+	}
 
 	return categories, int(total), err
 }
@@ -82,6 +90,7 @@ func (r *CategoryRepository) GetCategoryByID(id uint, include []string) (*Catego
 	query = query.Where(CategoryIsActive+" = ?", true)
 
 	if err := query.Where(constants.FieldID+" = ?", id).First(&category).Error; err != nil {
+		logger.Logger.Error("Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id, "include", include)
 		return nil, err
 	}
 
@@ -95,6 +104,7 @@ func (r *CategoryRepository) GetCategoryByIDIncludeInactive(id uint, include []s
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
 	if err := query.Where(constants.FieldID+" = ?", id).First(&category).Error; err != nil {
+		logger.Logger.Error("Failed to fetch category by ID (include inactive)", "method", "GetCategoryByIDIncludeInactive", "error", err, "id", id, "include", include)
 		return nil, err
 	}
 
@@ -102,11 +112,15 @@ func (r *CategoryRepository) GetCategoryByIDIncludeInactive(id uint, include []s
 }
 
 func (r *CategoryRepository) CreateCategory(category *Category) error {
-	return r.db.Create(category).Error
+	err := r.db.Create(category).Error
+	if err != nil {
+		logger.Logger.Error("Failed to create category", "method", "CreateCategory", "error", err, "category", category)
+	}
+	return err
 }
 
 func (r *CategoryRepository) UpdateCategory(category *Category) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var currentCategory Category
 		if err := tx.First(&currentCategory, category.ID).Error; err != nil {
 			return err
@@ -124,6 +138,10 @@ func (r *CategoryRepository) UpdateCategory(category *Category) error {
 
 		return nil
 	})
+	if err != nil {
+		logger.Logger.Error("Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
+	}
+	return err
 }
 
 func (r *CategoryRepository) DeleteCategory(id uint) error {
@@ -136,15 +154,21 @@ func (r *CategoryRepository) DeleteCategory(id uint) error {
 
 	if err := tx.Delete(&Category{}, id).Error; err != nil {
 		tx.Rollback()
+		logger.Logger.Error("Failed to delete category", "method", "DeleteCategory", "error", err, "id", id)
 		return err
 	}
 
 	if err := r.deleteSubcategoriesRecursively(tx, id); err != nil {
 		tx.Rollback()
+		logger.Logger.Error("Failed to delete subcategories", "method", "DeleteCategory", "error", err, "id", id)
 		return err
 	}
 
-	return tx.Commit().Error
+	err := tx.Commit().Error
+	if err != nil {
+		logger.Logger.Error("Failed to commit category deletion", "method", "DeleteCategory", "error", err, "id", id)
+	}
+	return err
 }
 
 func (r *CategoryRepository) deleteSubcategoriesRecursively(tx *gorm.DB, parentID uint) error {
@@ -167,13 +191,17 @@ func (r *CategoryRepository) deleteSubcategoriesRecursively(tx *gorm.DB, parentI
 }
 
 func (r *CategoryRepository) UpdateCategoryStatus(id uint, isActive bool) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&Category{}).Where(constants.FieldID+" = ?", id).Update(CategoryIsActive, isActive).Error; err != nil {
 			return err
 		}
 
 		return r.updateSubcategoriesStatusRecursively(tx, id, isActive)
 	})
+	if err != nil {
+		logger.Logger.Error("Failed to update category status", "method", "UpdateCategoryStatus", "error", err, "id", id, "isActive", isActive)
+	}
+	return err
 }
 
 func (r *CategoryRepository) updateSubcategoriesStatusRecursively(tx *gorm.DB, parentID uint, isActive bool) error {
@@ -198,6 +226,9 @@ func (r *CategoryRepository) updateSubcategoriesStatusRecursively(tx *gorm.DB, p
 func (r *CategoryRepository) CategoryExists(id uint) (bool, error) {
 	var count int64
 	err := r.db.Model(&Category{}).Where(constants.FieldID+" = ?", id).Count(&count).Error
+	if err != nil {
+		logger.Logger.Error("Failed to check if category exists", "method", "CategoryExists", "error", err, "id", id)
+	}
 	return count > 0, err
 }
 
@@ -210,17 +241,23 @@ func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint
 	}
 
 	err := query.Count(&count).Error
+	if err != nil {
+		logger.Logger.Error("Failed to check if category exists by title", "method", "CategoryExistsByTitle", "error", err, "title", title, "excludeID", excludeID)
+	}
 	return count > 0, err
 }
 
 func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
 	var count int64
 	err := r.db.Model(&Category{}).Where(CategoryParentID+" = ?", parentID).Count(&count).Error
+	if err != nil {
+		logger.Logger.Error("Failed to check if category has children", "method", "HasChildren", "error", err, "parentID", parentID)
+	}
 	return count > 0, err
 }
 
 func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		rootID, err := r.findRootCategoryID(tx, categoryID)
 		if err != nil {
 			return err
@@ -232,6 +269,10 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 
 		return result.Error
 	})
+	if err != nil {
+		logger.Logger.Error("Failed to increment priority", "method", "IncrementPriority", "error", err, "categoryID", categoryID)
+	}
+	return err
 }
 
 func (r *CategoryRepository) findRootCategoryID(tx *gorm.DB, categoryID uint) (uint, error) {

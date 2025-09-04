@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -17,7 +18,8 @@ func init() {
 }
 
 func initLogger() {
-	if err := os.MkdirAll("logs", 0755); err != nil {
+	logsDir := getProjectRoot() + "/logs"
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		panic(fmt.Sprintf("Failed to create log directory: %v", err))
 	}
 
@@ -43,7 +45,14 @@ func IsInitialized() bool {
 
 func getLogFileName() string {
 	today := time.Now().Format("2006-01-02")
-	return filepath.Join("logs", fmt.Sprintf("app-%s.log", today))
+	logsDir := getProjectRoot() + "/logs"
+	return filepath.Join(logsDir, fmt.Sprintf("app-%s.log", today))
+}
+
+func getProjectRoot() string {
+	_, filename, _, _ := runtime.Caller(0)
+	// Go up from pkg/logger/logger.go to project root
+	return filepath.Join(filepath.Dir(filename), "..", "..")
 }
 
 func SetLevel(level slog.Level) {

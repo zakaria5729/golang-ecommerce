@@ -1,2 +1,0 @@
-{"time":"2025-09-03T19:58:16.615484+06:00","level":"INFO","msg":"Database connected successfully","host":"localhost","port":"5432","dbname":"easy_commerce"}
-{"time":"2025-09-03T19:58:16.61572+06:00","level":"INFO","msg":"Server starting","port":"8080"}
