@@ -13,6 +13,7 @@ const (
 func RegisterRoutes(mux *http.ServeMux) {
 	registerCategoryRoutes(mux)
 	registerAddressRoutes(mux)
+	registerBrowsingHistoryRoutes(mux)
 }
 
 func registerCategoryRoutes(mux *http.ServeMux) {
@@ -38,4 +39,17 @@ func registerAddressRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE "+versionV1+"/addresses/id/{id}", handler.DeleteAddress)
 	mux.HandleFunc("PATCH "+versionV1+"/addresses/id/{id}/set-default", handler.SetDefaultAddress)
 	mux.HandleFunc("GET "+versionV1+"/addresses/default", handler.GetDefaultAddress)
+}
+
+func registerBrowsingHistoryRoutes(mux *http.ServeMux) {
+	handler := handler.NewBrowsingHistoryHandler()
+
+	mux.HandleFunc("GET "+versionV1+"/browsing-history", handler.GetAllBrowsingHistory)
+	mux.HandleFunc("GET "+versionV1+"/browsing-history/paginated", handler.GetAllBrowsingHistoryPaginated)
+	mux.HandleFunc("GET "+versionV1+"/browsing-history/id/{id}", handler.GetBrowsingHistoryByID)
+	mux.HandleFunc("POST "+versionV1+"/browsing-history", handler.CreateBrowsingHistory)
+	mux.HandleFunc("DELETE "+versionV1+"/browsing-history/id/{id}", handler.DeleteBrowsingHistory)
+	mux.HandleFunc("DELETE "+versionV1+"/browsing-history/clear", handler.ClearBrowsingHistory)
+	mux.HandleFunc("GET "+versionV1+"/browsing-history/recent", handler.GetRecentBrowsingHistory)
+	mux.HandleFunc("GET "+versionV1+"/browsing-history/most-viewed", handler.GetMostViewedProducts)
 }
