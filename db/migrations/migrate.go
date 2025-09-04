@@ -43,9 +43,9 @@ func executeSQLFile(db *gorm.DB, filePath string) error {
 		return fmt.Errorf("failed to read file %s: %w", filePath, err)
 	}
 
-	statements := strings.SplitSeq(string(content), ";")
+	statements := strings.Split(string(content), ";")
 
-	for statement := range statements {
+	for _, statement := range statements {
 		statement = strings.TrimSpace(statement)
 		if statement == "" {
 			continue

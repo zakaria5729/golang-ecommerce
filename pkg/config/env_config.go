@@ -10,8 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func GetActiveEnv() string {
-	return getEnv(constants.EnvActiveEnv, constants.EnvStage)
+func GetActiveProfile() string {
+	return getEnv(constants.EnvActiveProfile, constants.EnvDev)
 }
 
 type Config struct {
@@ -44,7 +44,7 @@ func Load() Config {
 	projectRoot := filepath.Join(filepath.Dir(filename), "..", "..")
 
 	var envFileName string
-	switch GetActiveEnv() {
+	switch GetActiveProfile() {
 	case constants.EnvStage:
 		envFileName = ".env.stage"
 	case constants.EnvProd:

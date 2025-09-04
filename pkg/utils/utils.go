@@ -79,6 +79,13 @@ func ParseBoolPtr(s string) *bool {
 	return &result
 }
 
+func ParseStringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 	page = 1
 	pageSize = constants.DefaultPageSize

@@ -22,11 +22,11 @@ func InitDB(cfg config.Config) {
 	})
 
 	if err != nil {
-		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "dbname", cfg.DBName)
+		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile())
 		panic(err)
 	}
 
-	logger.Logger.Info("Database connected successfully", "host", cfg.DBHost, "port", cfg.DBPort, "dbname", cfg.DBName)
+	logger.Logger.Info("Database connected successfully", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile())
 }
 
 func GetDB() *gorm.DB {

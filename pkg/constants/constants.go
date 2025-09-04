@@ -87,7 +87,7 @@ const (
 )
 
 const (
-	EnvActiveEnv     = "ACTIVE_ENV"
+	EnvActiveProfile = "ACTIVE_PROFILE"
 	EnvKeyPort       = "PORT"
 	EnvKeyDBHost     = "DB_HOST"
 	EnvKeyDBPort     = "DB_PORT"
