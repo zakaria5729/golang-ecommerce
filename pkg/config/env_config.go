@@ -15,12 +15,12 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:       getEnv("PORT", "8080"),
-		DBHost:     getEnv("DB_HOST", "localhost"),
+		DBHost:     getEnv("DB_HOST", "ep-nameless-boat-a1ha9si8-pooler.ap-southeast-1.aws.neon.tech"),
 		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "password"),
-		DBName:     getEnv("DB_NAME", "easy_commerce"),
-		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		DBUser:     getEnv("DB_USER", "neondb_owner"),
+		DBPassword: getEnv("DB_PASSWORD", "npg_bUkBA2NOm3SC"),
+		DBName:     getEnv("DB_NAME", "neondb"),
+		DBSSLMode:  getEnv("DB_SSL_MODE", "require"),
 	}
 }
 
