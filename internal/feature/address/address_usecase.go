@@ -7,7 +7,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type AddressUseCase struct {
@@ -82,11 +81,6 @@ func (uc *AddressUseCase) CreateAddress(userID uint, req *Address) (*Address, er
 		return nil, errors.New("invalid user ID")
 	}
 
-	if err := uc.validateCreateRequest(req); err.HasErrors() {
-		logger.Logger.Error("Validation failed", "method", "CreateAddress", "error", err)
-		return nil, fmt.Errorf("validation failed: %w", err)
-	}
-
 	req.Sanitize()
 	req.UserID = userID
 
@@ -127,11 +121,6 @@ func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Ad
 	if userID == 0 {
 		logger.Logger.Error("Invalid user ID", "method", "UpdateAddress", "userID", userID)
 		return nil, errors.New("invalid user ID")
-	}
-
-	if err := uc.validateUpdateRequest(req); err.HasErrors() {
-		logger.Logger.Error("Validation failed", "method", "UpdateAddress", "error", err)
-		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
 	req.Sanitize()
@@ -256,107 +245,4 @@ func (uc *AddressUseCase) GetDefaultAddress(userID uint, addressType string) (*A
 	}
 
 	return address, nil
-}
-
-func (uc *AddressUseCase) validateCreateRequest(req *Address) validator.ValidationErrors {
-	var errors validator.ValidationErrors
-
-	errors = validator.MergeValidationErrors(
-		errors,
-		validator.ValidateRequired(req.Street, "street"),
-		validator.ValidateRequired(req.City, "city"),
-		validator.ValidateRequired(req.Country, "country"),
-	)
-
-	if req.Street != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Street, "street", 5),
-			validator.ValidateMaxLength(req.Street, "street", 500),
-		)
-	}
-
-	if req.City != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.City, "city", 2),
-			validator.ValidateMaxLength(req.City, "city", 100),
-		)
-	}
-
-	if req.State != nil && *req.State != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.State, "state", 100),
-		)
-	}
-
-	if req.ZipCode != nil && *req.ZipCode != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.ZipCode, "zip_code", 20),
-		)
-	}
-
-	if req.Country != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Country, "country", 2),
-			validator.ValidateMaxLength(req.Country, "country", 100),
-		)
-	}
-
-	if req.AddressType != "" && req.AddressType != AddressTypeShipping && req.AddressType != AddressTypeBilling {
-		errors.AddError("address_type", "address_type must be 'shipping' or 'billing'")
-	}
-
-	return errors
-}
-
-func (uc *AddressUseCase) validateUpdateRequest(req *Address) validator.ValidationErrors {
-	var errors validator.ValidationErrors
-
-	if req.Street != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Street, "street", 5),
-			validator.ValidateMaxLength(req.Street, "street", 500),
-		)
-	}
-
-	if req.City != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.City, "city", 2),
-			validator.ValidateMaxLength(req.City, "city", 100),
-		)
-	}
-
-	if req.State != nil && *req.State != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.State, "state", 100),
-		)
-	}
-
-	if req.ZipCode != nil && *req.ZipCode != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.ZipCode, "zip_code", 20),
-		)
-	}
-
-	if req.Country != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Country, "country", 2),
-			validator.ValidateMaxLength(req.Country, "country", 100),
-		)
-	}
-
-	if req.AddressType != "" && req.AddressType != AddressTypeShipping && req.AddressType != AddressTypeBilling {
-		errors.AddError("address_type", "address_type must be 'shipping' or 'billing'")
-	}
-
-	return errors
 }

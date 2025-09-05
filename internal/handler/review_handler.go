@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/easy-comerce/backend/internal/feature/review"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type ReviewHandler struct {
@@ -24,6 +26,7 @@ func NewReviewHandler() *ReviewHandler {
 
 func (h *ReviewHandler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+
 	includeStr := q.Get(constants.Include)
 	productIDFilter := q.Get(review.ReviewProductID)
 	userIDFilter := q.Get(review.ReviewUserID)
@@ -42,6 +45,7 @@ func (h *ReviewHandler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
 
 func (h *ReviewHandler) GetAllReviewsPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+
 	includeStr := q.Get(constants.Include)
 	pageStr := q.Get(constants.Page)
 	pageSizeStr := q.Get(constants.PageSize)
@@ -62,7 +66,7 @@ func (h *ReviewHandler) GetAllReviewsPaginated(w http.ResponseWriter, r *http.Re
 
 func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid review ID", http.StatusBadRequest)
 		return
 	}
@@ -95,8 +99,7 @@ func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors := h.useCase.ValidateReviewInput(requestData.Rating, requestData.Comment)
-	if len(validationErrors) > 0 {
+	if validationErrors := h.validateReviewRequest(requestData.Rating, requestData.Comment); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
@@ -132,8 +135,7 @@ func (h *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors := h.useCase.ValidateReviewInput(requestData.Rating, requestData.Comment)
-	if len(validationErrors) > 0 {
+	if validationErrors := h.validateReviewRequest(requestData.Rating, requestData.Comment); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
@@ -154,7 +156,7 @@ func (h *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 
 func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid review ID", http.StatusBadRequest)
 		return
 	}
@@ -175,7 +177,7 @@ func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 
 func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Request) {
 	productID, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || productID == nil {
+	if err != nil || productID == nil || *productID == 0 {
 		response.SendErrorJSON(w, "Invalid product ID", http.StatusBadRequest)
 		return
 	}
@@ -197,7 +199,7 @@ func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Reque
 
 func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || userID == nil {
+	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
@@ -219,7 +221,7 @@ func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request)
 
 func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Request) {
 	productID, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || productID == nil {
+	if err != nil || productID == nil || *productID == 0 {
 		response.SendErrorJSON(w, "Invalid product ID", http.StatusBadRequest)
 		return
 	}
@@ -235,4 +237,24 @@ func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Req
 
 func (h *ReviewHandler) getUserID() uint {
 	return uint(1)
+}
+
+func (h *ReviewHandler) validateReviewRequest(rating, comment string) validator.ValidationErrors {
+	var errors validator.ValidationErrors
+
+	if rating == "" {
+		errors.AddError("rating", "Rating is required")
+	} else {
+		if ratingInt, err := strconv.Atoi(rating); err != nil || ratingInt < 1 || ratingInt > 5 {
+			errors.AddError("rating", "Rating must be between 1 and 5")
+		}
+	}
+
+	if comment != "" {
+		if len(comment) > 1000 {
+			errors.AddError("comment", "Comment must not exceed 1000 characters")
+		}
+	}
+
+	return errors
 }

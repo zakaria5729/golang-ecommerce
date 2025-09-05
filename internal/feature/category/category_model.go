@@ -11,7 +11,7 @@ type Category struct {
 	SubTitle *string `json:"sub_title,omitempty" gorm:"column:sub_title"`
 	ImageURL *string `json:"image_url,omitempty" gorm:"column:image_url"`
 	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
-	IsActive bool    `json:"is_active,omitempty" gorm:"column:is_active"`
+	IsActive bool    `json:"is_active" gorm:"column:is_active"`
 	Priority *uint   `json:"priority,omitempty" gorm:"column:priority"`
 }
 

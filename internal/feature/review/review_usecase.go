@@ -63,8 +63,8 @@ func (uc *ReviewUseCase) GetReviewByID(idStr string, includeStr string) (*Review
 	}
 
 	include := utils.ParseCommaSeparatedString(includeStr)
-
 	review, err := uc.repo.GetReviewByID(*id, include)
+
 	if err != nil {
 		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
 		return nil, fmt.Errorf("failed to fetch review: %w", err)
@@ -120,7 +120,7 @@ func (uc *ReviewUseCase) UpdateReview(idStr string, userID uint, ratingStr strin
 		return nil, fmt.Errorf("invalid review ID: %w", err)
 	}
 
-	updates := make(map[string]interface{})
+	updates := make(map[string]any)
 
 	if ratingStr != "" {
 		rating, err := utils.ParseInt(ratingStr)

@@ -7,7 +7,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type CategoryUseCase struct {
@@ -56,11 +55,6 @@ func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentID
 }
 
 func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Category, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid category ID provided", "method", "GetCategoryByID", "id", id)
-		return nil, errors.New("invalid category ID")
-	}
-
 	include := utils.ParseCommaSeparatedString(includeStr)
 	category, err := uc.repo.GetCategoryByID(id, include)
 	if err != nil {
@@ -72,10 +66,6 @@ func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Categor
 }
 
 func (uc *CategoryUseCase) CreateCategory(req *Category) (*Category, error) {
-	if err := uc.validateCreateRequest(req); err.HasErrors() {
-		logger.Logger.Error("Validation failed", "method", "CreateCategory", "error", err)
-		return nil, fmt.Errorf("validation failed: %w", err)
-	}
 
 	req.Sanitize()
 
@@ -122,15 +112,6 @@ func (uc *CategoryUseCase) CreateCategory(req *Category) (*Category, error) {
 }
 
 func (uc *CategoryUseCase) UpdateCategory(id uint, req *Category) (*Category, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid category ID", "method", "UpdateCategory", "id", id)
-		return nil, errors.New("invalid category ID")
-	}
-
-	if err := uc.validateUpdateRequest(req); err.HasErrors() {
-		logger.Logger.Error("Validation failed", "method", "UpdateCategory", "error", err)
-		return nil, fmt.Errorf("validation failed: %w", err)
-	}
 
 	req.Sanitize()
 
@@ -199,11 +180,6 @@ func (uc *CategoryUseCase) UpdateCategory(id uint, req *Category) (*Category, er
 }
 
 func (uc *CategoryUseCase) DeleteCategory(id uint) error {
-	if id == 0 {
-		logger.Logger.Error("Invalid category ID", "method", "DeleteCategory", "id", id)
-		return errors.New("invalid category ID")
-	}
-
 	_, err := uc.repo.GetCategoryByIDIncludeInactive(id, nil)
 	if err != nil {
 		logger.Logger.Error("Category not found", "method", "DeleteCategory", "error", err, "id", id)
@@ -227,11 +203,6 @@ func (uc *CategoryUseCase) IncrementPriority(categoryID uint) error {
 }
 
 func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid category ID", "method", "ToggleCategoryStatus", "id", id)
-		return nil, errors.New("invalid category ID")
-	}
-
 	category, err := uc.repo.GetCategoryByIDIncludeInactive(id, nil)
 	if err != nil {
 		logger.Logger.Error("Category not found", "method", "ToggleCategoryStatus", "error", err, "id", id)
@@ -239,7 +210,6 @@ func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
 	}
 
 	newStatus := !category.IsActive
-
 	if err := uc.repo.UpdateCategoryStatus(id, newStatus); err != nil {
 		logger.Logger.Error("Failed to update category status", "method", "ToggleCategoryStatus", "error", err, "id", id, "newStatus", newStatus)
 		return nil, fmt.Errorf("failed to update category status: %w", err)
@@ -247,73 +217,4 @@ func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
 
 	category.IsActive = newStatus
 	return category, nil
-}
-
-func (uc *CategoryUseCase) validateCreateRequest(req *Category) validator.ValidationErrors {
-	var errors validator.ValidationErrors
-
-	errors = validator.MergeValidationErrors(
-		errors,
-		validator.ValidateRequired(req.Title, "title"),
-	)
-
-	if req.Title != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Title, "title", 2),
-			validator.ValidateMaxLength(req.Title, "title", 100),
-		)
-	}
-
-	if req.SubTitle != nil && *req.SubTitle != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.SubTitle, "sub_title", 200),
-		)
-	}
-
-	if req.ImageURL != nil && *req.ImageURL != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateURL(*req.ImageURL, "image_url"),
-		)
-	}
-
-	if req.ParentID != nil && *req.ParentID == 0 {
-		errors.AddError("parent_id", "parent_id must be a positive integer")
-	}
-
-	return errors
-}
-
-func (uc *CategoryUseCase) validateUpdateRequest(req *Category) validator.ValidationErrors {
-	var errors validator.ValidationErrors
-
-	if req.Title != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMinLength(req.Title, "title", 2),
-			validator.ValidateMaxLength(req.Title, "title", 120),
-		)
-	}
-
-	if req.SubTitle != nil && *req.SubTitle != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateMaxLength(*req.SubTitle, "sub_title", 255),
-		)
-	}
-
-	if req.ImageURL != nil && *req.ImageURL != "" {
-		errors = validator.MergeValidationErrors(
-			errors,
-			validator.ValidateURL(*req.ImageURL, "image_url"),
-		)
-	}
-
-	if req.ParentID != nil && *req.ParentID == 0 {
-		errors.AddError("parent_id", "parent_id must be a positive integer")
-	}
-
-	return errors
 }

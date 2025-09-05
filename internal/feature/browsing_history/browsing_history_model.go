@@ -13,10 +13,6 @@ type BrowsingHistory struct {
 	ViewedAt  time.Time `json:"viewed_at" gorm:"column:viewed_at"`
 }
 
-func (BrowsingHistory) TableName() string {
-	return "browsing_history"
-}
-
 const (
 	BrowsingHistoryUserID    = "user_id"
 	BrowsingHistoryProductID = "product_id"

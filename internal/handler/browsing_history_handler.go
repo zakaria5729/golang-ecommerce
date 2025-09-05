@@ -9,6 +9,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type BrowsingHistoryHandler struct {
@@ -19,11 +20,6 @@ func NewBrowsingHistoryHandler() *BrowsingHistoryHandler {
 	return &BrowsingHistoryHandler{
 		useCase: browsing_history.NewBrowsingHistoryUseCase(),
 	}
-}
-
-func (h *BrowsingHistoryHandler) getUserID() uint {
-	// TODO: Get from JWT token or session in the future
-	return uint(1)
 }
 
 func (h *BrowsingHistoryHandler) GetAllBrowsingHistory(w http.ResponseWriter, r *http.Request) {
@@ -72,8 +68,13 @@ func (h *BrowsingHistoryHandler) GetBrowsingHistoryByID(w http.ResponseWriter, r
 	userID := h.getUserID()
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid browsing history ID", http.StatusBadRequest)
+		return
+	}
+
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
@@ -96,6 +97,16 @@ func (h *BrowsingHistoryHandler) CreateBrowsingHistory(w http.ResponseWriter, r 
 		return
 	}
 
+	if validationErrors := h.validateBrowsingHistoryRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
 	history, err := h.useCase.CreateBrowsingHistory(userID, &req)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to create browsing history", http.StatusInternalServerError)
@@ -109,8 +120,13 @@ func (h *BrowsingHistoryHandler) DeleteBrowsingHistory(w http.ResponseWriter, r 
 	userID := h.getUserID()
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid browsing history ID", http.StatusBadRequest)
+		return
+	}
+
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
@@ -125,6 +141,11 @@ func (h *BrowsingHistoryHandler) DeleteBrowsingHistory(w http.ResponseWriter, r 
 func (h *BrowsingHistoryHandler) ClearBrowsingHistory(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.useCase.ClearBrowsingHistory(userID); err != nil {
 		response.SendErrorJSON(w, "Failed to clear browsing history")
 		return
@@ -136,14 +157,12 @@ func (h *BrowsingHistoryHandler) ClearBrowsingHistory(w http.ResponseWriter, r *
 func (h *BrowsingHistoryHandler) GetRecentBrowsingHistory(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 
-	limitStr := r.URL.Query().Get("limit")
-	limit := 10 // Default limit
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-		}
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
 	}
 
+	limit := h.getLimitFromQuery(r.URL.Query().Get("limit"))
 	history, err := h.useCase.GetRecentBrowsingHistory(userID, limit)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to get recent browsing history", http.StatusInternalServerError)
@@ -156,14 +175,12 @@ func (h *BrowsingHistoryHandler) GetRecentBrowsingHistory(w http.ResponseWriter,
 func (h *BrowsingHistoryHandler) GetMostViewedProducts(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 
-	limitStr := r.URL.Query().Get("limit")
-	limit := 10 // Default limit
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-		}
+	if userID == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
 	}
 
+	limit := h.getLimitFromQuery(r.URL.Query().Get("limit"))
 	productIDs, err := h.useCase.GetMostViewedProducts(userID, limit)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to get most viewed products", http.StatusInternalServerError)
@@ -171,4 +188,33 @@ func (h *BrowsingHistoryHandler) GetMostViewedProducts(w http.ResponseWriter, r 
 	}
 
 	response.SendSuccessJSON(w, productIDs)
+}
+
+func (h *BrowsingHistoryHandler) validateBrowsingHistoryRequest(req *browsing_history.BrowsingHistory) validator.ValidationErrors {
+	var errors validator.ValidationErrors
+
+	if req.ProductID == 0 {
+		errors.AddError("product_id", "Product ID is required")
+	}
+
+	return errors
+}
+
+func (h *BrowsingHistoryHandler) getLimitFromQuery(limitStr string) int {
+	limit := h.getDefaultLimit()
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	return limit
+}
+
+func (h *BrowsingHistoryHandler) getDefaultLimit() int {
+	return 10
+}
+
+func (h *BrowsingHistoryHandler) getUserID() uint {
+	// TODO: Get from JWT token or session in the future
+	return uint(1)
 }

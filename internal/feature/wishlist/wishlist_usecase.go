@@ -54,11 +54,6 @@ func (uc *WishlistUseCase) GetAllWishlistsPaginated(userID uint, includeStr stri
 }
 
 func (uc *WishlistUseCase) GetWishlistByID(id uint, userID uint, includeStr string) (*Wishlist, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid wishlist ID provided", "method", "GetWishlistByID", "id", id)
-		return nil, errors.New("invalid wishlist ID")
-	}
-
 	include := utils.ParseCommaSeparatedString(includeStr)
 	wishlist, err := uc.repo.GetWishlistByID(id, userID, include)
 	if err != nil {
@@ -106,11 +101,6 @@ func (uc *WishlistUseCase) CreateWishlist(userID uint, productIDStr string) (*Wi
 }
 
 func (uc *WishlistUseCase) DeleteWishlist(id uint, userID uint) error {
-	if id == 0 {
-		logger.Logger.Error("Invalid wishlist ID", "method", "DeleteWishlist", "id", id)
-		return errors.New("invalid wishlist ID")
-	}
-
 	if err := uc.repo.DeleteWishlist(id, userID); err != nil {
 		logger.Logger.Error("Failed to delete wishlist", "method", "DeleteWishlist", "error", err, "id", id, "userID", userID)
 		return fmt.Errorf("failed to delete wishlist: %w", err)
@@ -153,11 +143,6 @@ func (uc *WishlistUseCase) ClearUserWishlist(userID uint) error {
 }
 
 func (uc *WishlistUseCase) GetWishlistCount(userID uint) (int64, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "GetWishlistCount", "userID", userID)
-		return 0, errors.New("invalid user ID")
-	}
-
 	count, err := uc.repo.GetWishlistCount(userID)
 	if err != nil {
 		logger.Logger.Error("Failed to get wishlist count", "method", "GetWishlistCount", "error", err, "userID", userID)

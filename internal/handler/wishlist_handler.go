@@ -3,12 +3,14 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/easy-comerce/backend/internal/feature/wishlist"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type WishlistHandler struct {
@@ -23,6 +25,7 @@ func NewWishlistHandler() *WishlistHandler {
 
 func (h *WishlistHandler) GetAllWishlists(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
+
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
 	productIDFilter := q.Get(wishlist.WishlistProductID)
@@ -40,6 +43,7 @@ func (h *WishlistHandler) GetAllWishlists(w http.ResponseWriter, r *http.Request
 
 func (h *WishlistHandler) GetAllWishlistsPaginated(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
+
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
 	pageStr := q.Get(constants.Page)
@@ -60,7 +64,7 @@ func (h *WishlistHandler) GetAllWishlistsPaginated(w http.ResponseWriter, r *htt
 func (h *WishlistHandler) GetWishlistByID(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid wishlist ID", http.StatusBadRequest)
 		return
 	}
@@ -90,6 +94,11 @@ func (h *WishlistHandler) CreateWishlist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if validationErrors := h.validateWishlistRequest(req.ProductID); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
 	wishlist, err := h.useCase.CreateWishlist(userID, req.ProductID)
 	if err != nil {
 		if strings.Contains(err.Error(), "already in wishlist") {
@@ -110,7 +119,7 @@ func (h *WishlistHandler) CreateWishlist(w http.ResponseWriter, r *http.Request)
 func (h *WishlistHandler) DeleteWishlist(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid wishlist ID", http.StatusBadRequest)
 		return
 	}
@@ -164,7 +173,6 @@ func (h *WishlistHandler) ClearWishlist(w http.ResponseWriter, r *http.Request) 
 
 func (h *WishlistHandler) GetWishlistCount(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
-
 	count, err := h.useCase.GetWishlistCount(userID)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to get wishlist count", http.StatusInternalServerError)
@@ -224,4 +232,18 @@ func (h *WishlistHandler) IsProductInWishlist(w http.ResponseWriter, r *http.Req
 func (h *WishlistHandler) getUserID() uint {
 	// Hardcoded user ID for now - replace with actual user authentication
 	return 1
+}
+
+func (h *WishlistHandler) validateWishlistRequest(productID string) validator.ValidationErrors {
+	var errors validator.ValidationErrors
+
+	if productID == "" {
+		errors.AddError("product_id", "Product ID is required")
+	} else {
+		if productIDInt, err := strconv.ParseUint(productID, 10, 32); err != nil || productIDInt == 0 {
+			errors.AddError("product_id", "Product ID must be a positive integer")
+		}
+	}
+
+	return errors
 }

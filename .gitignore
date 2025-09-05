@@ -1,6 +1,7 @@
 __debug_bin*
 *.log
 api-doc/*
+postman/*
 main
 *.exe
 *.bin

@@ -43,8 +43,7 @@ func (r *BrowsingHistoryRepository) GetAllBrowsingHistory(userID uint, include [
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &[]string{BrowsingHistoryViewedAt}); orderClause != "" {
 		query = query.Order(orderClause)
 	} else {
-		// Default ordering by viewed_at descending
-		query = query.Order(BrowsingHistoryViewedAt + " DESC")
+		query = query.Order(BrowsingHistoryViewedAt + " " + constants.SortOrderDesc)
 	}
 
 	err := query.Find(&history).Error
@@ -77,8 +76,7 @@ func (r *BrowsingHistoryRepository) GetAllBrowsingHistoryPaginated(userID uint, 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &[]string{BrowsingHistoryViewedAt}); orderClause != "" {
 		query = query.Order(orderClause)
 	} else {
-		// Default ordering by viewed_at descending
-		query = query.Order(BrowsingHistoryViewedAt + " DESC")
+		query = query.Order(BrowsingHistoryViewedAt + " " + constants.SortOrderDesc)
 	}
 
 	if err := query.Model(&BrowsingHistory{}).Count(&total).Error; err != nil {
@@ -111,7 +109,6 @@ func (r *BrowsingHistoryRepository) GetBrowsingHistoryByID(id uint, userID uint,
 }
 
 func (r *BrowsingHistoryRepository) CreateBrowsingHistory(history *BrowsingHistory) error {
-	// Set viewed_at to current time if not provided
 	if history.ViewedAt.IsZero() {
 		history.ViewedAt = time.Now()
 	}
@@ -143,7 +140,7 @@ func (r *BrowsingHistoryRepository) GetRecentBrowsingHistory(userID uint, limit 
 	var history []BrowsingHistory
 
 	query := r.db.Where(BrowsingHistoryUserID+" = ?", userID)
-	query = query.Order(BrowsingHistoryViewedAt + " DESC")
+	query = query.Order(BrowsingHistoryViewedAt + " " + constants.SortOrderDesc)
 	query = query.Limit(limit)
 
 	err := query.Find(&history).Error
@@ -160,7 +157,7 @@ func (r *BrowsingHistoryRepository) GetMostViewedProducts(userID uint, limit int
 		Select(BrowsingHistoryProductID).
 		Where(BrowsingHistoryUserID+" = ?", userID).
 		Group(BrowsingHistoryProductID).
-		Order("COUNT(*) DESC").
+		Order("COUNT(*) " + constants.SortOrderDesc).
 		Limit(limit)
 
 	err := query.Pluck(BrowsingHistoryProductID, &productIDs).Error

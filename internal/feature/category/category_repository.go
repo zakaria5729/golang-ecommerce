@@ -87,7 +87,6 @@ func (r *CategoryRepository) GetCategoryByID(id uint, include []string) (*Catego
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
-	query = query.Where(CategoryIsActive+" = ?", true)
 
 	if err := query.Where(constants.FieldID+" = ?", id).First(&category).Error; err != nil {
 		logger.Logger.Error("Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id, "include", include)
@@ -305,8 +304,8 @@ func (r *CategoryRepository) findRootCategoryID(tx *gorm.DB, categoryID uint) (u
 }
 
 func (r *CategoryRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{constants.FieldID, CategoryTitle, constants.FieldCreatedAt, constants.FieldUpdatedAt}
-	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryIsActive, CategoryParentID, CategoryPriority}
+	defaultFields := []string{constants.FieldID, CategoryTitle, CategoryIsActive, constants.FieldCreatedAt, constants.FieldUpdatedAt}
+	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryParentID, CategoryPriority}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
 

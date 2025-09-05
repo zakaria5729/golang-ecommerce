@@ -1,7 +1,6 @@
 package browsing_history
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -59,16 +58,6 @@ func (uc *BrowsingHistoryUseCase) GetAllBrowsingHistoryPaginated(userID uint, in
 }
 
 func (uc *BrowsingHistoryUseCase) GetBrowsingHistoryByID(id uint, userID uint, includeStr string) (*BrowsingHistory, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid browsing history ID provided", "method", "GetBrowsingHistoryByID", "id", id)
-		return nil, errors.New("invalid browsing history ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID provided", "method", "GetBrowsingHistoryByID", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
 	include := utils.ParseCommaSeparatedString(includeStr)
 	history, err := uc.repo.GetBrowsingHistoryByID(id, userID, include)
 	if err != nil {
@@ -80,11 +69,6 @@ func (uc *BrowsingHistoryUseCase) GetBrowsingHistoryByID(id uint, userID uint, i
 }
 
 func (uc *BrowsingHistoryUseCase) CreateBrowsingHistory(userID uint, req *BrowsingHistory) (*BrowsingHistory, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID provided", "method", "CreateBrowsingHistory", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
 	if err := uc.validateCreateRequest(req); err.HasErrors() {
 		logger.Logger.Error("Validation failed", "method", "CreateBrowsingHistory", "error", err)
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -96,7 +80,6 @@ func (uc *BrowsingHistoryUseCase) CreateBrowsingHistory(userID uint, req *Browsi
 		ViewedAt:  req.ViewedAt,
 	}
 
-	// Set viewed_at to current time if not provided
 	if history.ViewedAt.IsZero() {
 		history.ViewedAt = time.Now()
 	}
@@ -110,16 +93,6 @@ func (uc *BrowsingHistoryUseCase) CreateBrowsingHistory(userID uint, req *Browsi
 }
 
 func (uc *BrowsingHistoryUseCase) DeleteBrowsingHistory(id uint, userID uint) error {
-	if id == 0 {
-		logger.Logger.Error("Invalid browsing history ID", "method", "DeleteBrowsingHistory", "id", id)
-		return errors.New("invalid browsing history ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "DeleteBrowsingHistory", "userID", userID)
-		return errors.New("invalid user ID")
-	}
-
 	_, err := uc.repo.GetBrowsingHistoryByID(id, userID, nil)
 	if err != nil {
 		logger.Logger.Error("Browsing history not found", "method", "DeleteBrowsingHistory", "error", err, "id", id, "userID", userID)
@@ -135,11 +108,6 @@ func (uc *BrowsingHistoryUseCase) DeleteBrowsingHistory(id uint, userID uint) er
 }
 
 func (uc *BrowsingHistoryUseCase) ClearBrowsingHistory(userID uint) error {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "ClearBrowsingHistory", "userID", userID)
-		return errors.New("invalid user ID")
-	}
-
 	if err := uc.repo.ClearBrowsingHistory(userID); err != nil {
 		logger.Logger.Error("Failed to clear browsing history", "method", "ClearBrowsingHistory", "error", err, "userID", userID)
 		return fmt.Errorf("failed to clear browsing history: %w", err)
@@ -149,11 +117,6 @@ func (uc *BrowsingHistoryUseCase) ClearBrowsingHistory(userID uint) error {
 }
 
 func (uc *BrowsingHistoryUseCase) GetRecentBrowsingHistory(userID uint, limit int) ([]BrowsingHistory, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "GetRecentBrowsingHistory", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
 	if limit <= 0 {
 		limit = 10 // Default limit
 	}
@@ -168,11 +131,6 @@ func (uc *BrowsingHistoryUseCase) GetRecentBrowsingHistory(userID uint, limit in
 }
 
 func (uc *BrowsingHistoryUseCase) GetMostViewedProducts(userID uint, limit int) ([]uint, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "GetMostViewedProducts", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
 	if limit <= 0 {
 		limit = 10 // Default limit
 	}

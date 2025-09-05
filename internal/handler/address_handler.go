@@ -3,11 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 
 	"github.com/easy-comerce/backend/internal/feature/address"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type AddressHandler struct {
@@ -18,11 +20,6 @@ func NewAddressHandler() *AddressHandler {
 	return &AddressHandler{
 		useCase: address.NewAddressUseCase(),
 	}
-}
-
-func (h *AddressHandler) getUserID() uint {
-	// TODO: Get from JWT token or session in the future
-	return uint(1)
 }
 
 func (h *AddressHandler) GetAllAddresses(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +90,11 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if validationErrors := h.validateAddressRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
 	address, err := h.useCase.CreateAddress(userID, &req)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to create address", http.StatusInternalServerError)
@@ -114,6 +116,11 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	var req address.Address
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if validationErrors := h.validateAddressRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
@@ -188,4 +195,74 @@ func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Reques
 	}
 
 	response.SendSuccessJSON(w, address)
+}
+
+func (h *AddressHandler) validateAddressRequest(req *address.Address) validator.ValidationErrors {
+	var errors validator.ValidationErrors
+
+	if req.Street == "" {
+		errors.AddError("street", "Street is required")
+	} else {
+		if len(req.Street) < 5 {
+			errors.AddError("street", "Street must be at least 5 characters long")
+		}
+		if len(req.Street) > 200 {
+			errors.AddError("street", "Street must not exceed 200 characters")
+		}
+	}
+
+	if req.City == "" {
+		errors.AddError("city", "City is required")
+	} else {
+		if len(req.City) < 2 {
+			errors.AddError("city", "City must be at least 2 characters long")
+		}
+		if len(req.City) > 100 {
+			errors.AddError("city", "City must not exceed 100 characters")
+		}
+	}
+
+	if req.Country == "" {
+		errors.AddError("country", "Country is required")
+	} else {
+		if len(req.Country) < 2 {
+			errors.AddError("country", "Country must be at least 2 characters long")
+		}
+		if len(req.Country) > 100 {
+			errors.AddError("country", "Country must not exceed 100 characters")
+		}
+	}
+
+	if req.State != nil && *req.State != "" {
+		if len(*req.State) < 2 {
+			errors.AddError("state", "State must be at least 2 characters long")
+		}
+		if len(*req.State) > 100 {
+			errors.AddError("state", "State must not exceed 100 characters")
+		}
+	}
+
+	if req.ZipCode != nil && *req.ZipCode != "" {
+		if len(*req.ZipCode) < 3 {
+			errors.AddError("zip_code", "Zip code must be at least 3 characters long")
+		}
+		if len(*req.ZipCode) > 20 {
+			errors.AddError("zip_code", "Zip code must not exceed 20 characters")
+		}
+	}
+
+	if req.AddressType != "" {
+		validTypes := []string{"billing", "shipping", "both"}
+		isValid := slices.Contains(validTypes, req.AddressType)
+		if !isValid {
+			errors.AddError("address_type", "Address type must be one of: billing, shipping, both")
+		}
+	}
+
+	return errors
+}
+
+func (h *AddressHandler) getUserID() uint {
+	// TODO: Get from JWT token or session in the future
+	return uint(1)
 }

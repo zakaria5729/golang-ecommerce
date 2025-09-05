@@ -8,6 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type CategoryHandler struct {
@@ -58,7 +59,7 @@ func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *ht
 
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
@@ -66,7 +67,7 @@ func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request
 	include := r.URL.Query().Get(constants.Include)
 	category, err := h.useCase.GetCategoryByID(*id, include)
 	if err != nil {
-		response.SendErrorJSON(w, "Category not found", http.StatusNotFound)
+		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -80,9 +81,14 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if validationErrors := h.validateCategoryRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
 	category, err := h.useCase.CreateCategory(&req)
 	if err != nil {
-		response.SendErrorJSON(w, "Failed to create category", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -91,7 +97,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
@@ -102,9 +108,14 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if validationErrors := h.validateCategoryRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
 	category, err := h.useCase.UpdateCategory(*id, &req)
 	if err != nil {
-		response.SendErrorJSON(w, "Failed to update category", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -113,13 +124,13 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.useCase.DeleteCategory(*id); err != nil {
-		response.SendErrorJSON(w, "Failed to delete category")
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -128,16 +139,52 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 
 func (h *CategoryHandler) ToggleCategoryStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil {
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	category, err := h.useCase.ToggleCategoryStatus(*id)
 	if err != nil {
-		response.SendErrorJSON(w, "Failed to toggle category status", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response.SendSuccessJSON(w, category)
+}
+
+func (h *CategoryHandler) validateCategoryRequest(req *category.Category) validator.ValidationErrors {
+	var errors validator.ValidationErrors
+
+	if req.Title == "" {
+		errors.AddError("title", "Title is required")
+	} else {
+		if len(req.Title) < 2 {
+			errors.AddError("title", "Title must be at least 2 characters long")
+		}
+		if len(req.Title) > 100 {
+			errors.AddError("title", "Title must not exceed 100 characters")
+		}
+	}
+
+	if req.SubTitle != nil && *req.SubTitle != "" {
+		if len(*req.SubTitle) > 200 {
+			errors.AddError("sub_title", "Sub title must not exceed 200 characters")
+		}
+	}
+
+	if req.ImageURL != nil && *req.ImageURL != "" {
+		urlErrors := validator.ValidateURL(*req.ImageURL, "image_url")
+		errors = append(errors, urlErrors...)
+	}
+
+	if req.ParentID != nil && *req.ParentID == 0 {
+		errors.AddError("parent_id", "Parent ID must be a positive integer")
+	}
+
+	if req.Priority != nil && *req.Priority == 0 {
+		errors.AddError("priority", "Priority must be a positive integer")
+	}
+
+	return errors
 }
