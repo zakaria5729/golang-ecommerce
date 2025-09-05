@@ -39,11 +39,11 @@ func (h *BrowsingHistoryHandler) GetAllBrowsingHistory(w http.ResponseWriter, r 
 
 	history, err := h.useCase.GetAllBrowsingHistory(userID, includeStr, productIDFilter, dateFromFilter, dateToFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch browsing history", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, history)
+	response.SendSuccessJSON(w, history)
 }
 
 func (h *BrowsingHistoryHandler) GetAllBrowsingHistoryPaginated(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +61,11 @@ func (h *BrowsingHistoryHandler) GetAllBrowsingHistoryPaginated(w http.ResponseW
 
 	paginatedResponse, err := h.useCase.GetAllBrowsingHistoryPaginated(userID, includeStr, pageStr, pageSizeStr, productIDFilter, dateFromFilter, dateToFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch browsing history", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, paginatedResponse)
+	response.SendSuccessJSON(w, paginatedResponse)
 }
 
 func (h *BrowsingHistoryHandler) GetBrowsingHistoryByID(w http.ResponseWriter, r *http.Request) {
@@ -73,18 +73,18 @@ func (h *BrowsingHistoryHandler) GetBrowsingHistoryByID(w http.ResponseWriter, r
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid browsing history ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid browsing history ID", http.StatusBadRequest)
 		return
 	}
 
 	include := r.URL.Query().Get(constants.Include)
 	history, err := h.useCase.GetBrowsingHistoryByID(*id, userID, include)
 	if err != nil {
-		response.JSONError(w, "Browsing history not found", http.StatusNotFound)
+		response.SendErrorJSON(w, "Browsing history not found", http.StatusNotFound)
 		return
 	}
 
-	response.JSON(w, history)
+	response.SendSuccessJSON(w, history)
 }
 
 func (h *BrowsingHistoryHandler) CreateBrowsingHistory(w http.ResponseWriter, r *http.Request) {
@@ -92,17 +92,17 @@ func (h *BrowsingHistoryHandler) CreateBrowsingHistory(w http.ResponseWriter, r 
 
 	var req browsing_history.BrowsingHistory
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	history, err := h.useCase.CreateBrowsingHistory(userID, &req)
 	if err != nil {
-		response.JSONError(w, "Failed to create browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to create browsing history", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSONCreated(w, history)
+	response.SendSuccessJSON(w, history, http.StatusCreated)
 }
 
 func (h *BrowsingHistoryHandler) DeleteBrowsingHistory(w http.ResponseWriter, r *http.Request) {
@@ -110,27 +110,27 @@ func (h *BrowsingHistoryHandler) DeleteBrowsingHistory(w http.ResponseWriter, r 
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid browsing history ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid browsing history ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.useCase.DeleteBrowsingHistory(*id, userID); err != nil {
-		response.JSONError(w, "Failed to delete browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to delete browsing history")
 		return
 	}
 
-	response.JSONNoContent(w)
+	response.SendDeleteJSON(w, "Browsing history deleted successfully")
 }
 
 func (h *BrowsingHistoryHandler) ClearBrowsingHistory(w http.ResponseWriter, r *http.Request) {
 	userID := h.getUserID()
 
 	if err := h.useCase.ClearBrowsingHistory(userID); err != nil {
-		response.JSONError(w, "Failed to clear browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to clear browsing history")
 		return
 	}
 
-	response.JSONNoContent(w)
+	response.SendDeleteJSON(w, "Browsing history cleared successfully")
 }
 
 func (h *BrowsingHistoryHandler) GetRecentBrowsingHistory(w http.ResponseWriter, r *http.Request) {
@@ -146,11 +146,11 @@ func (h *BrowsingHistoryHandler) GetRecentBrowsingHistory(w http.ResponseWriter,
 
 	history, err := h.useCase.GetRecentBrowsingHistory(userID, limit)
 	if err != nil {
-		response.JSONError(w, "Failed to get recent browsing history", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to get recent browsing history", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, history)
+	response.SendSuccessJSON(w, history)
 }
 
 func (h *BrowsingHistoryHandler) GetMostViewedProducts(w http.ResponseWriter, r *http.Request) {
@@ -166,9 +166,9 @@ func (h *BrowsingHistoryHandler) GetMostViewedProducts(w http.ResponseWriter, r 
 
 	productIDs, err := h.useCase.GetMostViewedProducts(userID, limit)
 	if err != nil {
-		response.JSONError(w, "Failed to get most viewed products", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to get most viewed products", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, productIDs)
+	response.SendSuccessJSON(w, productIDs)
 }

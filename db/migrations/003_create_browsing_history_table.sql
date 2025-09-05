@@ -8,17 +8,15 @@ CREATE TABLE IF NOT EXISTS browsing_history (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- -- Create index on user_id for better performance
+-- Indexes for better performance (commented out - uncomment when needed)
 -- CREATE INDEX IF NOT EXISTS idx_browsing_history_user_id ON browsing_history(user_id);
-
--- -- Create index on product_id for better performance
 -- CREATE INDEX IF NOT EXISTS idx_browsing_history_product_id ON browsing_history(product_id);
-
--- -- Create index on viewed_at for sorting
 -- CREATE INDEX IF NOT EXISTS idx_browsing_history_viewed_at ON browsing_history(viewed_at);
-
--- -- Create composite index for user_id and viewed_at for efficient user history queries
+-- CREATE INDEX IF NOT EXISTS idx_browsing_history_created_at ON browsing_history(created_at);
+-- CREATE INDEX IF NOT EXISTS idx_browsing_history_updated_at ON browsing_history(updated_at);
 -- CREATE INDEX IF NOT EXISTS idx_browsing_history_user_viewed ON browsing_history(user_id, viewed_at DESC);
+-- CREATE INDEX IF NOT EXISTS idx_browsing_history_product_viewed ON browsing_history(product_id, viewed_at DESC);
+-- CREATE INDEX IF NOT EXISTS idx_browsing_history_user_product ON browsing_history(user_id, product_id);
 
 -- Insert some sample data
 INSERT INTO browsing_history (user_id, product_id, viewed_at) VALUES

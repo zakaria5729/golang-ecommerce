@@ -19,46 +19,59 @@ type Error struct {
 	Details []validator.ValidationError `json:"details,omitempty"`
 }
 
-func JSON(w http.ResponseWriter, data interface{}) {
+func SendSuccessJSON(w http.ResponseWriter, data any, statusCode ...int) {
+	code := http.StatusOK
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
 	response := Response{
 		Success: true,
 		Data:    data,
 	}
-	sendJSON(w, response, http.StatusOK)
+	sendJSON(w, response, code)
 }
 
-func JSONError(w http.ResponseWriter, message string, statusCode int) {
+func SendErrorJSON(w http.ResponseWriter, message string, statusCode ...int) {
+	code := http.StatusInternalServerError
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
 	response := Response{
 		Success: false,
 		Error: &Error{
 			Message: message,
 		},
 	}
-	sendJSON(w, response, statusCode)
+	sendJSON(w, response, code)
 }
 
-func JSONValidationError(w http.ResponseWriter, message string, validationErrors validator.ValidationErrors) {
+func SendDeleteJSON(w http.ResponseWriter, message string, statusCode ...int) {
+	code := http.StatusOK
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := Response{
+		Success: true,
+		Data: map[string]string{
+			"message": message,
+		},
+	}
+	sendJSON(w, response, code)
+}
+
+func SendValidationErrorJSON(w http.ResponseWriter, message string, validationErrors []validator.ValidationError, statusCode ...int) {
+	code := http.StatusBadRequest
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
 	response := Response{
 		Success: false,
 		Error: &Error{
 			Message: message,
-			Code:    "VALIDATION_ERROR",
 			Details: validationErrors,
 		},
 	}
-	sendJSON(w, response, http.StatusBadRequest)
-}
-
-func JSONCreated(w http.ResponseWriter, data interface{}) {
-	response := Response{
-		Success: true,
-		Data:    data,
-	}
-	sendJSON(w, response, http.StatusCreated)
-}
-
-func JSONNoContent(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNoContent)
+	sendJSON(w, response, code)
 }
 
 func sendJSON(w http.ResponseWriter, response Response, statusCode int) {

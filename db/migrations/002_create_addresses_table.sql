@@ -13,14 +13,16 @@ CREATE TABLE IF NOT EXISTS addresses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- -- Create index on user_id for better performance
+-- Indexes for better performance (commented out - uncomment when needed)
 -- CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
-
--- -- Create index on address_type for filtering
 -- CREATE INDEX IF NOT EXISTS idx_addresses_address_type ON addresses(address_type);
-
--- -- Create index on is_default for filtering
 -- CREATE INDEX IF NOT EXISTS idx_addresses_is_default ON addresses(is_default);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_city ON addresses(city);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_country ON addresses(country);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_created_at ON addresses(created_at);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_updated_at ON addresses(updated_at);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_user_id_address_type ON addresses(user_id, address_type);
+-- CREATE INDEX IF NOT EXISTS idx_addresses_user_id_is_default ON addresses(user_id, is_default);
 
 -- Insert some sample data
 INSERT INTO addresses (user_id, street, city, state, zip_code, country, is_default, address_type) VALUES

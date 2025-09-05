@@ -11,11 +11,13 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index on parent_id for better performance
+-- Indexes for better performance (commented out - uncomment when needed)
 -- CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
-
--- Create index on is_active for filtering
 -- CREATE INDEX IF NOT EXISTS idx_categories_is_active ON categories(is_active);
+-- CREATE INDEX IF NOT EXISTS idx_categories_title ON categories(title);
+-- CREATE INDEX IF NOT EXISTS idx_categories_priority ON categories(priority);
+-- CREATE INDEX IF NOT EXISTS idx_categories_created_at ON categories(created_at);
+-- CREATE INDEX IF NOT EXISTS idx_categories_updated_at ON categories(updated_at);
 
 -- Insert some sample data
 INSERT INTO categories (title, sub_title, image_url, is_active, priority) VALUES

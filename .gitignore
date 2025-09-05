@@ -1,2 +1,6 @@
 __debug_bin*
 *.log
+api-doc/*
+main
+*.exe
+*.bin

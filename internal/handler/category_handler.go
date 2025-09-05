@@ -30,11 +30,11 @@ func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Reques
 
 	categories, err := h.useCase.GetAllCategories(includeStr, parentIDFilter, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, categories)
+	response.SendSuccessJSON(w, categories)
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *http.Request) {
@@ -49,95 +49,95 @@ func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *ht
 
 	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(includeStr, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch categories", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, paginatedResponse)
+	response.SendSuccessJSON(w, paginatedResponse)
 }
 
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	include := r.URL.Query().Get(constants.Include)
 	category, err := h.useCase.GetCategoryByID(*id, include)
 	if err != nil {
-		response.JSONError(w, "Category not found", http.StatusNotFound)
+		response.SendErrorJSON(w, "Category not found", http.StatusNotFound)
 		return
 	}
 
-	response.JSON(w, category)
+	response.SendSuccessJSON(w, category)
 }
 
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	var req category.Category
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	category, err := h.useCase.CreateCategory(&req)
 	if err != nil {
-		response.JSONError(w, "Failed to create category", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to create category", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSONCreated(w, category)
+	response.SendSuccessJSON(w, category, http.StatusCreated)
 }
 
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	var req category.Category
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	category, err := h.useCase.UpdateCategory(*id, &req)
 	if err != nil {
-		response.JSONError(w, "Failed to update category", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to update category", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, category)
+	response.SendSuccessJSON(w, category)
 }
 
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.useCase.DeleteCategory(*id); err != nil {
-		response.JSONError(w, "Failed to delete category", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to delete category")
 		return
 	}
 
-	response.JSONNoContent(w)
+	response.SendDeleteJSON(w, "Category deleted successfully")
 }
 
 func (h *CategoryHandler) ToggleCategoryStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid category ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
 	category, err := h.useCase.ToggleCategoryStatus(*id)
 	if err != nil {
-		response.JSONError(w, "Failed to toggle category status", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to toggle category status", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, category)
+	response.SendSuccessJSON(w, category)
 }

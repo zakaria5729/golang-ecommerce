@@ -14,6 +14,8 @@ func RegisterRoutes(mux *http.ServeMux) {
 	registerCategoryRoutes(mux)
 	registerAddressRoutes(mux)
 	registerBrowsingHistoryRoutes(mux)
+	registerReviewRoutes(mux)
+	registerWishlistRoutes(mux)
 }
 
 func registerCategoryRoutes(mux *http.ServeMux) {
@@ -52,4 +54,33 @@ func registerBrowsingHistoryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE "+versionV1+"/browsing-history/clear", handler.ClearBrowsingHistory)
 	mux.HandleFunc("GET "+versionV1+"/browsing-history/recent", handler.GetRecentBrowsingHistory)
 	mux.HandleFunc("GET "+versionV1+"/browsing-history/most-viewed", handler.GetMostViewedProducts)
+}
+
+func registerReviewRoutes(mux *http.ServeMux) {
+	handler := handler.NewReviewHandler()
+
+	mux.HandleFunc("GET "+versionV1+"/reviews", handler.GetAllReviews)
+	mux.HandleFunc("GET "+versionV1+"/reviews/paginated", handler.GetAllReviewsPaginated)
+	mux.HandleFunc("GET "+versionV1+"/reviews/id/{id}", handler.GetReviewByID)
+	mux.HandleFunc("POST "+versionV1+"/reviews", handler.CreateReview)
+	mux.HandleFunc("PUT "+versionV1+"/reviews/id/{id}", handler.UpdateReview)
+	mux.HandleFunc("DELETE "+versionV1+"/reviews/id/{id}", handler.DeleteReview)
+	mux.HandleFunc("GET "+versionV1+"/products/{id}/reviews", handler.GetReviewsByProduct)
+	mux.HandleFunc("GET "+versionV1+"/users/{id}/reviews", handler.GetReviewsByUser)
+	mux.HandleFunc("GET "+versionV1+"/products/{id}/rating-stats", handler.GetProductRatingStats)
+}
+
+func registerWishlistRoutes(mux *http.ServeMux) {
+	handler := handler.NewWishlistHandler()
+
+	mux.HandleFunc("GET "+versionV1+"/wishlists", handler.GetAllWishlists)
+	mux.HandleFunc("GET "+versionV1+"/wishlists/paginated", handler.GetAllWishlistsPaginated)
+	mux.HandleFunc("GET "+versionV1+"/wishlists/id/{id}", handler.GetWishlistByID)
+	mux.HandleFunc("POST "+versionV1+"/wishlists", handler.CreateWishlist)
+	mux.HandleFunc("DELETE "+versionV1+"/wishlists/id/{id}", handler.DeleteWishlist)
+	mux.HandleFunc("DELETE "+versionV1+"/wishlists/clear", handler.ClearWishlist)
+	mux.HandleFunc("GET "+versionV1+"/wishlists/count", handler.GetWishlistCount)
+	mux.HandleFunc("GET "+versionV1+"/wishlists/product/{product_id}", handler.GetWishlistByProduct)
+	mux.HandleFunc("DELETE "+versionV1+"/wishlists/product/{product_id}", handler.DeleteWishlistByProduct)
+	mux.HandleFunc("GET "+versionV1+"/wishlists/product/{product_id}/check", handler.IsProductInWishlist)
 }

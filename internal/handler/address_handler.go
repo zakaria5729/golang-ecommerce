@@ -37,11 +37,11 @@ func (h *AddressHandler) GetAllAddresses(w http.ResponseWriter, r *http.Request)
 
 	addresses, err := h.useCase.GetAllAddresses(userID, includeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch addresses", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch addresses", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, addresses)
+	response.SendSuccessJSON(w, addresses)
 }
 
 func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request) {
@@ -58,11 +58,11 @@ func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http
 
 	paginatedResponse, err := h.useCase.GetAllAddressesPaginated(userID, includeStr, pageStr, pageSizeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
 	if err != nil {
-		response.JSONError(w, "Failed to fetch addresses", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to fetch addresses", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, paginatedResponse)
+	response.SendSuccessJSON(w, paginatedResponse)
 }
 
 func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) {
@@ -70,18 +70,18 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid address ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
 		return
 	}
 
 	include := r.URL.Query().Get(constants.Include)
 	address, err := h.useCase.GetAddressByID(*id, userID, include)
 	if err != nil {
-		response.JSONError(w, "Address not found", http.StatusNotFound)
+		response.SendErrorJSON(w, "Address not found", http.StatusNotFound)
 		return
 	}
 
-	response.JSON(w, address)
+	response.SendSuccessJSON(w, address)
 }
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
@@ -89,17 +89,17 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 
 	var req address.Address
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	address, err := h.useCase.CreateAddress(userID, &req)
 	if err != nil {
-		response.JSONError(w, "Failed to create address", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to create address", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSONCreated(w, address)
+	response.SendSuccessJSON(w, address, http.StatusCreated)
 }
 
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
@@ -107,23 +107,23 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid address ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
 		return
 	}
 
 	var req address.Address
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.JSONError(w, "Invalid JSON", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	address, err := h.useCase.UpdateAddress(*id, userID, &req)
 	if err != nil {
-		response.JSONError(w, "Failed to update address", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to update address", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, address)
+	response.SendSuccessJSON(w, address)
 }
 
 func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
@@ -131,16 +131,16 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid address ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.useCase.DeleteAddress(*id, userID); err != nil {
-		response.JSONError(w, "Failed to delete address", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to delete address")
 		return
 	}
 
-	response.JSONNoContent(w)
+	response.SendDeleteJSON(w, "Address deleted successfully")
 }
 
 func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
@@ -148,23 +148,23 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
-		response.JSONError(w, "Invalid address ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
 		return
 	}
 
 	addressType := r.URL.Query().Get("type")
 	if addressType == "" {
-		response.JSONError(w, "Address type is required", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Address type is required", http.StatusBadRequest)
 		return
 	}
 
 	address, err := h.useCase.SetDefaultAddress(*id, userID, addressType)
 	if err != nil {
-		response.JSONError(w, "Failed to set default address", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to set default address", http.StatusInternalServerError)
 		return
 	}
 
-	response.JSON(w, address)
+	response.SendSuccessJSON(w, address)
 }
 
 func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
@@ -172,20 +172,20 @@ func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Reques
 
 	addressType := r.URL.Query().Get("type")
 	if addressType == "" {
-		response.JSONError(w, "Address type is required", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Address type is required", http.StatusBadRequest)
 		return
 	}
 
 	address, err := h.useCase.GetDefaultAddress(userID, addressType)
 	if err != nil {
-		response.JSONError(w, "Failed to get default address", http.StatusInternalServerError)
+		response.SendErrorJSON(w, "Failed to get default address", http.StatusInternalServerError)
 		return
 	}
 
 	if address == nil {
-		response.JSONError(w, "No default address found", http.StatusNotFound)
+		response.SendErrorJSON(w, "No default address found", http.StatusNotFound)
 		return
 	}
 
-	response.JSON(w, address)
+	response.SendSuccessJSON(w, address)
 }
