@@ -99,7 +99,7 @@ func (r *WishlistRepository) CreateWishlist(wishlist *Wishlist) error {
 func (r *WishlistRepository) DeleteWishlist(id uint, userID uint) error {
 	result := r.db.Where(constants.FieldID+" = ? AND "+WishlistUserID+" = ?", id, userID).Delete(&Wishlist{})
 	if result.Error != nil {
-		logger.Logger.Error("Failed to delete wishlist", "method", "DeleteWishlist", "error", result.Error, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to soft delete wishlist", "method", "DeleteWishlist", "error", result.Error, "id", id, "userID", userID)
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
@@ -111,7 +111,7 @@ func (r *WishlistRepository) DeleteWishlist(id uint, userID uint) error {
 func (r *WishlistRepository) DeleteWishlistByProduct(userID uint, productID uint) error {
 	result := r.db.Where(WishlistUserID+" = ? AND "+WishlistProductID+" = ?", userID, productID).Delete(&Wishlist{})
 	if result.Error != nil {
-		logger.Logger.Error("Failed to delete wishlist by product", "method", "DeleteWishlistByProduct", "error", result.Error, "userID", userID, "productID", productID)
+		logger.Logger.Error("Failed to soft delete wishlist by product", "method", "DeleteWishlistByProduct", "error", result.Error, "userID", userID, "productID", productID)
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
@@ -123,8 +123,53 @@ func (r *WishlistRepository) DeleteWishlistByProduct(userID uint, productID uint
 func (r *WishlistRepository) ClearUserWishlist(userID uint) error {
 	result := r.db.Where(WishlistUserID+" = ?", userID).Delete(&Wishlist{})
 	if result.Error != nil {
-		logger.Logger.Error("Failed to clear user wishlist", "method", "ClearUserWishlist", "error", result.Error, "userID", userID)
+		logger.Logger.Error("Failed to soft clear user wishlist", "method", "ClearUserWishlist", "error", result.Error, "userID", userID)
 		return result.Error
+	}
+	return nil
+}
+
+func (r *WishlistRepository) HardDeleteWishlist(id uint, userID uint) error {
+	result := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+WishlistUserID+" = ?", id, userID).Delete(&Wishlist{})
+	if result.Error != nil {
+		logger.Logger.Error("Failed to hard delete wishlist", "method", "HardDeleteWishlist", "error", result.Error, "id", id, "userID", userID)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("wishlist not found")
+	}
+	return nil
+}
+
+func (r *WishlistRepository) HardDeleteWishlistByProduct(userID uint, productID uint) error {
+	result := r.db.Unscoped().Where(WishlistUserID+" = ? AND "+WishlistProductID+" = ?", userID, productID).Delete(&Wishlist{})
+	if result.Error != nil {
+		logger.Logger.Error("Failed to hard delete wishlist by product", "method", "HardDeleteWishlistByProduct", "error", result.Error, "userID", userID, "productID", productID)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("wishlist not found")
+	}
+	return nil
+}
+
+func (r *WishlistRepository) HardClearUserWishlist(userID uint) error {
+	result := r.db.Unscoped().Where(WishlistUserID+" = ?", userID).Delete(&Wishlist{})
+	if result.Error != nil {
+		logger.Logger.Error("Failed to hard clear user wishlist", "method", "HardClearUserWishlist", "error", result.Error, "userID", userID)
+		return result.Error
+	}
+	return nil
+}
+
+func (r *WishlistRepository) RestoreWishlist(id uint, userID uint) error {
+	result := r.db.Unscoped().Model(&Wishlist{}).Where(constants.FieldID+" = ? AND "+WishlistUserID+" = ?", id, userID).Update("deleted_at", nil)
+	if result.Error != nil {
+		logger.Logger.Error("Failed to restore wishlist", "method", "RestoreWishlist", "error", result.Error, "id", id, "userID", userID)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("wishlist not found")
 	}
 	return nil
 }

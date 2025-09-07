@@ -144,7 +144,23 @@ func (r *AddressRepository) UpdateAddress(address *Address) error {
 func (r *AddressRepository) DeleteAddress(id uint, userID uint) error {
 	err := r.db.Where(constants.FieldID+" = ? AND "+AddressUserID+" = ?", id, userID).Delete(&Address{}).Error
 	if err != nil {
-		logger.Logger.Error("Failed to delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to soft delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+	}
+	return err
+}
+
+func (r *AddressRepository) HardDeleteAddress(id uint, userID uint) error {
+	err := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+AddressUserID+" = ?", id, userID).Delete(&Address{}).Error
+	if err != nil {
+		logger.Logger.Error("Failed to hard delete address", "method", "HardDeleteAddress", "error", err, "id", id, "userID", userID)
+	}
+	return err
+}
+
+func (r *AddressRepository) RestoreAddress(id uint, userID uint) error {
+	err := r.db.Unscoped().Model(&Address{}).Where(constants.FieldID+" = ? AND "+AddressUserID+" = ?", id, userID).Update("deleted_at", nil).Error
+	if err != nil {
+		logger.Logger.Error("Failed to restore address", "method", "RestoreAddress", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }

@@ -123,7 +123,7 @@ func (r *BrowsingHistoryRepository) CreateBrowsingHistory(history *BrowsingHisto
 func (r *BrowsingHistoryRepository) DeleteBrowsingHistory(id uint, userID uint) error {
 	err := r.db.Where(constants.FieldID+" = ? AND "+BrowsingHistoryUserID+" = ?", id, userID).Delete(&BrowsingHistory{}).Error
 	if err != nil {
-		logger.Logger.Error("Failed to delete browsing history", "method", "DeleteBrowsingHistory", "error", err, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to soft delete browsing history", "method", "DeleteBrowsingHistory", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }
@@ -131,7 +131,31 @@ func (r *BrowsingHistoryRepository) DeleteBrowsingHistory(id uint, userID uint) 
 func (r *BrowsingHistoryRepository) ClearBrowsingHistory(userID uint) error {
 	err := r.db.Where(BrowsingHistoryUserID+" = ?", userID).Delete(&BrowsingHistory{}).Error
 	if err != nil {
-		logger.Logger.Error("Failed to clear browsing history", "method", "ClearBrowsingHistory", "error", err, "userID", userID)
+		logger.Logger.Error("Failed to soft clear browsing history", "method", "ClearBrowsingHistory", "error", err, "userID", userID)
+	}
+	return err
+}
+
+func (r *BrowsingHistoryRepository) HardDeleteBrowsingHistory(id uint, userID uint) error {
+	err := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+BrowsingHistoryUserID+" = ?", id, userID).Delete(&BrowsingHistory{}).Error
+	if err != nil {
+		logger.Logger.Error("Failed to hard delete browsing history", "method", "HardDeleteBrowsingHistory", "error", err, "id", id, "userID", userID)
+	}
+	return err
+}
+
+func (r *BrowsingHistoryRepository) HardClearBrowsingHistory(userID uint) error {
+	err := r.db.Unscoped().Where(BrowsingHistoryUserID+" = ?", userID).Delete(&BrowsingHistory{}).Error
+	if err != nil {
+		logger.Logger.Error("Failed to hard clear browsing history", "method", "HardClearBrowsingHistory", "error", err, "userID", userID)
+	}
+	return err
+}
+
+func (r *BrowsingHistoryRepository) RestoreBrowsingHistory(id uint, userID uint) error {
+	err := r.db.Unscoped().Model(&BrowsingHistory{}).Where(constants.FieldID+" = ? AND "+BrowsingHistoryUserID+" = ?", id, userID).Update("deleted_at", nil).Error
+	if err != nil {
+		logger.Logger.Error("Failed to restore browsing history", "method", "RestoreBrowsingHistory", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }
