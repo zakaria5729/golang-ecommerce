@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+INSERT INTO permissions (name, description) VALUES
+('user.create', 'Create new users'),
+('user.read', 'View user information'),
+('user.update', 'Update user information'),
+('user.delete', 'Delete users'),
+('role.create', 'Create new roles'),
+('role.read', 'View role information'),
+('role.update', 'Update role information'),
+('role.delete', 'Delete roles'),
+('permission.read', 'View permissions'),
+('category.create', 'Create categories'),
+('category.read', 'View categories'),
+('category.update', 'Update categories'),
+('category.delete', 'Delete categories'),
+('address.create', 'Create addresses'),
+('address.read', 'View addresses'),
+('address.update', 'Update addresses'),
+('address.delete', 'Delete addresses'),
+('review.create', 'Create reviews'),
+('review.read', 'View reviews'),
+('review.update', 'Update reviews'),
+('review.delete', 'Delete reviews'),
+('wishlist.create', 'Create wishlists'),
+('wishlist.read', 'View wishlists'),
+('wishlist.update', 'Update wishlists'),
+('wishlist.delete', 'Delete wishlists'),
+('browsing_history.create', 'Create browsing history'),
+('browsing_history.read', 'View browsing history'),
+('browsing_history.update', 'Update browsing history'),
+('browsing_history.delete', 'Delete browsing history'),
+('system.admin', 'System administration access'),
+('system.super_admin', 'Super admin access with all privileges')
+ON CONFLICT (name) DO NOTHING;

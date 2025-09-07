@@ -150,35 +150,7 @@ func (r *ReviewRepository) UpdateReview(id uint, userID uint, updates map[string
 func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
 	result := r.db.Where(constants.FieldID+" = ? AND "+ReviewUserID+" = ?", id, userID).Delete(&Review{})
 	if result.Error != nil {
-		logger.Logger.Error("Failed to soft delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("review not found or not owned by user")
-	}
-
-	return nil
-}
-
-func (r *ReviewRepository) HardDeleteReview(id uint, userID uint) error {
-	result := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+ReviewUserID+" = ?", id, userID).Delete(&Review{})
-	if result.Error != nil {
-		logger.Logger.Error("Failed to hard delete review", "method", "HardDeleteReview", "error", result.Error, "id", id, "userID", userID)
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("review not found or not owned by user")
-	}
-
-	return nil
-}
-
-func (r *ReviewRepository) RestoreReview(id uint, userID uint) error {
-	result := r.db.Unscoped().Model(&Review{}).Where(constants.FieldID+" = ? AND "+ReviewUserID+" = ?", id, userID).Update("deleted_at", nil)
-	if result.Error != nil {
-		logger.Logger.Error("Failed to restore review", "method", "RestoreReview", "error", result.Error, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
 		return result.Error
 	}
 

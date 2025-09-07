@@ -86,6 +86,31 @@ func ValidatePositiveInteger(value uint, fieldName string) ValidationErrors {
 	return errors
 }
 
+func ValidatePassword(password, fieldName string) ValidationErrors {
+	var errors ValidationErrors
+
+	if len(password) < 8 {
+		errors.AddError(fieldName, "password must be at least 8 characters long")
+	}
+
+	hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
+	if !hasDigit {
+		errors.AddError(fieldName, "password must contain at least one digit")
+	}
+
+	hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(password)
+	if !hasLetter {
+		errors.AddError(fieldName, "password must contain at least one letter")
+	}
+
+	hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~` + "`" + `]`).MatchString(password)
+	if !hasSpecial {
+		errors.AddError(fieldName, "password must contain at least one special character")
+	}
+
+	return errors
+}
+
 func MergeValidationErrors(errorsList ...ValidationErrors) ValidationErrors {
 	var result ValidationErrors
 	for _, errors := range errorsList {

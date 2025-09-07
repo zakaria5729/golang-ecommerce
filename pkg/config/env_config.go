@@ -22,6 +22,7 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	DBSSLMode  string
+	JWTSecret  string
 }
 
 func Load() Config {
@@ -34,6 +35,7 @@ func Load() Config {
 		constants.EnvKeyDBPassword,
 		constants.EnvKeyDBName,
 		constants.EnvKeyDBSSLMode,
+		constants.EnvKeyJWTSecret,
 	}
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
@@ -67,6 +69,7 @@ func Load() Config {
 		DBPassword: getEnv(constants.EnvKeyDBPassword, "password"),
 		DBName:     getEnv(constants.EnvKeyDBName, "easy_commerce"),
 		DBSSLMode:  getEnv(constants.EnvKeyDBSSLMode, "disable"),
+		JWTSecret:  getEnv(constants.EnvKeyJWTSecret, "your-super-secret-jwt-key-change-this-in-production"),
 	}
 }
 

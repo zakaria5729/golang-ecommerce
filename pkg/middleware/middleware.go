@@ -114,3 +114,12 @@ func ChainMiddleware(middlewares ...func(http.Handler) http.Handler) func(http.H
 		return next
 	}
 }
+
+func ChainAuthMiddleware(middlewares ...func(http.HandlerFunc) http.HandlerFunc) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			next = middlewares[i](next)
+		}
+		return next
+	}
+}

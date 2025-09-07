@@ -153,19 +153,19 @@ func (r *CategoryRepository) DeleteCategory(id uint) error {
 
 	if err := tx.Delete(&Category{}, id).Error; err != nil {
 		tx.Rollback()
-		logger.Logger.Error("Failed to soft delete category", "method", "DeleteCategory", "error", err, "id", id)
+		logger.Logger.Error("Failed to delete category", "method", "DeleteCategory", "error", err, "id", id)
 		return err
 	}
 
 	if err := r.deleteSubcategoriesRecursively(tx, id); err != nil {
 		tx.Rollback()
-		logger.Logger.Error("Failed to soft delete subcategories", "method", "DeleteCategory", "error", err, "id", id)
+		logger.Logger.Error("Failed to delete subcategories", "method", "DeleteCategory", "error", err, "id", id)
 		return err
 	}
 
 	err := tx.Commit().Error
 	if err != nil {
-		logger.Logger.Error("Failed to commit category soft deletion", "method", "DeleteCategory", "error", err, "id", id)
+		logger.Logger.Error("Failed to commit category deletion", "method", "DeleteCategory", "error", err, "id", id)
 	}
 	return err
 }
@@ -307,60 +307,6 @@ func (r *CategoryRepository) getSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, CategoryTitle, CategoryIsActive, constants.FieldCreatedAt, constants.FieldUpdatedAt}
 	optionalFields := []string{CategorySubTitle, CategoryImageURL, CategoryParentID, CategoryPriority}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
-}
-
-func (r *CategoryRepository) HardDeleteCategory(id uint) error {
-	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Unscoped().Delete(&Category{}, id).Error; err != nil {
-		tx.Rollback()
-		logger.Logger.Error("Failed to hard delete category", "method", "HardDeleteCategory", "error", err, "id", id)
-		return err
-	}
-
-	if err := r.hardDeleteSubcategoriesRecursively(tx, id); err != nil {
-		tx.Rollback()
-		logger.Logger.Error("Failed to hard delete subcategories", "method", "HardDeleteCategory", "error", err, "id", id)
-		return err
-	}
-
-	err := tx.Commit().Error
-	if err != nil {
-		logger.Logger.Error("Failed to commit category hard deletion", "method", "HardDeleteCategory", "error", err, "id", id)
-	}
-	return err
-}
-
-func (r *CategoryRepository) hardDeleteSubcategoriesRecursively(tx *gorm.DB, parentID uint) error {
-	var subcategories []Category
-	if err := tx.Unscoped().Where(CategoryParentID+" = ?", parentID).Find(&subcategories).Error; err != nil {
-		return err
-	}
-
-	for _, subcategory := range subcategories {
-		if err := tx.Unscoped().Delete(&Category{}, subcategory.ID).Error; err != nil {
-			return err
-		}
-
-		if err := r.hardDeleteSubcategoriesRecursively(tx, subcategory.ID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *CategoryRepository) RestoreCategory(id uint) error {
-	err := r.db.Unscoped().Model(&Category{}).Where(constants.FieldID+" = ?", id).Update("deleted_at", nil).Error
-	if err != nil {
-		logger.Logger.Error("Failed to restore category", "method", "RestoreCategory", "error", err, "id", id)
-	}
-	return err
 }
 
 func getPriorityLimit() uint {
