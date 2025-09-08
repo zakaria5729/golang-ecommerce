@@ -1,25 +1,30 @@
-package auth
+package role
 
 import (
 	"errors"
 	"fmt"
 
+	"github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/internal/feature/shared"
+	"github.com/easy-comerce/backend/internal/feature/user_permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type RoleUseCase struct {
-	roleRepo       *RoleRepository
-	permissionRepo *PermissionRepository
-	userRepo       *UserRepository
+	roleRepo              *RoleRepository
+	permissionRepo        *permission.PermissionRepository
+	userRepo              shared.UserRepositoryInterface
+	userPermissionUseCase *user_permission.UserPermissionUseCase
 }
 
-func NewRoleUseCase() *RoleUseCase {
+func NewRoleUseCase(userRepo shared.UserRepositoryInterface) *RoleUseCase {
 	return &RoleUseCase{
-		roleRepo:       NewRoleRepository(),
-		permissionRepo: NewPermissionRepository(),
-		userRepo:       NewUserRepository(),
+		roleRepo:              NewRoleRepository(),
+		permissionRepo:        permission.NewPermissionRepository(),
+		userRepo:              userRepo,
+		userPermissionUseCase: user_permission.NewUserPermissionUseCase(userRepo),
 	}
 }
 
@@ -199,10 +204,17 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 		return fmt.Errorf("failed to assign roles: %w", err)
 	}
 
+	// Sync user permissions to denormalized table
+	if err := uc.userPermissionUseCase.SyncUserPermissions(userID); err != nil {
+		logger.Logger.Error("Failed to sync user permissions after role assignment", "method", "AssignRoleToUser", "error", err, "userID", userID)
+		// Don't return error here as the role assignment was successful
+		// The permission sync can be retried later
+	}
+
 	return nil
 }
 
-func (uc *RoleUseCase) GetAllPermissions(includeStr string, sortBy, sortOrder string) ([]Permission, error) {
+func (uc *RoleUseCase) GetAllPermissions(includeStr string, sortBy, sortOrder string) ([]permission.Permission, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	permissions, err := uc.permissionRepo.GetAllPermissions(include, sortBy, sortOrder)
 	if err != nil {
@@ -213,7 +225,7 @@ func (uc *RoleUseCase) GetAllPermissions(includeStr string, sortBy, sortOrder st
 	return permissions, nil
 }
 
-func (uc *RoleUseCase) GetPermissionByID(id uint, includeStr string) (*Permission, error) {
+func (uc *RoleUseCase) GetPermissionByID(id uint, includeStr string) (*permission.Permission, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	permission, err := uc.permissionRepo.GetPermissionByID(id, include)
 	if err != nil {
@@ -224,7 +236,7 @@ func (uc *RoleUseCase) GetPermissionByID(id uint, includeStr string) (*Permissio
 	return permission, nil
 }
 
-func (uc *RoleUseCase) CreatePermission(permission *Permission) (*Permission, error) {
+func (uc *RoleUseCase) CreatePermission(permission *permission.Permission) (*permission.Permission, error) {
 	permission.Sanitize()
 
 	exists, err := uc.permissionRepo.PermissionExistsByName(permission.Name, nil)
@@ -245,7 +257,7 @@ func (uc *RoleUseCase) CreatePermission(permission *Permission) (*Permission, er
 	return permission, nil
 }
 
-func (uc *RoleUseCase) UpdatePermission(id uint, permission *Permission) (*Permission, error) {
+func (uc *RoleUseCase) UpdatePermission(id uint, permission *permission.Permission) (*permission.Permission, error) {
 	permission.Sanitize()
 
 	existingPermission, err := uc.permissionRepo.GetPermissionByID(id, nil)

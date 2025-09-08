@@ -1,6 +1,7 @@
-package auth
+package role
 
 import (
+	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -8,10 +9,10 @@ import (
 
 type Role struct {
 	models.BaseModel
-	RoleName    string       `json:"role_name" gorm:"uniqueIndex;not null;column:role_name"`
-	RoleType    string       `json:"role_type" gorm:"not null;column:role_type"`
-	Description *string      `json:"description,omitempty" gorm:"column:description"`
-	Permissions []Permission `json:"permissions,omitempty" gorm:"many2many:role_permissions;"`
+	RoleName    string                  `json:"role_name" gorm:"uniqueIndex;not null;column:role_name"`
+	RoleType    string                  `json:"role_type" gorm:"not null;column:role_type"`
+	Description *string                 `json:"description,omitempty" gorm:"column:description"`
+	Permissions []permission.Permission `json:"permissions,omitempty" gorm:"many2many:role_permissions;"`
 }
 
 const (

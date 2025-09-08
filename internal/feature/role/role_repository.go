@@ -1,9 +1,10 @@
-package auth
+package role
 
 import (
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -180,7 +181,7 @@ func (r *RoleRepository) RoleExistsByType(roleType string, excludeID *uint) (boo
 
 func (r *RoleRepository) AssignPermissionsToRole(roleID uint, permissionIDs []uint) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		var permissions []Permission
+		var permissions []permission.Permission
 		if err := tx.Select("id, name, description, created_at, updated_at").Where(constants.FieldID+" IN ?", permissionIDs).Find(&permissions).Error; err != nil {
 			return err
 		}

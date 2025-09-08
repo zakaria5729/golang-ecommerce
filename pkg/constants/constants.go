@@ -46,6 +46,11 @@ const (
 	FieldUpdatedAt = "updated_at"
 )
 
+// Context Keys
+const (
+	UserContextKey = "user"
+)
+
 const (
 	DefaultRateLimit       = 100
 	DefaultRateLimitWindow = 60

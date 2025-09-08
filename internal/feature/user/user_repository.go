@@ -1,10 +1,11 @@
-package auth
+package user
 
 import (
 	"strings"
 	"time"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/shared"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -260,7 +261,7 @@ func (r *UserRepository) ClearPasswordResetToken(userID uint) error {
 
 func (r *UserRepository) AssignRolesToUser(userID uint, roleIDs []uint) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		var roles []Role
+		var roles []interface{}
 		if err := tx.Select("id, role_name, role_type, description, created_at, updated_at").Where(constants.FieldID+" IN ?", roleIDs).Find(&roles).Error; err != nil {
 			return err
 		}
@@ -327,4 +328,66 @@ func (r *UserRepository) getLoginSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, UserEmail, UserName, UserVerified, UserBanned}
 	optionalFields := []string{"password"}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
+}
+
+// ToSharedInterface converts UserRepository to shared.UserRepositoryInterface
+func (r *UserRepository) ToSharedInterface() shared.UserRepositoryInterface {
+	return &sharedUserRepository{repo: r}
+}
+
+// sharedUserRepository wraps UserRepository to implement shared.UserRepositoryInterface
+type sharedUserRepository struct {
+	repo *UserRepository
+}
+
+func (s *sharedUserRepository) GetUserByID(id uint, include []string) (*shared.User, error) {
+	user, err := s.repo.GetUserByID(id, include)
+	if err != nil {
+		return nil, err
+	}
+	return &shared.User{
+		ID:    user.ID,
+		Email: user.Email,
+		Name:  user.Name,
+	}, nil
+}
+
+func (s *sharedUserRepository) AssignRolesToUser(userID uint, roleIDs []uint) error {
+	return s.repo.AssignRolesToUser(userID, roleIDs)
+}
+
+// IsUserBanned checks if a user is banned (lightweight query - only checks banned status)
+func (r *UserRepository) IsUserBanned(userID uint) (bool, error) {
+	var banned bool
+	err := r.db.Model(&User{}).
+		Select("banned").
+		Where("id = ? AND deleted_at IS NULL", userID).
+		Scan(&banned).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to check if user is banned", "method", "IsUserBanned", "error", err, "userID", userID)
+		return false, err
+	}
+
+	return banned, nil
+}
+
+// GetUserStatus gets user status (banned, verified) from users table
+func (r *UserRepository) GetUserStatus(userID uint) (banned bool, verified bool, err error) {
+	var result struct {
+		Banned   bool `gorm:"column:banned"`
+		Verified bool `gorm:"column:verified"`
+	}
+
+	err = r.db.Model(&User{}).
+		Select("banned, verified").
+		Where("id = ? AND deleted_at IS NULL", userID).
+		Scan(&result).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to get user status from users table", "method", "GetUserStatus", "error", err, "userID", userID)
+		return false, false, err
+	}
+
+	return result.Banned, result.Verified, nil
 }

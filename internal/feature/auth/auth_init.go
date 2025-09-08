@@ -3,13 +3,15 @@ package auth
 import (
 	"os"
 
+	"github.com/easy-comerce/backend/internal/feature/role"
+	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 )
 
 func InitializeDefaultSuperAdmin() error {
-	userRepo := NewUserRepository()
-	roleRepo := NewRoleRepository()
+	userRepo := user.NewUserRepository()
+	roleRepo := role.NewRoleRepository()
 
 	superAdminEmail := os.Getenv("SUPER_ADMIN_EMAIL")
 	if superAdminEmail == "" {
@@ -43,13 +45,13 @@ func InitializeDefaultSuperAdmin() error {
 		return err
 	}
 
-	user := &User{
+	user := &user.User{
 		Email:    superAdminEmail,
 		Password: superAdminPassword,
 		Name:     superAdminName,
 		Verified: true,
 		Banned:   false,
-		Roles:    []Role{*superAdminRole},
+		Roles:    []role.Role{*superAdminRole},
 	}
 
 	if err := user.HashPassword(); err != nil {

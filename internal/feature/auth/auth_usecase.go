@@ -8,6 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/internal/feature/role"
+	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/internal/feature/user_permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -15,17 +19,17 @@ import (
 )
 
 type AuthUseCase struct {
-	userRepo       *UserRepository
-	roleRepo       *RoleRepository
-	permissionRepo *PermissionRepository
+	userRepo       *user.UserRepository
+	roleRepo       *role.RoleRepository
+	permissionRepo *permission.PermissionRepository
 	jwtSecret      string
 }
 
 func NewAuthUseCase(jwtSecret string) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:       NewUserRepository(),
-		roleRepo:       NewRoleRepository(),
-		permissionRepo: NewPermissionRepository(),
+		userRepo:       user.NewUserRepository(),
+		roleRepo:       role.NewRoleRepository(),
+		permissionRepo: permission.NewPermissionRepository(),
 		jwtSecret:      jwtSecret,
 	}
 }
@@ -79,7 +83,7 @@ func (uc *AuthUseCase) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
-func (uc *AuthUseCase) Register(req *RegisterRequest) (*User, error) {
+func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.User, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
 
@@ -93,7 +97,7 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*User, error) {
 		return nil, errors.New("user with this email already exists")
 	}
 
-	user := &User{
+	user := &user.User{
 		Email:    req.Email,
 		Password: req.Password,
 		Name:     req.Name,
@@ -112,7 +116,7 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*User, error) {
 		return nil, fmt.Errorf("failed to assign default role: %w", err)
 	}
 
-	user.Roles = []Role{*defaultRole}
+	user.Roles = []role.Role{*defaultRole}
 
 	if err := uc.userRepo.CreateUser(user); err != nil {
 		logger.Logger.Error("Failed to create user", "method", "Register", "error", err, "email", req.Email)
@@ -201,53 +205,6 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 	return nil
 }
 
-func (uc *AuthUseCase) GetUserProfile(userID uint, includeStr string) (*User, error) {
-	include := utils.ParseCommaSeparatedString(includeStr)
-	user, err := uc.userRepo.GetUserByID(userID, include)
-	if err != nil {
-		logger.Logger.Error("User not found", "method", "GetUserProfile", "error", err, "userID", userID)
-		return nil, errors.New("user not found")
-	}
-
-	user.Password = ""
-	return user, nil
-}
-
-func (uc *AuthUseCase) UpdateUserProfile(userID uint, req *User) (*User, error) {
-	req.Sanitize()
-
-	existingUser, err := uc.userRepo.GetUserByID(userID, nil)
-	if err != nil {
-		logger.Logger.Error("User not found", "method", "UpdateUserProfile", "error", err, "userID", userID)
-		return nil, errors.New("user not found")
-	}
-
-	if req.Email != "" && req.Email != existingUser.Email {
-		exists, err := uc.userRepo.UserExistsByEmail(req.Email, &userID)
-		if err != nil {
-			logger.Logger.Error("Failed to check if email exists", "method", "UpdateUserProfile", "error", err, "userID", userID, "email", req.Email)
-			return nil, fmt.Errorf("failed to check email: %w", err)
-		}
-		if exists {
-			logger.Logger.Error("Email already exists", "method", "UpdateUserProfile", "userID", userID, "email", req.Email)
-			return nil, errors.New("email already exists")
-		}
-		existingUser.Email = req.Email
-	}
-
-	if req.Name != "" {
-		existingUser.Name = req.Name
-	}
-
-	if err := uc.userRepo.UpdateUser(existingUser); err != nil {
-		logger.Logger.Error("Failed to update user profile", "method", "UpdateUserProfile", "error", err, "userID", userID)
-		return nil, fmt.Errorf("failed to update profile: %w", err)
-	}
-
-	existingUser.Password = ""
-	return existingUser, nil
-}
-
 func (uc *AuthUseCase) VerifyToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -267,13 +224,13 @@ func (uc *AuthUseCase) VerifyToken(tokenString string) (*Claims, error) {
 	return nil, errors.New("invalid token")
 }
 
-func (uc *AuthUseCase) generateJWT(user *User) (string, int64, error) {
+func (uc *AuthUseCase) generateJWT(user *user.User) (string, int64, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	expiresAt := expirationTime.Unix()
 
 	var roleNames []string
 	for _, role := range user.Roles {
-		roleNames = append(roleNames, string(role.RoleType))
+		roleNames = append(roleNames, role.RoleType)
 	}
 
 	claims := &Claims{
@@ -308,35 +265,21 @@ func (uc *AuthUseCase) generatePasswordResetToken() (string, error) {
 }
 
 func (uc *AuthUseCase) HasPermission(userID uint, permission string) (bool, error) {
-	user, err := uc.userRepo.GetUserByID(userID, []string{"roles", "permissions"})
-	if err != nil {
-		return false, err
-	}
-
-	for _, role := range user.Roles {
-		for _, perm := range role.Permissions {
-			if perm.Name == permission {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
+	// Use denormalized table for fast permission check (single query instead of 5-table join)
+	userPermissionRepo := user_permission.NewUserPermissionRepository()
+	return userPermissionRepo.HasPermission(userID, permission)
 }
 
 func (uc *AuthUseCase) HasRole(userID uint, roleType string) (bool, error) {
-	user, err := uc.userRepo.GetUserByID(userID, []string{"roles"})
+	// Use materialized view for fast role checking
+	userPermissionRepo := user_permission.NewUserPermissionRepository()
+	permissions, err := userPermissionRepo.GetUserPermissionsByRole(userID, roleType)
 	if err != nil {
 		return false, err
 	}
 
-	for _, role := range user.Roles {
-		if role.RoleType == roleType {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	// If user has any permissions for this role, they have the role
+	return len(permissions) > 0, nil
 }
 
 func (uc *AuthUseCase) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, error) {

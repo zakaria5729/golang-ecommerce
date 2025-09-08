@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 )
 
@@ -122,4 +125,34 @@ func ChainAuthMiddleware(middlewares ...func(http.HandlerFunc) http.HandlerFunc)
 		}
 		return next
 	}
+}
+
+// GetUserFromContext extracts the user from the request context
+func GetUserFromContext(r *http.Request) (*user.User, error) {
+	userInterface := r.Context().Value(constants.UserContextKey)
+	if userInterface == nil {
+		return nil, errors.New("user not found in context")
+	}
+
+	user, ok := userInterface.(*user.User)
+	if !ok {
+		return nil, errors.New("invalid user type in context")
+	}
+
+	return user, nil
+}
+
+// GetUserIDFromContext extracts user ID from request context
+func GetUserIDFromContext(r *http.Request) (uint, error) {
+	userIDInterface := r.Context().Value("user_id")
+	if userIDInterface == nil {
+		return 0, errors.New("user ID not found in context")
+	}
+
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		return 0, errors.New("invalid user ID type in context")
+	}
+
+	return userID, nil
 }
