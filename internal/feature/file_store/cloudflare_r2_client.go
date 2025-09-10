@@ -1,9 +1,8 @@
-package object_storage
+package file_storage
 
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -71,8 +70,6 @@ func (r *CloudflareR2Client) Upload(ctx context.Context, req StorageUploadReques
 		return nil, fmt.Errorf("failed to upload file to Cloudflare R2: %w", err)
 	}
 
-	logger.Logger.Info("File uploaded to Cloudflare R2 successfully", "key", key, "location", result.Location)
-
 	etag := ""
 	if result.ETag != nil {
 		etag = strings.Trim(*result.ETag, "\"")
@@ -99,7 +96,6 @@ func (r *CloudflareR2Client) Delete(ctx context.Context, req StorageDeleteReques
 		return fmt.Errorf("failed to delete file from Cloudflare R2: %w", err)
 	}
 
-	logger.Logger.Info("File deleted from Cloudflare R2 successfully", "key", req.Key)
 	return nil
 }
 
@@ -115,7 +111,7 @@ func (r *CloudflareR2Client) Exists(ctx context.Context, key string) (bool, erro
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "NotFound") {
+		if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "NoSuchKey") {
 			return false, nil
 		}
 		logger.Logger.Error("Failed to check if file exists in Cloudflare R2", "error", err, "key", key)
@@ -129,7 +125,7 @@ func (r *CloudflareR2Client) buildKey(folder, key string) string {
 	if folder == "" {
 		return key
 	}
-	return filepath.Join(folder, key)
+	return folder + "/" + key
 }
 
 func (r *CloudflareR2Client) buildPublicURL(key string) string {

@@ -1,4 +1,4 @@
-package object_storage
+package file_storage
 
 import (
 	"context"

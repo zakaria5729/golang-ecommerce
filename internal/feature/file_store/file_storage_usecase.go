@@ -1,4 +1,4 @@
-package object_storage
+package file_storage
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type ObjectStorageUseCase struct {
-	repo *ObjectStorageRepository
+type FileStoreUseCase struct {
+	repo *FileStoreRepository
 }
 
-func NewObjectStorageUseCase() *ObjectStorageUseCase {
-	return &ObjectStorageUseCase{
-		repo: NewObjectStorageRepository(),
+func NewFileStoreUseCase() *FileStoreUseCase {
+	return &FileStoreUseCase{
+		repo: NewFileStoreRepository(),
 	}
 }
 
-func (uc *ObjectStorageUseCase) UploadFile(ctx context.Context, req FileUploadAPIRequest) (*FileUploadResponse, error) {
+func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIRequest) (*FileUploadResponse, error) {
 	if req.File == nil {
 		return nil, fmt.Errorf("file is required")
 	}
@@ -45,13 +45,7 @@ func (uc *ObjectStorageUseCase) UploadFile(ctx context.Context, req FileUploadAP
 	defer file.Close()
 
 	ext := filepath.Ext(req.File.Filename)
-	sanitizedOriginalName := strings.ReplaceAll(req.File.Filename, " ", "_")
-	sanitizedOriginalName = strings.ReplaceAll(sanitizedOriginalName, "(", "")
-	sanitizedOriginalName = strings.ReplaceAll(sanitizedOriginalName, ")", "")
-	sanitizedOriginalName = strings.ReplaceAll(sanitizedOriginalName, "~", "")
-	sanitizedOriginalName = strings.ReplaceAll(sanitizedOriginalName, "-", "_")
-
-	filename := fmt.Sprintf("%s_%d_%s%s", uuid.New().String(), time.Now().Unix(), sanitizedOriginalName, ext)
+	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
 	uploadReq := StorageUploadRequest{
 		Key:         filename,
 		Body:        file,
@@ -71,14 +65,11 @@ func (uc *ObjectStorageUseCase) UploadFile(ctx context.Context, req FileUploadAP
 	}
 
 	return &FileUploadResponse{
-		Key:      result.Key,
-		URL:      result.URL,
-		Filename: req.File.Filename,
-		Size:     req.File.Size,
+		PathKey: result.Key,
 	}, nil
 }
 
-func (uc *ObjectStorageUseCase) DeleteFile(ctx context.Context, key string) error {
+func (uc *FileStoreUseCase) DeleteFile(ctx context.Context, key string) error {
 	if key == "" {
 		return fmt.Errorf("file key is required")
 	}
@@ -92,7 +83,7 @@ func (uc *ObjectStorageUseCase) DeleteFile(ctx context.Context, key string) erro
 	return nil
 }
 
-func (uc *ObjectStorageUseCase) GetFileURL(ctx context.Context, key string) (string, error) {
+func (uc *FileStoreUseCase) GetFileURL(ctx context.Context, key string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("file key is required")
 	}
@@ -106,9 +97,9 @@ func (uc *ObjectStorageUseCase) GetFileURL(ctx context.Context, key string) (str
 	return url, nil
 }
 
-func (uc *ObjectStorageUseCase) isValidFileType(contentType string, allowedTypes string) bool {
-	types := strings.SplitSeq(allowedTypes, ",")
-	for allowedType := range types {
+func (uc *FileStoreUseCase) isValidFileType(contentType string, allowedTypes string) bool {
+	types := strings.Split(allowedTypes, ",")
+	for _, allowedType := range types {
 		if strings.TrimSpace(allowedType) == contentType {
 			return true
 		}

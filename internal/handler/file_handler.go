@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	object_storage "github.com/easy-comerce/backend/internal/feature/object_storage"
+	file_storage "github.com/easy-comerce/backend/internal/feature/file_store"
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
@@ -14,12 +14,12 @@ import (
 )
 
 type FileHandler struct {
-	fileUseCase *object_storage.ObjectStorageUseCase
+	fileUseCase *file_storage.FileStoreUseCase
 }
 
 func NewFileHandler() *FileHandler {
 	return &FileHandler{
-		fileUseCase: object_storage.NewObjectStorageUseCase(),
+		fileUseCase: file_storage.NewFileStoreUseCase(),
 	}
 }
 
@@ -67,7 +67,7 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uploadReq := object_storage.FileUploadAPIRequest{
+	uploadReq := file_storage.FileUploadAPIRequest{
 		File:   fileHeader,
 		Folder: folder,
 		UserID: fmt.Sprintf("%d", user.ID),
@@ -80,60 +80,11 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseData := object_storage.FileUploadAPIResponse{
-		Key:      result.Key,
-		URL:      result.URL,
-		Filename: result.Filename,
-		Size:     result.Size,
+	responseData := file_storage.FileUploadAPIResponse{
+		PathKey: result.PathKey,
 	}
 
 	response.SendSuccessJSON(w, responseData)
-}
-
-func (h *FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
-
-	user, exists := r.Context().Value(constants.UserContextKey).(*user.User)
-	if !exists {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
-		return
-	}
-
-	key := r.PathValue("key")
-	if key == "" {
-		response.SendErrorJSON(w, "File key is required", http.StatusBadRequest)
-		return
-	}
-
-	err := h.fileUseCase.DeleteFile(r.Context(), key)
-	if err != nil {
-		logger.Logger.Error("Failed to delete file", "error", err, "user_id", user.ID, "key", key)
-		response.SendErrorJSON(w, "Failed to delete file", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, map[string]string{
-		"key": key,
-	})
-}
-
-func (h *FileHandler) GetFileURL(w http.ResponseWriter, r *http.Request) {
-
-	key := r.PathValue("key")
-	if key == "" {
-		response.SendErrorJSON(w, "File key is required", http.StatusBadRequest)
-		return
-	}
-
-	url, err := h.fileUseCase.GetFileURL(r.Context(), key)
-	if err != nil {
-		logger.Logger.Error("Failed to get file URL", "error", err, "key", key)
-		response.SendErrorJSON(w, "Failed to get file URL", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, map[string]string{
-		"url": url,
-	})
 }
 
 func (h *FileHandler) isValidFolder(folder string) bool {

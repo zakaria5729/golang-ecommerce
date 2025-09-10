@@ -16,6 +16,7 @@ type User struct {
 	Email                string      `json:"email" gorm:"uniqueIndex;not null;column:email"`
 	Password             string      `json:"-" gorm:"not null;column:password"`
 	Name                 string      `json:"name" gorm:"not null;column:name"`
+	PathKey              *string     `json:"path_key,omitempty" gorm:"column:path_key"`
 	Verified             bool        `json:"verified" gorm:"default:false;column:verified"`
 	Banned               bool        `json:"banned" gorm:"default:false;column:banned"`
 	PasswordResetToken   *string     `json:"-" gorm:"column:password_reset_token"`
