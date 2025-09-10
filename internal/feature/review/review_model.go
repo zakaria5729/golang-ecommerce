@@ -1,6 +1,7 @@
 package review
 
 import (
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -11,6 +12,10 @@ type Review struct {
 	UserID    uint    `json:"user_id" gorm:"not null; column:user_id"`
 	Rating    int     `json:"rating" gorm:"not null; column:rating"`
 	Comment   *string `json:"comment,omitempty" gorm:"column:comment"`
+}
+
+func (Review) TableName() string {
+	return constants.TableReview
 }
 
 func (r *Review) Sanitize() {

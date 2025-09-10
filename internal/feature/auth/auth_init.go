@@ -10,8 +10,9 @@ import (
 )
 
 func InitializeDefaultSuperAdmin() error {
+	userUseCase := user.NewUserUseCase()
 	userRepo := user.NewUserRepository()
-	roleRepo := role.NewRoleRepository()
+	roleUseCase := role.NewRoleUseCase(userRepo.ToSharedInterface())
 
 	superAdminEmail := os.Getenv("SUPER_ADMIN_EMAIL")
 	if superAdminEmail == "" {
@@ -28,7 +29,8 @@ func InitializeDefaultSuperAdmin() error {
 		superAdminName = "Super Admin"
 	}
 
-	exists, err := userRepo.UserExistsByEmail(superAdminEmail, nil)
+	// Check if super admin already exists
+	exists, err := userUseCase.UserExistsByEmail(superAdminEmail)
 	if err != nil {
 		logger.Logger.Error("Failed to check if super admin exists", "method", "InitializeDefaultSuperAdmin", "error", err, "email", superAdminEmail)
 		return err
@@ -39,7 +41,7 @@ func InitializeDefaultSuperAdmin() error {
 		return nil
 	}
 
-	superAdminRole, err := roleRepo.GetRoleByType(constants.RoleTypeSuperAdmin, nil)
+	superAdminRole, err := roleUseCase.GetRoleByType(constants.RoleTypeSuperAdmin, "")
 	if err != nil {
 		logger.Logger.Error("Failed to get super admin role", "method", "InitializeDefaultSuperAdmin", "error", err)
 		return err
@@ -54,12 +56,7 @@ func InitializeDefaultSuperAdmin() error {
 		Roles:    []role.Role{*superAdminRole},
 	}
 
-	if err := user.HashPassword(); err != nil {
-		logger.Logger.Error("Failed to hash super admin password", "method", "InitializeDefaultSuperAdmin", "error", err)
-		return err
-	}
-
-	if err := userRepo.CreateUser(user); err != nil {
+	if err := userUseCase.CreateUser(user); err != nil {
 		logger.Logger.Error("Failed to create super admin", "method", "InitializeDefaultSuperAdmin", "error", err)
 		return err
 	}

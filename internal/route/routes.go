@@ -21,4 +21,5 @@ func RegisterRoutes(mux *http.ServeMux) {
 	RegisterBrowsingHistoryRoute(mux, permissionMiddleware)
 	RegisterReviewRoute(mux, permissionMiddleware)
 	RegisterWishlistRoute(mux, permissionMiddleware)
+	RegisterFileRoute(mux, permissionMiddleware)
 }

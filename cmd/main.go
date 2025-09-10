@@ -19,6 +19,21 @@ func main() {
 	// 	log.Printf("Warning: Failed to run migrations: %v", err)
 	// }
 
+	// if config.GetActiveProfile() == constants.EnvDev {
+	// 	if err := db.GetDB().AutoMigrate(
+	// 		&user.User{},
+	// 		&role.Role{},
+	// 		&permission.Permission{},
+	// 		&address.Address{},
+	// 		&category.Category{},
+	// 		&review.Review{},
+	// 		&wishlist.Wishlist{},
+	// 		&browsing_history.BrowsingHistory{},
+	// 	); err != nil {
+	// 		logger.Logger.Error("Failed to auto migrate", "error", err)
+	// 	}
+	// }
+
 	if err := auth.InitializeDefaultSuperAdmin(); err != nil {
 		logger.Logger.Error("Failed to initialize super admin", "error", err)
 	}

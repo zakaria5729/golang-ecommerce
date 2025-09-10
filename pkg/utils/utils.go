@@ -255,3 +255,25 @@ func GetStringValueOrDefault(m map[string]interface{}, key string, defaultValue 
 	}
 	return defaultValue
 }
+
+func ExtractPathParam(path, prefix string) string {
+	if !strings.HasPrefix(path, prefix) {
+		return ""
+	}
+
+	param := strings.TrimPrefix(path, prefix)
+	if param == "" {
+		return ""
+	}
+
+	// Remove leading slash if present
+	param = strings.TrimPrefix(param, "/")
+
+	// Split by slash and take the first part (the key)
+	parts := strings.Split(param, "/")
+	if len(parts) > 0 {
+		return parts[0]
+	}
+
+	return ""
+}

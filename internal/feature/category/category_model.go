@@ -1,6 +1,7 @@
 package category
 
 import (
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -13,6 +14,10 @@ type Category struct {
 	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
 	IsActive bool    `json:"is_active" gorm:"column:is_active"`
 	Priority *uint   `json:"priority,omitempty" gorm:"column:priority"`
+}
+
+func (Category) TableName() string {
+	return constants.TableCategory
 }
 
 func (c *Category) Sanitize() {

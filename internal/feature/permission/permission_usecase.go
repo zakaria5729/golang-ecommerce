@@ -138,3 +138,115 @@ func (uc *PermissionUseCase) DeletePermission(id uint) error {
 	logger.Logger.Info("Permission deleted successfully", "method", "DeletePermission", "id", id)
 	return nil
 }
+
+func (uc *PermissionUseCase) GetUserPermissions(userID uint) ([]string, error) {
+	if userID == 0 {
+		return nil, errors.New("invalid user ID")
+	}
+
+	permissions, err := uc.permissionRepo.GetUserPermissions(userID)
+	if err != nil {
+		logger.Logger.Error("Failed to get user permissions", "method", "GetUserPermissions", "error", err, "userID", userID)
+		return nil, err
+	}
+
+	return permissions, nil
+}
+
+func (uc *PermissionUseCase) GetUserPermissionsByRole(userID uint, roleType string) ([]string, error) {
+	if userID == 0 {
+		return nil, errors.New("invalid user ID")
+	}
+
+	if roleType == "" {
+		return nil, errors.New("role type cannot be empty")
+	}
+
+	permissions, err := uc.permissionRepo.GetUserPermissionsByRole(userID, roleType)
+	if err != nil {
+		logger.Logger.Error("Failed to get user permissions by role", "method", "GetUserPermissionsByRole", "error", err, "userID", userID, "roleType", roleType)
+		return nil, err
+	}
+
+	return permissions, nil
+}
+
+func (uc *PermissionUseCase) HasPermission(userID uint, permission string) (bool, error) {
+	if userID == 0 {
+		return false, errors.New("invalid user ID")
+	}
+
+	if permission == "" {
+		return false, errors.New("permission cannot be empty")
+	}
+
+	hasPermission, err := uc.permissionRepo.HasPermission(userID, permission)
+	if err != nil {
+		logger.Logger.Error("Failed to check user permission", "method", "HasPermission", "error", err, "userID", userID, "permission", permission)
+		return false, err
+	}
+
+	return hasPermission, nil
+}
+
+func (uc *PermissionUseCase) HasAnyPermission(userID uint, permissions []string) (bool, error) {
+	if userID == 0 {
+		return false, errors.New("invalid user ID")
+	}
+
+	if len(permissions) == 0 {
+		return true, nil
+	}
+
+	hasPermission, err := uc.permissionRepo.HasAnyPermission(userID, permissions)
+	if err != nil {
+		logger.Logger.Error("Failed to check user permissions", "method", "HasAnyPermission", "error", err, "userID", userID, "permissions", permissions)
+		return false, err
+	}
+
+	return hasPermission, nil
+}
+
+func (uc *PermissionUseCase) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
+	if userID == 0 {
+		return false, false, false, errors.New("invalid user ID")
+	}
+
+	if permission == "" {
+		return false, false, false, errors.New("permission cannot be empty")
+	}
+
+	return uc.permissionRepo.GetUserStatusAndPermission(userID, permission)
+}
+
+func (uc *PermissionUseCase) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
+	if userID == 0 {
+		return false, false, false, errors.New("invalid user ID")
+	}
+
+	return uc.permissionRepo.GetUserStatusAndAnyPermission(userID, permissions)
+}
+
+func (uc *PermissionUseCase) GetUsersWithPermission(permission string) ([]uint, error) {
+	if permission == "" {
+		return nil, errors.New("permission cannot be empty")
+	}
+
+	userIDs, err := uc.permissionRepo.GetUsersWithPermission(permission)
+	if err != nil {
+		logger.Logger.Error("Failed to get users with permission", "method", "GetUsersWithPermission", "error", err, "permission", permission)
+		return nil, err
+	}
+
+	return userIDs, nil
+}
+
+func (uc *PermissionUseCase) GetPermissionStats() (map[string]int, error) {
+	stats, err := uc.permissionRepo.GetPermissionStats()
+	if err != nil {
+		logger.Logger.Error("Failed to get permission stats", "method", "GetPermissionStats", "error", err)
+		return nil, err
+	}
+
+	return stats, nil
+}

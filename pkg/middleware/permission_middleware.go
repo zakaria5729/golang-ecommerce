@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
+	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/user"
-	"github.com/easy-comerce/backend/internal/feature/user_permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -16,20 +16,19 @@ import (
 
 // AuthPermissionMiddleware provides authentication and permission checking functionality
 type AuthPermissionMiddleware struct {
-	userPermissionUseCase *user_permission.UserPermissionUseCase
-	authUseCase           *auth.AuthUseCase
-	userUseCase           *user.UserUseCase
-	jwtSecret             string
+	permissionUseCase *permission.PermissionUseCase
+	authUseCase       *auth.AuthUseCase
+	userUseCase       *user.UserUseCase
+	jwtSecret         string
 }
 
 // NewAuthPermissionMiddleware creates a new auth permission middleware instance
 func NewAuthPermissionMiddleware(jwtSecret string) *AuthPermissionMiddleware {
-	userRepo := user.NewUserRepository()
 	return &AuthPermissionMiddleware{
-		userPermissionUseCase: user_permission.NewUserPermissionUseCase(userRepo.ToSharedInterface()),
-		authUseCase:           auth.NewAuthUseCase(jwtSecret),
-		userUseCase:           user.NewUserUseCase(),
-		jwtSecret:             jwtSecret,
+		permissionUseCase: permission.NewPermissionUseCase(),
+		authUseCase:       auth.NewAuthUseCase(jwtSecret),
+		userUseCase:       user.NewUserUseCase(),
+		jwtSecret:         jwtSecret,
 	}
 }
 
@@ -83,7 +82,7 @@ func (pm *AuthPermissionMiddleware) RequirePermission(permission string) func(ht
 			}
 
 			// Check user status and permission in single query
-			banned, verified, hasPermission, err := pm.userPermissionUseCase.GetUserStatusAndPermission(userID, permission)
+			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndPermission(userID, permission)
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and permission", "method", "RequirePermission", "error", err, "userID", userID, "permission", permission)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
@@ -129,7 +128,7 @@ func (pm *AuthPermissionMiddleware) RequireAnyPermission(permissions []string) f
 			}
 
 			// Check user status and permissions in single query
-			banned, verified, hasPermission, err := pm.userPermissionUseCase.GetUserStatusAndAnyPermission(userID, permissions)
+			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(userID, permissions)
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and permissions", "method", "RequireAnyPermission", "error", err, "userID", userID, "permissions", permissions)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
@@ -194,8 +193,8 @@ func (pm *AuthPermissionMiddleware) RequireRole(roleType string) func(http.Handl
 				return
 			}
 
-			// Get user permissions for the specific role using materialized view
-			permissions, err := pm.userPermissionUseCase.GetUserPermissionsByRole(userID, roleType)
+			// Get user permissions for the specific role using 5-table joins
+			permissions, err := pm.permissionUseCase.GetUserPermissionsByRole(userID, roleType)
 			if err != nil {
 				logger.Logger.Error("Failed to get user permissions by role", "method", "RequireRole", "error", err, "userID", userID, "roleType", roleType)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
@@ -239,7 +238,7 @@ func (pm *AuthPermissionMiddleware) RequireAdmin() func(http.Handler) http.Handl
 				"system.super_admin",
 			}
 
-			banned, verified, hasPermission, err := pm.userPermissionUseCase.GetUserStatusAndAnyPermission(userID, adminPermissions)
+			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(userID, adminPermissions)
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and admin permissions", "method", "RequireAdmin", "error", err, "userID", userID)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
@@ -299,13 +298,13 @@ func ExtractUserIDFromToken(r *http.Request) (uint, error) {
 // Helper function to check permission in handlers
 func CheckPermission(userID uint, permission string) (bool, error) {
 	pm := NewAuthPermissionMiddleware("")
-	return pm.userPermissionUseCase.HasPermission(userID, permission)
+	return pm.permissionUseCase.HasPermission(userID, permission)
 }
 
 // Helper function to check multiple permissions in handlers
 func CheckAnyPermission(userID uint, permissions []string) (bool, error) {
 	pm := NewAuthPermissionMiddleware("")
-	return pm.userPermissionUseCase.HasAnyPermission(userID, permissions)
+	return pm.permissionUseCase.HasAnyPermission(userID, permissions)
 }
 
 // GetJWTSecret returns the JWT secret used by this middleware
@@ -326,6 +325,6 @@ func (pm *AuthPermissionMiddleware) validateTokenAndGetUserID(r *http.Request) (
 	}
 
 	// Return user ID directly - no database calls needed
-	// Permission checking will handle user validation through materialized view
+	// Permission checking will handle user validation through 5-table joins
 	return claims.UserID, nil
 }

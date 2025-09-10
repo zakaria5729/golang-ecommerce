@@ -127,6 +127,162 @@ func (r *PermissionRepository) PermissionExistsByName(name string, excludeID *ui
 	return count > 0, err
 }
 
+func (r *PermissionRepository) GetUserPermissions(userID uint) ([]string, error) {
+	var permissions []string
+
+	err := r.buildPermissionJoinQuery().
+		Select("DISTINCT p.name").
+		Where("u.id = ?", userID).
+		Pluck("p.name", &permissions).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to fetch user permissions", "method", "GetUserPermissions", "error", err, "userID", userID)
+	}
+
+	return permissions, err
+}
+
+func (r *PermissionRepository) HasPermission(userID uint, permission string) (bool, error) {
+	var count int64
+
+	err := r.buildPermissionJoinQuery().
+		Where("u.id = ? AND p.name = ?", userID, permission).
+		Count(&count).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to check user permission", "method", "HasPermission", "error", err, "userID", userID, "permission", permission)
+	}
+
+	return count > 0, err
+}
+
+func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []string) (bool, error) {
+	if len(permissions) == 0 {
+		return true, nil
+	}
+
+	var count int64
+
+	err := r.buildPermissionJoinQuery().
+		Where("u.id = ? AND p.name IN ?", userID, permissions).
+		Count(&count).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to check user permissions", "method", "HasAnyPermission", "error", err, "userID", userID, "permissions", permissions)
+	}
+
+	return count > 0, err
+}
+
+func (r *PermissionRepository) GetUserPermissionsByRole(userID uint, roleType string) ([]string, error) {
+	var permissions []string
+
+	err := r.buildPermissionJoinQuery().
+		Select("DISTINCT p.name").
+		Where("u.id = ? AND r.role_type = ?", userID, roleType).
+		Pluck("p.name", &permissions).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to fetch user permissions by role", "method", "GetUserPermissionsByRole", "error", err, "userID", userID, "roleType", roleType)
+	}
+
+	return permissions, err
+}
+
+func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
+	var userStatus PermissionUserStatus
+
+	err = r.db.Select("banned, verified").
+		Where("id = ?", userID).
+		First(&userStatus).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
+		return false, false, false, err
+	}
+
+	hasPermission, err = r.HasPermission(userID, permission)
+	if err != nil {
+		logger.Logger.Error("Failed to check user permission", "method", "GetUserStatusAndPermission", "error", err, "userID", userID, "permission", permission)
+		return false, false, false, err
+	}
+
+	return userStatus.Banned, userStatus.Verified, hasPermission, nil
+}
+
+func (r *PermissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
+	if len(permissions) == 0 {
+		return false, false, true, nil
+	}
+
+	var userStatus PermissionUserStatus
+
+	err = r.db.Select("banned, verified").
+		Where("id = ?", userID).
+		First(&userStatus).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID)
+		return false, false, false, err
+	}
+
+	hasPermission, err = r.HasAnyPermission(userID, permissions)
+	if err != nil {
+		logger.Logger.Error("Failed to check user permissions", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID, "permissions", permissions)
+		return false, false, false, err
+	}
+
+	return userStatus.Banned, userStatus.Verified, hasPermission, nil
+}
+
+func (r *PermissionRepository) GetUsersWithPermission(permission string) ([]uint, error) {
+	var userIDs []uint
+
+	err := r.buildPermissionJoinQuery().
+		Select("DISTINCT u.id").
+		Where("p.name = ?", permission).
+		Pluck("u.id", &userIDs).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to fetch users with permission", "method", "GetUsersWithPermission", "error", err, "permission", permission)
+	}
+
+	return userIDs, err
+}
+
+func (r *PermissionRepository) GetPermissionStats() (map[string]int, error) {
+	var results []struct {
+		PermissionName string `json:"permission_name"`
+		Count          int    `json:"count"`
+	}
+
+	err := r.buildPermissionJoinQuery().
+		Select("p.name as permission_name, COUNT(DISTINCT u.id) as count").
+		Group("p.name").
+		Scan(&results).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to fetch permission stats", "method", "GetPermissionStats", "error", err)
+		return nil, err
+	}
+
+	stats := make(map[string]int)
+	for _, result := range results {
+		stats[result.PermissionName] = result.Count
+	}
+
+	return stats, nil
+}
+
+func (r *PermissionRepository) buildPermissionJoinQuery() *gorm.DB {
+	return r.db.Table("users u").
+		Joins("JOIN user_roles ur ON u.id = ur.user_id").
+		Joins("JOIN roles r ON ur.role_id = r.id").
+		Joins("JOIN role_permissions rp ON r.id = rp.role_id").
+		Joins("JOIN permissions p ON rp.permission_id = p.id").
+		Where("u.deleted_at IS NULL AND r.deleted_at IS NULL AND p.deleted_at IS NULL")
+}
+
 func (r *PermissionRepository) getSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, PermissionName, constants.FieldCreatedAt, constants.FieldUpdatedAt}
 	optionalFields := []string{"description"}

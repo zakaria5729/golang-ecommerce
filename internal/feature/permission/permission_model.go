@@ -3,6 +3,7 @@ package permission
 import (
 	"errors"
 
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -11,6 +12,10 @@ type Permission struct {
 	models.BaseModel
 	Name        string  `json:"name" gorm:"uniqueIndex;not null;column:name"`
 	Description *string `json:"description,omitempty" gorm:"column:description"`
+}
+
+func (Permission) TableName() string {
+	return constants.TablePermission
 }
 
 const (

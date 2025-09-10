@@ -6,25 +6,22 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/shared"
-	"github.com/easy-comerce/backend/internal/feature/user_permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type RoleUseCase struct {
-	roleRepo              *RoleRepository
-	permissionRepo        *permission.PermissionRepository
-	userRepo              shared.UserRepositoryInterface
-	userPermissionUseCase *user_permission.UserPermissionUseCase
+	roleRepo       *RoleRepository
+	permissionRepo *permission.PermissionRepository
+	userRepo       shared.UserRepositoryInterface
 }
 
 func NewRoleUseCase(userRepo shared.UserRepositoryInterface) *RoleUseCase {
 	return &RoleUseCase{
-		roleRepo:              NewRoleRepository(),
-		permissionRepo:        permission.NewPermissionRepository(),
-		userRepo:              userRepo,
-		userPermissionUseCase: user_permission.NewUserPermissionUseCase(userRepo),
+		roleRepo:       NewRoleRepository(),
+		permissionRepo: permission.NewPermissionRepository(),
+		userRepo:       userRepo,
 	}
 }
 
@@ -204,12 +201,7 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 		return fmt.Errorf("failed to assign roles: %w", err)
 	}
 
-	// Sync user permissions to denormalized table
-	if err := uc.userPermissionUseCase.SyncUserPermissions(userID); err != nil {
-		logger.Logger.Error("Failed to sync user permissions after role assignment", "method", "AssignRoleToUser", "error", err, "userID", userID)
-		// Don't return error here as the role assignment was successful
-		// The permission sync can be retried later
-	}
+	// No need to sync permissions as we use 5-table joins for real-time permission checking
 
 	return nil
 }
@@ -317,4 +309,16 @@ func isValidRoleType(roleType string) bool {
 
 func canCreateRoles(roleType string) bool {
 	return roleType == constants.RoleTypeSuperAdmin || roleType == constants.RoleTypeAdmin
+}
+
+// GetRoleByType retrieves a role by its type
+func (uc *RoleUseCase) GetRoleByType(roleType string, includeStr string) (*Role, error) {
+	include := utils.ParseCommaSeparatedString(includeStr)
+	role, err := uc.roleRepo.GetRoleByType(roleType, include)
+	if err != nil {
+		logger.Logger.Error("Role not found", "method", "GetRoleByType", "error", err, "roleType", roleType)
+		return nil, errors.New("role not found")
+	}
+
+	return role, nil
 }

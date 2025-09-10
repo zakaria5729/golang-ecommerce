@@ -23,6 +23,16 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 	JWTSecret  string
+	ObjStore   ObjectStoreConfig
+}
+
+type ObjectStoreConfig struct {
+	Region          string
+	BucketName      string
+	AccountID       string
+	AccessKeyID     string
+	AccessKeySecret string
+	PublicDomain    string
 }
 
 func Load() Config {
@@ -36,6 +46,12 @@ func Load() Config {
 		constants.EnvKeyDBName,
 		constants.EnvKeyDBSSLMode,
 		constants.EnvKeyJWTSecret,
+		constants.EnvKeyObjStoreRegion,
+		constants.EnvKeyObjStoreBucketName,
+		constants.EnvKeyObjStoreAccountID,
+		constants.EnvKeyObjStoreAccessKeyID,
+		constants.EnvKeyObjStoreAccessKeySecret,
+		constants.EnvKeyObjStorePublicDomain,
 	}
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
@@ -70,6 +86,14 @@ func Load() Config {
 		DBName:     getEnv(constants.EnvKeyDBName, "easy_commerce"),
 		DBSSLMode:  getEnv(constants.EnvKeyDBSSLMode, "disable"),
 		JWTSecret:  getEnv(constants.EnvKeyJWTSecret, "your-super-secret-jwt-key-change-this-in-production"),
+		ObjStore: ObjectStoreConfig{
+			Region:          getEnv(constants.EnvKeyObjStoreRegion, "auto"),
+			BucketName:      getEnv(constants.EnvKeyObjStoreBucketName, "easy-commerce"),
+			AccountID:       getEnv(constants.EnvKeyObjStoreAccountID, ""),
+			AccessKeyID:     getEnv(constants.EnvKeyObjStoreAccessKeyID, ""),
+			AccessKeySecret: getEnv(constants.EnvKeyObjStoreAccessKeySecret, ""),
+			PublicDomain:    getEnv(constants.EnvKeyObjStorePublicDomain, ""),
+		},
 	}
 }
 

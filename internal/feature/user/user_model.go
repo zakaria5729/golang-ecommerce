@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/easy-comerce/backend/internal/feature/role"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
@@ -23,6 +24,10 @@ type User struct {
 	RefreshTokenExpires  *time.Time  `json:"-" gorm:"column:refresh_token_expires"`
 	LastLoginAt          *time.Time  `json:"last_login_at,omitempty" gorm:"column:last_login_at"`
 	Roles                []role.Role `json:"roles,omitempty" gorm:"many2many:user_roles;"`
+}
+
+func (User) TableName() string {
+	return constants.TableUser
 }
 
 const (

@@ -9,10 +9,14 @@ import (
 
 type Role struct {
 	models.BaseModel
-	RoleName    string                  `json:"role_name" gorm:"uniqueIndex;not null;column:role_name"`
+	RoleName    string                  `json:"role_name" gorm:"uniqueIndex:roles_role_name_key;not null;column:role_name"`
 	RoleType    string                  `json:"role_type" gorm:"not null;column:role_type"`
 	Description *string                 `json:"description,omitempty" gorm:"column:description"`
 	Permissions []permission.Permission `json:"permissions,omitempty" gorm:"many2many:role_permissions;"`
+}
+
+func (Role) TableName() string {
+	return constants.TableRole
 }
 
 const (

@@ -1,6 +1,11 @@
 package constants
 
 const (
+	UserContextKey     string = "user"
+	ObjStoreProviderR2 string = "r2"
+)
+
+const (
 	StatusMessageOK               = "Success"
 	StatusMessageCreated          = "Resource created successfully"
 	StatusMessageUpdated          = "Resource updated successfully"
@@ -41,14 +46,8 @@ const (
 )
 
 const (
-	FieldID        = "id"
-	FieldCreatedAt = "created_at"
-	FieldUpdatedAt = "updated_at"
-)
-
-// Context Keys
-const (
-	UserContextKey = "user"
+	EnvKeyJWTSecret  = "JWT_SECRET"
+	EnvActiveProfile = "ACTIVE_PROFILE"
 )
 
 const (
@@ -67,9 +66,9 @@ const (
 )
 
 const (
-	MaxFileSize       = 5 << 20
-	AllowedImageTypes = "image/jpeg,image/png,image/gif,image/webp"
-	AllowedDocTypes   = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	MaxFileSize       = 5 * 1024 * 1024 // 5MB
+	AllowedImageTypes = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
+	AllowedDocTypes   = "application/pdf"
 )
 
 const (
@@ -92,83 +91,19 @@ const (
 )
 
 const (
-	EnvActiveProfile = "ACTIVE_PROFILE"
-	EnvKeyPort       = "PORT"
-	EnvKeyDBHost     = "DB_HOST"
-	EnvKeyDBPort     = "DB_PORT"
-	EnvKeyDBUser     = "DB_USER"
-	EnvKeyDBPassword = "DB_PASSWORD"
-	EnvKeyDBName     = "DB_NAME"
-	EnvKeyDBSSLMode  = "DB_SSL_MODE"
-	EnvKeyJWTSecret  = "JWT_SECRET"
+	EnvKeyObjStoreRegion          = "OBJ_STORE_REGION"
+	EnvKeyObjStoreBucketName      = "OBJ_STORE_BUCKET_NAME"
+	EnvKeyObjStoreAccountID       = "OBJ_STORE_ACCOUNT_ID"
+	EnvKeyObjStoreAccessKeyID     = "OBJ_STORE_ACCESS_KEY_ID"
+	EnvKeyObjStoreAccessKeySecret = "OBJ_STORE_ACCESS_KEY_SECRET"
+	EnvKeyObjStorePublicDomain    = "OBJ_STORE_PUBLIC_DOMAIN"
 )
 
-// Role Types
 const (
-	RoleTypeSuperAdmin = "SUPER_ADMIN"
-	RoleTypeAdmin      = "ADMIN"
-	RoleTypeManager    = "MANAGER"
-	RoleTypeSeller     = "SELLER"
-	RoleTypeUser       = "USER"
-)
-
-// Role Names
-const (
-	RoleNameSuperAdmin = "Super Admin"
-	RoleNameAdmin      = "Admin"
-	RoleNameManager    = "Manager"
-	RoleNameSeller     = "Seller"
-	RoleNameUser       = "User"
-)
-
-// Permission Names
-const (
-	// User permissions
-	PermissionUserCreate = "user.create"
-	PermissionUserRead   = "user.read"
-	PermissionUserUpdate = "user.update"
-	PermissionUserDelete = "user.delete"
-
-	// Role permissions
-	PermissionRoleCreate = "role.create"
-	PermissionRoleRead   = "role.read"
-	PermissionRoleUpdate = "role.update"
-	PermissionRoleDelete = "role.delete"
-
-	// Permission permissions
-	PermissionPermissionRead = "permission.read"
-
-	// Category permissions
-	PermissionCategoryCreate = "category.create"
-	PermissionCategoryRead   = "category.read"
-	PermissionCategoryUpdate = "category.update"
-	PermissionCategoryDelete = "category.delete"
-
-	// Address permissions
-	PermissionAddressCreate = "address.create"
-	PermissionAddressRead   = "address.read"
-	PermissionAddressUpdate = "address.update"
-	PermissionAddressDelete = "address.delete"
-
-	// Review permissions
-	PermissionReviewCreate = "review.create"
-	PermissionReviewRead   = "review.read"
-	PermissionReviewUpdate = "review.update"
-	PermissionReviewDelete = "review.delete"
-
-	// Wishlist permissions
-	PermissionWishlistCreate = "wishlist.create"
-	PermissionWishlistRead   = "wishlist.read"
-	PermissionWishlistUpdate = "wishlist.update"
-	PermissionWishlistDelete = "wishlist.delete"
-
-	// Browsing History permissions
-	PermissionBrowsingHistoryCreate = "browsing_history.create"
-	PermissionBrowsingHistoryRead   = "browsing_history.read"
-	PermissionBrowsingHistoryUpdate = "browsing_history.update"
-	PermissionBrowsingHistoryDelete = "browsing_history.delete"
-
-	// System permissions
-	PermissionSystemAdmin      = "system.admin"
-	PermissionSystemSuperAdmin = "system.super_admin"
+	FolderCategory = "category"
+	FolderProduct  = "product"
+	FolderUser     = "user"
+	FolderReview   = "review"
+	FolderAddress  = "address"
+	FolderWishlist = "wishlist"
 )

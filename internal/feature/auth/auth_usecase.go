@@ -11,7 +11,6 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
-	"github.com/easy-comerce/backend/internal/feature/user_permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -264,16 +263,16 @@ func (uc *AuthUseCase) generatePasswordResetToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-func (uc *AuthUseCase) HasPermission(userID uint, permission string) (bool, error) {
-	// Use denormalized table for fast permission check (single query instead of 5-table join)
-	userPermissionRepo := user_permission.NewUserPermissionRepository()
-	return userPermissionRepo.HasPermission(userID, permission)
+func (uc *AuthUseCase) HasPermission(userID uint, permissionName string) (bool, error) {
+	// Use 5-table join for permission check
+	permissionUseCase := permission.NewPermissionUseCase()
+	return permissionUseCase.HasPermission(userID, permissionName)
 }
 
 func (uc *AuthUseCase) HasRole(userID uint, roleType string) (bool, error) {
-	// Use materialized view for fast role checking
-	userPermissionRepo := user_permission.NewUserPermissionRepository()
-	permissions, err := userPermissionRepo.GetUserPermissionsByRole(userID, roleType)
+	// Use 5-table join for role checking
+	permissionUseCase := permission.NewPermissionUseCase()
+	permissions, err := permissionUseCase.GetUserPermissionsByRole(userID, roleType)
 	if err != nil {
 		return false, err
 	}

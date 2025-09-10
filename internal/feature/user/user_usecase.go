@@ -222,3 +222,45 @@ func (uc *UserUseCase) GetUserStatus(userID uint) (banned bool, verified bool, e
 
 	return uc.userRepo.GetUserStatus(userID)
 }
+
+// CreateUser creates a new user
+func (uc *UserUseCase) CreateUser(user *User) error {
+	user.Sanitize()
+
+	if user.Email == "" {
+		logger.Logger.Error("Email is required", "method", "CreateUser")
+		return errors.New("email is required")
+	}
+
+	if user.Password == "" {
+		logger.Logger.Error("Password is required", "method", "CreateUser")
+		return errors.New("password is required")
+	}
+
+	if user.Name == "" {
+		logger.Logger.Error("Name is required", "method", "CreateUser")
+		return errors.New("name is required")
+	}
+
+	if err := user.HashPassword(); err != nil {
+		logger.Logger.Error("Failed to hash password", "method", "CreateUser", "error", err)
+		return errors.New("failed to process password")
+	}
+
+	if err := uc.userRepo.CreateUser(user); err != nil {
+		logger.Logger.Error("Failed to create user", "method", "CreateUser", "error", err)
+		return errors.New("failed to create user")
+	}
+
+	return nil
+}
+
+// UserExistsByEmail checks if a user exists with the given email
+func (uc *UserUseCase) UserExistsByEmail(email string) (bool, error) {
+	exists, err := uc.userRepo.UserExistsByEmail(email, nil)
+	if err != nil {
+		logger.Logger.Error("Failed to check if user exists by email", "method", "UserExistsByEmail", "error", err, "email", email)
+		return false, err
+	}
+	return exists, nil
+}
