@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	file_storage "github.com/easy-comerce/backend/internal/feature/file_store"
+	file_storage "github.com/easy-comerce/backend/internal/feature/file_storage"
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
@@ -24,7 +24,6 @@ func NewFileHandler() *FileHandler {
 }
 
 func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
-
 	user, exists := r.Context().Value(constants.UserContextKey).(*user.User)
 	if !exists {
 		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)

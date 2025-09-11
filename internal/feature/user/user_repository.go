@@ -124,33 +124,16 @@ func (r *UserRepository) GetUserByEmail(email string, include []string) (*User, 
 	return &user, nil
 }
 
-func (r *UserRepository) GetUserByEmailForLogin(email string, include []string) (*User, error) {
-	var user User
-
-	selectFields := r.getLoginSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if err := query.Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, role_name, role_type")
-	}).Preload("Roles.Permissions", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name")
-	}).Where(UserEmail+" = ?", email).First(&user).Error; err != nil {
-		logger.Logger.Error("Failed to fetch user by email for login", "method", "GetUserByEmailForLogin", "error", err, "email", email, "include", include)
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func (r *UserRepository) CreateUser(user *User) error {
+func (r *UserRepository) CreateUser(user *User) (*User, error) {
 	err := r.db.Create(user).Error
 	if err != nil {
 		logger.Logger.Error("Failed to create user", "method", "CreateUser", "error", err, "user", user)
+		return nil, err
 	}
-	return err
+	return user, nil
 }
 
-func (r *UserRepository) UpdateUser(user *User) error {
+func (r *UserRepository) UpdateUser(user *User) (*User, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(user).Error; err != nil {
 			return err
@@ -164,8 +147,9 @@ func (r *UserRepository) UpdateUser(user *User) error {
 	})
 	if err != nil {
 		logger.Logger.Error("Failed to update user", "method", "UpdateUser", "error", err, "user", user)
+		return nil, err
 	}
-	return err
+	return user, nil
 }
 
 func (r *UserRepository) DeleteUser(id uint) error {
@@ -320,13 +304,13 @@ func (r *UserRepository) ClearRefreshToken(userID uint) error {
 
 func (r *UserRepository) getSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, UserEmail, UserName, UserVerified, UserBanned, constants.FieldCreatedAt, constants.FieldUpdatedAt}
-	optionalFields := []string{UserLastLoginAt, "password"}
+	optionalFields := []string{UserLastLoginAt, UserPassword}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
 
 func (r *UserRepository) getLoginSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, UserEmail, UserName, UserVerified, UserBanned}
-	optionalFields := []string{"password"}
+	optionalFields := []string{UserPassword}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
 

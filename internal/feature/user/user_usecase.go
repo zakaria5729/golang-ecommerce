@@ -21,8 +21,7 @@ func NewUserUseCase() *UserUseCase {
 	}
 }
 
-// GetUserProfile retrieves a user profile by ID
-func (uc *UserUseCase) GetUserProfile(userID uint, includeStr string) (*User, error) {
+func (uc *UserUseCase) GetUserProfile(userID uint, includeStr string) (*UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	user, err := uc.userRepo.GetUserByID(userID, include)
 	if err != nil {
@@ -30,20 +29,7 @@ func (uc *UserUseCase) GetUserProfile(userID uint, includeStr string) (*User, er
 		return nil, errors.New("user not found")
 	}
 
-	user.Password = ""
-	return user, nil
-}
-
-// GetBasicUserByID retrieves basic user information by ID (without roles/permissions)
-func (uc *UserUseCase) GetBasicUserByID(userID uint) (*User, error) {
-	user, err := uc.userRepo.GetUserByID(userID, nil)
-	if err != nil {
-		logger.Logger.Error("User not found", "method", "GetBasicUserByID", "error", err, "userID", userID)
-		return nil, errors.New("user not found")
-	}
-
-	user.Password = ""
-	return user, nil
+	return user.ToResponse(), nil
 }
 
 // IsUserBanned checks if a user is banned (lightweight query - only checks banned status)
@@ -51,44 +37,44 @@ func (uc *UserUseCase) IsUserBanned(userID uint) (bool, error) {
 	return uc.userRepo.IsUserBanned(userID)
 }
 
-// UpdateUserProfile updates a user's profile information
-func (uc *UserUseCase) UpdateUserProfile(userID uint, req *User) (*User, error) {
-	req.Sanitize()
-
+func (uc *UserUseCase) UpdateUserProfile(userID uint, req *UpdateProfileRequest) (*UserResponse, error) {
 	existingUser, err := uc.userRepo.GetUserByID(userID, nil)
 	if err != nil {
 		logger.Logger.Error("User not found", "method", "UpdateUserProfile", "error", err, "userID", userID)
 		return nil, errors.New("user not found")
 	}
 
-	if req.Email != "" && req.Email != existingUser.Email {
-		exists, err := uc.userRepo.UserExistsByEmail(req.Email, &userID)
+	if req.Email != nil {
+		existingUser.Email = *req.Email
+	}
+	if req.Name != nil {
+		existingUser.Name = *req.Name
+	}
+
+	existingUser.Sanitize()
+
+	if req.Email != nil && *req.Email != existingUser.Email {
+		exists, err := uc.userRepo.UserExistsByEmail(*req.Email, &userID)
 		if err != nil {
-			logger.Logger.Error("Failed to check if email exists", "method", "UpdateUserProfile", "error", err, "userID", userID, "email", req.Email)
+			logger.Logger.Error("Failed to check if email exists", "method", "UpdateUserProfile", "error", err, "userID", userID, "email", *req.Email)
 			return nil, fmt.Errorf("failed to check email: %w", err)
 		}
 		if exists {
-			logger.Logger.Error("Email already exists", "method", "UpdateUserProfile", "userID", userID, "email", req.Email)
+			logger.Logger.Error("Email already exists", "method", "UpdateUserProfile", "userID", userID, "email", *req.Email)
 			return nil, errors.New("email already exists")
 		}
-		existingUser.Email = req.Email
 	}
 
-	if req.Name != "" {
-		existingUser.Name = req.Name
-	}
-
-	if err := uc.userRepo.UpdateUser(existingUser); err != nil {
+	updatedUser, err := uc.userRepo.UpdateUser(existingUser)
+	if err != nil {
 		logger.Logger.Error("Failed to update user profile", "method", "UpdateUserProfile", "error", err, "userID", userID)
 		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	existingUser.Password = ""
-	return existingUser, nil
+	return updatedUser.ToResponse(), nil
 }
 
-// GetAllUsers retrieves all users with optional filtering and sorting
-func (uc *UserUseCase) GetAllUsers(includeStr, sortBy, sortOrder string) ([]User, error) {
+func (uc *UserUseCase) GetAllUsers(includeStr, sortBy, sortOrder string) ([]UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	users, err := uc.userRepo.GetAllUsers(include, nil, nil, sortBy, sortOrder)
 	if err != nil {
@@ -96,16 +82,11 @@ func (uc *UserUseCase) GetAllUsers(includeStr, sortBy, sortOrder string) ([]User
 		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 
-	// Remove passwords from response
-	for i := range users {
-		users[i].Password = ""
-	}
-
-	return users, nil
+	return uc.getUserResponses(users), nil
 }
 
 // GetUserByID retrieves a specific user by ID
-func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*User, error) {
+func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	user, err := uc.userRepo.GetUserByID(userID, include)
 	if err != nil {
@@ -114,7 +95,7 @@ func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*User, error
 	}
 
 	user.Password = ""
-	return user, nil
+	return user.ToResponse(), nil
 }
 
 // DeleteUser soft deletes a user
@@ -144,7 +125,8 @@ func (uc *UserUseCase) BanUser(userID uint) error {
 	}
 
 	user.Banned = true
-	if err := uc.userRepo.UpdateUser(user); err != nil {
+	_, err = uc.userRepo.UpdateUser(user)
+	if err != nil {
 		logger.Logger.Error("Failed to ban user", "method", "BanUser", "error", err, "userID", userID)
 		return fmt.Errorf("failed to ban user: %w", err)
 	}
@@ -162,7 +144,8 @@ func (uc *UserUseCase) UnbanUser(userID uint) error {
 	}
 
 	user.Banned = false
-	if err := uc.userRepo.UpdateUser(user); err != nil {
+	_, err = uc.userRepo.UpdateUser(user)
+	if err != nil {
 		logger.Logger.Error("Failed to unban user", "method", "UnbanUser", "error", err, "userID", userID)
 		return fmt.Errorf("failed to unban user: %w", err)
 	}
@@ -171,7 +154,6 @@ func (uc *UserUseCase) UnbanUser(userID uint) error {
 	return nil
 }
 
-// VerifyUser verifies a user's email
 func (uc *UserUseCase) VerifyUser(userID uint) error {
 	user, err := uc.userRepo.GetUserByID(userID, nil)
 	if err != nil {
@@ -180,7 +162,8 @@ func (uc *UserUseCase) VerifyUser(userID uint) error {
 	}
 
 	user.Verified = true
-	if err := uc.userRepo.UpdateUser(user); err != nil {
+	_, err = uc.userRepo.UpdateUser(user)
+	if err != nil {
 		logger.Logger.Error("Failed to verify user", "method", "VerifyUser", "error", err, "userID", userID)
 		return fmt.Errorf("failed to verify user: %w", err)
 	}
@@ -189,16 +172,13 @@ func (uc *UserUseCase) VerifyUser(userID uint) error {
 	return nil
 }
 
-// AssignRoleToUser assigns a role to a user
 func (uc *UserUseCase) AssignRoleToUser(userID uint, roleID uint) error {
-	// Check if user exists
 	_, err := uc.userRepo.GetUserByID(userID, nil)
 	if err != nil {
 		logger.Logger.Error("User not found", "method", "AssignRoleToUser", "error", err, "userID", userID)
 		return errors.New("user not found")
 	}
 
-	// Check if role exists
 	_, err = uc.roleRepo.GetRoleByID(roleID, nil)
 	if err != nil {
 		logger.Logger.Error("Role not found", "method", "AssignRoleToUser", "error", err, "roleID", roleID)
@@ -214,7 +194,6 @@ func (uc *UserUseCase) AssignRoleToUser(userID uint, roleID uint) error {
 	return nil
 }
 
-// GetUserStatus gets user status (banned, verified) from users table
 func (uc *UserUseCase) GetUserStatus(userID uint) (banned bool, verified bool, err error) {
 	if userID == 0 {
 		return false, false, errors.New("invalid user ID")
@@ -224,38 +203,37 @@ func (uc *UserUseCase) GetUserStatus(userID uint) (banned bool, verified bool, e
 }
 
 // CreateUser creates a new user
-func (uc *UserUseCase) CreateUser(user *User) error {
+func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error) {
+	user := &User{
+		Email:    req.Email,
+		Password: req.Password,
+		Name:     req.Name,
+	}
+
 	user.Sanitize()
-
-	if user.Email == "" {
-		logger.Logger.Error("Email is required", "method", "CreateUser")
-		return errors.New("email is required")
-	}
-
-	if user.Password == "" {
-		logger.Logger.Error("Password is required", "method", "CreateUser")
-		return errors.New("password is required")
-	}
-
-	if user.Name == "" {
-		logger.Logger.Error("Name is required", "method", "CreateUser")
-		return errors.New("name is required")
-	}
 
 	if err := user.HashPassword(); err != nil {
 		logger.Logger.Error("Failed to hash password", "method", "CreateUser", "error", err)
-		return errors.New("failed to process password")
+		return nil, errors.New("failed to process password")
 	}
 
-	if err := uc.userRepo.CreateUser(user); err != nil {
+	createdUser, err := uc.userRepo.CreateUser(user)
+	if err != nil {
 		logger.Logger.Error("Failed to create user", "method", "CreateUser", "error", err)
-		return errors.New("failed to create user")
+		return nil, errors.New("failed to create user")
 	}
 
-	return nil
+	return createdUser.ToResponse(), nil
 }
 
-// UserExistsByEmail checks if a user exists with the given email
+func (uc *UserUseCase) getUserResponses(users []User) []UserResponse {
+	responses := make([]UserResponse, len(users))
+	for i, user := range users {
+		responses[i] = *user.ToResponse()
+	}
+	return responses
+}
+
 func (uc *UserUseCase) UserExistsByEmail(email string) (bool, error) {
 	exists, err := uc.userRepo.UserExistsByEmail(email, nil)
 	if err != nil {

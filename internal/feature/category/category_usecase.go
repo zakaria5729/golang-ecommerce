@@ -19,7 +19,7 @@ func NewCategoryUseCase() *CategoryUseCase {
 	}
 }
 
-func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter string, priorityFilter string, sortBy, sortOrder string) ([]Category, error) {
+func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter string, priorityFilter string, sortBy, sortOrder string) ([]CategoryResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
 	showPriority := utils.ParseBoolPtr(priorityFilter)
@@ -30,7 +30,7 @@ func (uc *CategoryUseCase) GetAllCategories(includeStr string, parentIDFilter st
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 
-	return categories, nil
+	return uc.getCategoryResponses(categories), nil
 }
 
 func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentIDFilter string, pageStr string, pageSizeStr string, priorityFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
@@ -46,15 +46,10 @@ func (uc *CategoryUseCase) GetAllCategoriesPaginated(includeStr string, parentID
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 
-	var categoryPtrs []*Category
-	for i := range categories {
-		categoryPtrs = append(categoryPtrs, &categories[i])
-	}
-
-	return utils.BuildPaginatedResponse(categoryPtrs, total, page, pageSize), nil
+	return utils.BuildPaginatedResponse(uc.getCategoryResponses(categories), total, page, pageSize), nil
 }
 
-func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Category, error) {
+func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*CategoryResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	category, err := uc.repo.GetCategoryByID(id, include)
 	if err != nil {
@@ -62,78 +57,89 @@ func (uc *CategoryUseCase) GetCategoryByID(id uint, includeStr string) (*Categor
 		return nil, fmt.Errorf("category not found: %w", err)
 	}
 
-	return category, nil
+	return category.ToResponse(), nil
 }
 
-func (uc *CategoryUseCase) CreateCategory(req *Category) (*Category, error) {
+func (uc *CategoryUseCase) CreateCategory(req *CreateCategoryRequest) (*CategoryResponse, error) {
+	category := &Category{
+		Title:    req.Title,
+		SubTitle: req.SubTitle,
+		ParentID: req.ParentID,
+		Priority: req.Priority,
+		IsActive: true, // Default to active
+	}
 
-	req.Sanitize()
+	category.Sanitize()
 
-	if req.ParentID != nil && *req.ParentID > 0 {
-		parentExists, err := uc.repo.CategoryExists(*req.ParentID)
+	if category.ParentID != nil && *category.ParentID > 0 {
+		parentExists, err := uc.repo.CategoryExists(*category.ParentID)
 		if err != nil {
-			logger.Logger.Error("Failed to check parent category", "method", "CreateCategory", "error", err, "parentID", *req.ParentID)
+			logger.Logger.Error("Failed to check parent category", "method", "CreateCategory", "error", err, "parentID", *category.ParentID)
 			return nil, fmt.Errorf("failed to check parent category: %w", err)
 		}
 		if !parentExists {
-			logger.Logger.Error("Parent category does not exist", "method", "CreateCategory", "parentID", *req.ParentID)
+			logger.Logger.Error("Parent category does not exist", "method", "CreateCategory", "parentID", *category.ParentID)
 			return nil, errors.New("parent category does not exist")
 		}
 	}
 
-	exists, err := uc.repo.CategoryExistsByTitle(req.Title, nil)
+	exists, err := uc.repo.CategoryExistsByTitle(category.Title, nil)
 	if err != nil {
-		logger.Logger.Error("Failed to check category title", "method", "CreateCategory", "error", err, "title", req.Title)
+		logger.Logger.Error("Failed to check category title", "method", "CreateCategory", "error", err, "title", category.Title)
 		return nil, fmt.Errorf("failed to check category title: %w", err)
 	}
 	if exists {
-		logger.Logger.Error("Category with this title already exists", "method", "CreateCategory", "title", req.Title)
+		logger.Logger.Error("Category with this title already exists", "method", "CreateCategory", "title", category.Title)
 		return nil, errors.New("category with this title already exists")
 	}
 
-	if req.IsActive {
-		req.IsActive = true
-	}
-
-	category := &Category{
-		Title:    req.Title,
-		SubTitle: req.SubTitle,
-		ImageURL: req.ImageURL,
-		ParentID: req.ParentID,
-		IsActive: req.IsActive,
-	}
-
-	if err := uc.repo.CreateCategory(category); err != nil {
+	createdCategory, err := uc.repo.CreateCategory(category)
+	if err != nil {
 		logger.Logger.Error("Failed to create category", "method", "CreateCategory", "error", err, "category", category)
 		return nil, fmt.Errorf("failed to create category: %w", err)
 	}
 
-	return category, nil
+	return createdCategory.ToResponse(), nil
 }
 
-func (uc *CategoryUseCase) UpdateCategory(id uint, req *Category) (*Category, error) {
-
-	req.Sanitize()
-
+func (uc *CategoryUseCase) UpdateCategory(id uint, req *UpdateCategoryRequest) (*CategoryResponse, error) {
 	existingCategory, err := uc.repo.GetCategoryByIDIncludeInactive(id, nil)
 	if err != nil {
 		logger.Logger.Error("Category not found", "method", "UpdateCategory", "error", err, "id", id)
 		return nil, fmt.Errorf("category not found: %w", err)
 	}
 
-	if req.ParentID != nil && *req.ParentID > 0 {
-		if *req.ParentID == id {
-			logger.Logger.Error("Category cannot be its own parent", "method", "UpdateCategory", "id", id, "parentID", *req.ParentID)
+	if req.Title != "" {
+		existingCategory.Title = req.Title
+	}
+	if req.SubTitle != nil {
+		existingCategory.SubTitle = req.SubTitle
+	}
+	if req.ParentID != nil {
+		existingCategory.ParentID = req.ParentID
+	}
+	if req.Priority != nil {
+		existingCategory.Priority = req.Priority
+	}
+	if req.IsActive != nil {
+		existingCategory.IsActive = *req.IsActive
+	}
+
+	existingCategory.Sanitize()
+
+	if existingCategory.ParentID != nil && *existingCategory.ParentID > 0 {
+		if *existingCategory.ParentID == id {
+			logger.Logger.Error("Category cannot be its own parent", "method", "UpdateCategory", "id", id, "parentID", *existingCategory.ParentID)
 			return nil, errors.New("category cannot be its own parent")
 		}
 
-		parentExists, err := uc.repo.CategoryExists(*req.ParentID)
+		parentExists, err := uc.repo.CategoryExists(*existingCategory.ParentID)
 		if err != nil {
-			logger.Logger.Error("Failed to check parent category", "method", "UpdateCategory", "error", err, "parentID", *req.ParentID)
+			logger.Logger.Error("Failed to check parent category", "method", "UpdateCategory", "error", err, "parentID", *existingCategory.ParentID)
 			return nil, fmt.Errorf("failed to check parent category: %w", err)
 		}
 		if !parentExists {
-			logger.Logger.Error("Parent category does not exist", "method", "UpdateCategory", "parentID", *req.ParentID)
+			logger.Logger.Error("Parent category does not exist", "method", "UpdateCategory", "parentID", *existingCategory.ParentID)
 			return nil, errors.New("parent category does not exist")
 		}
 	}
@@ -150,33 +156,13 @@ func (uc *CategoryUseCase) UpdateCategory(id uint, req *Category) (*Category, er
 		}
 	}
 
-	if req.Title != "" {
-		existingCategory.Title = req.Title
-	}
-	if req.SubTitle != nil {
-		existingCategory.SubTitle = req.SubTitle
-	}
-	if req.ImageURL != nil {
-		existingCategory.ImageURL = req.ImageURL
-	}
-	if req.ParentID != nil {
-		existingCategory.ParentID = req.ParentID
-	}
-
-	if req.IsActive != existingCategory.IsActive {
-		if err := uc.repo.UpdateCategoryStatus(id, req.IsActive); err != nil {
-			logger.Logger.Error("Failed to update category status", "method", "UpdateCategory", "error", err, "id", id, "newStatus", req.IsActive)
-			return nil, fmt.Errorf("failed to update category status: %w", err)
-		}
-		existingCategory.IsActive = req.IsActive
-	}
-
-	if err := uc.repo.UpdateCategory(existingCategory); err != nil {
+	updatedCategory, err := uc.repo.UpdateCategory(existingCategory)
+	if err != nil {
 		logger.Logger.Error("Failed to update category", "method", "UpdateCategory", "error", err, "category", existingCategory)
 		return nil, fmt.Errorf("failed to update category: %w", err)
 	}
 
-	return existingCategory, nil
+	return updatedCategory.ToResponse(), nil
 }
 
 func (uc *CategoryUseCase) DeleteCategory(id uint) error {
@@ -202,7 +188,7 @@ func (uc *CategoryUseCase) IncrementPriority(categoryID uint) error {
 	return nil
 }
 
-func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
+func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*CategoryResponse, error) {
 	category, err := uc.repo.GetCategoryByIDIncludeInactive(id, nil)
 	if err != nil {
 		logger.Logger.Error("Category not found", "method", "ToggleCategoryStatus", "error", err, "id", id)
@@ -216,5 +202,13 @@ func (uc *CategoryUseCase) ToggleCategoryStatus(id uint) (*Category, error) {
 	}
 
 	category.IsActive = newStatus
-	return category, nil
+	return category.ToResponse(), nil
+}
+
+func (uc *CategoryUseCase) getCategoryResponses(categories []Category) []CategoryResponse {
+	responses := make([]CategoryResponse, len(categories))
+	for i, cat := range categories {
+		responses[i] = *cat.ToResponse()
+	}
+	return responses
 }

@@ -11,12 +11,10 @@ import (
 func RegisterCategoryRoute(mux *http.ServeMux, permissionMiddleware *middleware.AuthPermissionMiddleware) {
 	handler := handler.NewCategoryHandler()
 
-	// Public endpoints - no authentication required
 	mux.HandleFunc("GET /v1/categories", handler.GetAllCategories)
 	mux.HandleFunc("GET /v1/categories/paginated", handler.GetAllCategoriesPaginated)
 	mux.HandleFunc("GET /v1/categories/id/{id}", handler.GetCategoryByID)
 
-	// Protected endpoints - require authentication and permissions
 	mux.Handle("POST /v1/categories", middleware.ChainMiddleware(
 		permissionMiddleware.RequirePermission(constants.PermissionCategoryCreate),
 	)(http.HandlerFunc(handler.CreateCategory)))

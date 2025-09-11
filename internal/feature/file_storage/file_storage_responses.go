@@ -2,7 +2,6 @@ package file_storage
 
 type StorageUploadResponse struct {
 	Key      string
-	URL      string
 	ETag     string
 	Location string
 }

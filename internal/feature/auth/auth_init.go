@@ -10,27 +10,20 @@ import (
 )
 
 func InitializeDefaultSuperAdmin() error {
-	userUseCase := user.NewUserUseCase()
 	userRepo := user.NewUserRepository()
 	roleUseCase := role.NewRoleUseCase(userRepo.ToSharedInterface())
 
-	superAdminEmail := os.Getenv("SUPER_ADMIN_EMAIL")
+	superAdminEmail := os.Getenv(constants.EnvSuperAdminEmail)
 	if superAdminEmail == "" {
 		superAdminEmail = "super123@admin.com"
 	}
 
-	superAdminPassword := os.Getenv("SUPER_ADMIN_PASSWORD")
+	superAdminPassword := os.Getenv(constants.EnvSuperAdminPassword)
 	if superAdminPassword == "" {
 		superAdminPassword = "super123@admin"
 	}
 
-	superAdminName := os.Getenv("SUPER_ADMIN_NAME")
-	if superAdminName == "" {
-		superAdminName = "Super Admin"
-	}
-
-	// Check if super admin already exists
-	exists, err := userUseCase.UserExistsByEmail(superAdminEmail)
+	exists, err := userRepo.UserExistsByEmail(superAdminEmail, nil)
 	if err != nil {
 		logger.Logger.Error("Failed to check if super admin exists", "method", "InitializeDefaultSuperAdmin", "error", err, "email", superAdminEmail)
 		return err
@@ -47,7 +40,8 @@ func InitializeDefaultSuperAdmin() error {
 		return err
 	}
 
-	user := &user.User{
+	superAdminName := "Super Admin"
+	userModel := &user.User{
 		Email:    superAdminEmail,
 		Password: superAdminPassword,
 		Name:     superAdminName,
@@ -55,8 +49,8 @@ func InitializeDefaultSuperAdmin() error {
 		Banned:   false,
 		Roles:    []role.Role{*superAdminRole},
 	}
-
-	if err := userUseCase.CreateUser(user); err != nil {
+	_, err = userRepo.CreateUser(userModel)
+	if err != nil {
 		logger.Logger.Error("Failed to create super admin", "method", "InitializeDefaultSuperAdmin", "error", err)
 		return err
 	}

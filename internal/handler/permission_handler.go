@@ -84,11 +84,6 @@ func (h *PermissionHandler) CreatePermission(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *PermissionHandler) UpdatePermission(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		response.SendErrorJSON(w, "Permission ID is required", http.StatusBadRequest)
@@ -124,11 +119,6 @@ func (h *PermissionHandler) UpdatePermission(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *PermissionHandler) DeletePermission(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		response.SendErrorJSON(w, "Permission ID is required", http.StatusBadRequest)

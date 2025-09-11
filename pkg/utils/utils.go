@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 )
@@ -276,4 +277,20 @@ func ExtractPathParam(path, prefix string) string {
 	}
 
 	return ""
+}
+
+func BuildFullImageURL(pathKey *string) *string {
+	publicDomain := config.GetPublicDomain()
+	if pathKey == nil || *pathKey == "" || publicDomain == "" {
+		return nil
+	}
+
+	var url string
+	if strings.HasPrefix(publicDomain, "http://") || strings.HasPrefix(publicDomain, "https://") {
+		url = fmt.Sprintf("%s/%s", publicDomain, *pathKey)
+	} else {
+		url = fmt.Sprintf("https://%s/%s", publicDomain, *pathKey)
+	}
+
+	return &url
 }

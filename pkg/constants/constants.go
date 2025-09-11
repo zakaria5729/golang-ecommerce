@@ -1,8 +1,11 @@
 package constants
 
+type userContextKey string
+
 const (
-	UserContextKey     string = "user"
-	ObjStoreProviderR2 string = "r2"
+	UserContextKey     userContextKey = "user"
+	ObjStoreProviderR2 string         = "r2"
+	ProjectName        string         = "easy-comerce"
 )
 
 const (
@@ -56,8 +59,10 @@ const (
 )
 
 const (
-	MaxRequestSize = 10 << 20
-	TokenExpiry    = 24 * 60 * 60
+	MaxRequestSize           = 5 * 1024 * 1024  // 5MB
+	AccessTokenExpiry        = 12 * 60 * 60     // 12 hours
+	RefreshTokenExpiry       = 3 * 24 * 60 * 60 // 3 days
+	PasswordResetTokenExpiry = 1 * 60 * 60      // 5 hours
 )
 
 const (
@@ -97,6 +102,11 @@ const (
 	EnvKeyObjStoreAccessKeyID     = "OBJ_STORE_ACCESS_KEY_ID"
 	EnvKeyObjStoreAccessKeySecret = "OBJ_STORE_ACCESS_KEY_SECRET"
 	EnvKeyObjStorePublicDomain    = "OBJ_STORE_PUBLIC_DOMAIN"
+)
+
+const (
+	EnvSuperAdminEmail    = "SUPER_ADMIN_EMAIL"
+	EnvSuperAdminPassword = "SUPER_ADMIN_PASSWORD"
 )
 
 const (

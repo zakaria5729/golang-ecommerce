@@ -75,12 +75,8 @@ func (r *CloudflareR2Client) Upload(ctx context.Context, req StorageUploadReques
 		etag = strings.Trim(*result.ETag, "\"")
 	}
 
-	// Construct public URL for Cloudflare R2
-	publicURL := r.buildPublicURL(key)
-
 	return &StorageUploadResponse{
 		Key:      key,
-		URL:      publicURL,
 		ETag:     etag,
 		Location: result.Location,
 	}, nil

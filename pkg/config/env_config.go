@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var cfg Config
+
 func GetActiveProfile() string {
 	return getEnv(constants.EnvActiveProfile, constants.EnvDev)
 }
@@ -77,7 +79,7 @@ func Load() Config {
 		logger.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
 	}
 
-	return Config{
+	cfg = Config{
 		Port:       getEnv(constants.EnvKeyPort, "8080"),
 		DBHost:     getEnv(constants.EnvKeyDBHost, "localhost"),
 		DBPort:     getEnv(constants.EnvKeyDBPort, "5432"),
@@ -95,6 +97,15 @@ func Load() Config {
 			PublicDomain:    getEnv(constants.EnvKeyObjStorePublicDomain, ""),
 		},
 	}
+	return cfg
+}
+
+func GetPublicDomain() string {
+	publicDomain := cfg.ObjStore.PublicDomain
+	if publicDomain == "" {
+		publicDomain = getEnv(constants.EnvKeyObjStorePublicDomain, "")
+	}
+	return publicDomain
 }
 
 func getEnv(key, fallback string) string {

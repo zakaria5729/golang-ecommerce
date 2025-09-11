@@ -13,18 +13,19 @@ import (
 
 type User struct {
 	models.BaseModel
-	Email                string      `json:"email" gorm:"uniqueIndex;not null;column:email"`
+	Email                string      `gorm:"uniqueIndex;not null;column:email"`
 	Password             string      `json:"-" gorm:"not null;column:password"`
-	Name                 string      `json:"name" gorm:"not null;column:name"`
-	PathKey              *string     `json:"path_key,omitempty" gorm:"column:path_key"`
-	Verified             bool        `json:"verified" gorm:"default:false;column:verified"`
-	Banned               bool        `json:"banned" gorm:"default:false;column:banned"`
-	PasswordResetToken   *string     `json:"-" gorm:"column:password_reset_token"`
-	PasswordResetExpires *time.Time  `json:"-" gorm:"column:password_reset_expires"`
-	RefreshToken         *string     `json:"-" gorm:"column:refresh_token"`
-	RefreshTokenExpires  *time.Time  `json:"-" gorm:"column:refresh_token_expires"`
-	LastLoginAt          *time.Time  `json:"last_login_at,omitempty" gorm:"column:last_login_at"`
-	Roles                []role.Role `json:"roles,omitempty" gorm:"many2many:user_roles;"`
+	Name                 string      `gorm:"not null;column:name"`
+	Verified             bool        `gorm:"default:false;column:verified"`
+	Banned               bool        `gorm:"default:false;column:banned"`
+	PasswordResetToken   *string     `gorm:"column:password_reset_token"`
+	PasswordResetExpires *time.Time  `gorm:"column:password_reset_expires"`
+	RefreshToken         *string     `gorm:"column:refresh_token"`
+	RefreshTokenExpires  *time.Time  `gorm:"column:refresh_token_expires"`
+	LastLoginAt          *time.Time  `gorm:"column:last_login_at"`
+	PathKey              *string     `gorm:"column:path_key"`
+	ImageURL             *string     `gorm:"-"`
+	Roles                []role.Role `gorm:"many2many:user_roles;"`
 }
 
 func (User) TableName() string {
@@ -32,11 +33,20 @@ func (User) TableName() string {
 }
 
 const (
-	UserEmail       = "email"
-	UserName        = "name"
-	UserVerified    = "verified"
-	UserBanned      = "banned"
-	UserLastLoginAt = "last_login_at"
+	UserEmail                = "email"
+	UserName                 = "name"
+	UserVerified             = "verified"
+	UserBanned               = "banned"
+	UserLastLoginAt          = "last_login_at"
+	UserRoles                = "roles"
+	UserPermissions          = "permissions"
+	UserPassword             = "password"
+	UserPathKey              = "path_key"
+	UserImageURL             = "image_url"
+	UserRefreshToken         = "refresh_token"
+	UserRefreshTokenExpires  = "refresh_token_expires"
+	UserPasswordResetToken   = "password_reset_token"
+	UserPasswordResetExpires = "password_reset_expires"
 )
 
 func (u *User) Sanitize() {
@@ -60,4 +70,17 @@ func (u *User) HashPassword() error {
 func (u *User) CheckPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	return err == nil
+}
+
+func (u *User) ToResponse() *UserResponse {
+	return &UserResponse{
+		BaseModel:   u.BaseModel,
+		Email:       u.Email,
+		Name:        u.Name,
+		Verified:    u.Verified,
+		Banned:      u.Banned,
+		LastLoginAt: u.LastLoginAt,
+		ImageURL:    utils.BuildFullImageURL(u.PathKey),
+		Roles:       u.Roles,
+	}
 }

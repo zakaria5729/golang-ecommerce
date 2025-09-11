@@ -5,88 +5,80 @@ import (
 	"net/http"
 	"strconv"
 
-	userPkg "github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 )
 
 type UserHandler struct {
-	userUseCase *userPkg.UserUseCase
+	userUseCase *user.UserUseCase
 }
 
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
-		userUseCase: userPkg.NewUserUseCase(),
+		userUseCase: user.NewUserUseCase(),
 	}
 }
 
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	user, err := middleware.GetUserFromContext(r)
+	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
 	include := r.URL.Query().Get("include")
-	profile, err := h.userUseCase.GetUserProfile(user.ID, include)
+	profileResponse, err := h.userUseCase.GetUserProfile(currentUser.ID, include)
 	if err != nil {
-		logger.Logger.Error("Get profile failed", "method", "GetProfile", "error", err, "userID", user.ID)
+		logger.Logger.Error("Get profile failed", "method", "GetProfile", "error", err, "userID", currentUser.ID)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccessJSON(w, profile)
+	response.SendSuccessJSON(w, profileResponse)
 }
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	user, err := middleware.GetUserFromContext(r)
+	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
 	include := r.URL.Query().Get("include")
-	profile, err := h.userUseCase.GetUserProfile(user.ID, include)
+	profileResponse, err := h.userUseCase.GetUserProfile(currentUser.ID, include)
 	if err != nil {
-		logger.Logger.Error("Get me failed", "method", "GetMe", "error", err, "userID", user.ID)
+		logger.Logger.Error("Get me failed", "method", "GetMe", "error", err, "userID", currentUser.ID)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccessJSON(w, profile)
+	response.SendSuccessJSON(w, profileResponse)
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user, err := middleware.GetUserFromContext(r)
+	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	var req userPkg.User
+	var req user.UpdateProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger.Logger.Error("Failed to decode update profile request", "method", "UpdateProfile", "error", err)
 		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Set the ID for update
-	req.ID = user.ID
-
-	updatedUser, err := h.userUseCase.UpdateUserProfile(user.ID, &req)
+	updatedUserResponse, err := h.userUseCase.UpdateUserProfile(currentUser.ID, &req)
 	if err != nil {
-		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", user.ID)
+		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", currentUser.ID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response.SendSuccessJSON(w, updatedUser)
+	response.SendSuccessJSON(w, updatedUserResponse)
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
@@ -117,14 +109,14 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		pageSizeInt = 10
 	}
 
-	users, err := h.userUseCase.GetAllUsers(include, sortBy, sortOrder)
+	userResponses, err := h.userUseCase.GetAllUsers(include, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Get all users failed", "method", "GetAllUsers", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccessJSON(w, users)
+	response.SendSuccessJSON(w, userResponses)
 }
 
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
@@ -141,22 +133,17 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	include := r.URL.Query().Get("include")
-	user, err := h.userUseCase.GetUserByID(uint(id), include)
+	userResponse, err := h.userUseCase.GetUserByID(uint(id), include)
 	if err != nil {
 		logger.Logger.Error("Get user by ID failed", "method", "GetUserByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	response.SendSuccessJSON(w, user)
+	response.SendSuccessJSON(w, userResponse)
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		response.SendErrorJSON(w, "User ID is required", http.StatusBadRequest)

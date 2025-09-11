@@ -87,10 +87,6 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -127,11 +123,6 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		response.SendErrorJSON(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		response.SendErrorJSON(w, "Role ID is required", http.StatusBadRequest)

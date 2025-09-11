@@ -10,10 +10,11 @@ type Category struct {
 	models.BaseModel
 	Title    string  `json:"title" gorm:"not null; column:title"`
 	SubTitle *string `json:"sub_title,omitempty" gorm:"column:sub_title"`
-	ImageURL *string `json:"image_url,omitempty" gorm:"column:image_url"`
+	ImageURL *string `json:"image_url,omitempty" gorm:"-"`
 	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
 	IsActive bool    `json:"is_active" gorm:"column:is_active"`
 	Priority *uint   `json:"priority,omitempty" gorm:"column:priority"`
+	PathKey  *string `json:"path_key,omitempty" gorm:"column:path_key"`
 }
 
 func (Category) TableName() string {
@@ -38,3 +39,15 @@ const (
 	CategoryIsActive = "is_active"
 	CategoryPriority = "priority"
 )
+
+func (c *Category) ToResponse() *CategoryResponse {
+	return &CategoryResponse{
+		BaseModel: c.BaseModel,
+		Title:     c.Title,
+		SubTitle:  c.SubTitle,
+		ParentID:  c.ParentID,
+		IsActive:  c.IsActive,
+		Priority:  c.Priority,
+		ImageURL:  utils.BuildFullImageURL(c.PathKey),
+	}
+}

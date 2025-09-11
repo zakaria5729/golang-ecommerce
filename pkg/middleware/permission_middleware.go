@@ -50,7 +50,7 @@ func (pm *AuthPermissionMiddleware) RequireAuth() func(http.Handler) http.Handle
 				return
 			}
 
-			user, err := pm.userUseCase.GetBasicUserByID(claims.UserID)
+			user, err := pm.userUseCase.GetUserByID(claims.UserID, "")
 			if err != nil {
 				logger.Logger.Error("User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
 				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)

@@ -110,15 +110,16 @@ func (r *CategoryRepository) GetCategoryByIDIncludeInactive(id uint, include []s
 	return &category, nil
 }
 
-func (r *CategoryRepository) CreateCategory(category *Category) error {
+func (r *CategoryRepository) CreateCategory(category *Category) (*Category, error) {
 	err := r.db.Create(category).Error
 	if err != nil {
 		logger.Logger.Error("Failed to create category", "method", "CreateCategory", "error", err, "category", category)
+		return nil, err
 	}
-	return err
+	return category, nil
 }
 
-func (r *CategoryRepository) UpdateCategory(category *Category) error {
+func (r *CategoryRepository) UpdateCategory(category *Category) (*Category, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var currentCategory Category
 		if err := tx.First(&currentCategory, category.ID).Error; err != nil {
@@ -139,8 +140,9 @@ func (r *CategoryRepository) UpdateCategory(category *Category) error {
 	})
 	if err != nil {
 		logger.Logger.Error("Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
+		return nil, err
 	}
-	return err
+	return category, nil
 }
 
 func (r *CategoryRepository) DeleteCategory(id uint) error {
