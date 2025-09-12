@@ -11,5 +11,5 @@ type FileUploadResponse struct {
 }
 
 type FileUploadAPIResponse struct {
-	PathKey string `json:"path_key" example:"category/uuid_timestamp.pdf"`
+	PathKey string `json:"path_key" example:"category/uuid_timestamp.jpg"`
 }

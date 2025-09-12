@@ -8,13 +8,13 @@ import (
 
 type Category struct {
 	models.BaseModel
-	SubTitle *string `json:"sub_title,omitempty" gorm:"column:sub_title"`
-	ImageURL *string `json:"image_url,omitempty" gorm:"-"`
-	ParentID *uint   `json:"parent_id,omitempty" gorm:"column:parent_id"`
-	Priority *uint   `json:"priority,omitempty" gorm:"column:priority"`
-	PathKey  *string `json:"path_key,omitempty" gorm:"column:path_key"`
-	Title    string  `json:"title" gorm:"not null; column:title"`
-	IsActive bool    `json:"is_active" gorm:"column:is_active"`
+	SubTitle *string `gorm:"column:sub_title"`
+	ImageURL *string `gorm:"-"`
+	ParentID *uint   `gorm:"column:parent_id"`
+	Priority *uint   `gorm:"column:priority"`
+	PathKey  *string `gorm:"column:path_key"`
+	Title    string  `gorm:"not null; column:title"`
+	IsActive bool    `gorm:"column:is_active"`
 }
 
 func (Category) TableName() string {

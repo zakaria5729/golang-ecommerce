@@ -8,10 +8,10 @@ import (
 
 type Review struct {
 	models.BaseModel
-	ProductID uint    `json:"product_id" gorm:"not null; column:product_id"`
-	UserID    uint    `json:"user_id" gorm:"not null; column:user_id"`
-	Comment   *string `json:"comment,omitempty" gorm:"column:comment"`
-	Rating    int     `json:"rating" gorm:"not null; column:rating"`
+	ProductID uint    `gorm:"not null; column:product_id"`
+	UserID    uint    `gorm:"not null; column:user_id"`
+	Comment   *string `gorm:"column:comment"`
+	Rating    int     `gorm:"not null; column:rating"`
 }
 
 func (Review) TableName() string {

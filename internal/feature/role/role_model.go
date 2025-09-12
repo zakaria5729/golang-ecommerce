@@ -9,10 +9,10 @@ import (
 
 type Role struct {
 	models.BaseModel
-	Description *string                 `json:"description,omitempty" gorm:"column:description"`
-	Permissions []permission.Permission `json:"permissions,omitempty" gorm:"many2many:role_permissions;"`
-	RoleName    string                  `json:"role_name" gorm:"uniqueIndex:roles_role_name_key;not null;column:role_name"`
-	RoleType    string                  `json:"role_type" gorm:"not null;column:role_type"`
+	Description *string                 `gorm:"column:description"`
+	Permissions []permission.Permission `gorm:"many2many:role_permissions;"`
+	RoleName    string                  `gorm:"not null; column:role_name"`
+	RoleType    string                  `gorm:"not null; column:role_type"`
 }
 
 func (Role) TableName() string {

@@ -9,9 +9,9 @@ import (
 
 type BrowsingHistory struct {
 	models.BaseModel
-	ViewedAt  time.Time `json:"viewed_at" gorm:"column:viewed_at"`
-	UserID    uint      `json:"user_id" gorm:"not null; column:user_id"`
-	ProductID uint      `json:"product_id" gorm:"not null; column:product_id"`
+	ViewedAt  time.Time `gorm:"column:viewed_at"`
+	UserID    uint      `gorm:"not null; column:user_id"`
+	ProductID uint      `gorm:"not null; column:product_id"`
 }
 
 func (BrowsingHistory) TableName() string {

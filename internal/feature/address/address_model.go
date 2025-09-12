@@ -7,14 +7,14 @@ import (
 
 type Address struct {
 	models.BaseModel
-	UserID      uint    `json:"user_id" gorm:"not null; column:user_id"`
-	State       *string `json:"state,omitempty" gorm:"column:state"`
-	ZipCode     *string `json:"zip_code,omitempty" gorm:"column:zip_code"`
-	Street      string  `json:"street" gorm:"not null; column:street"`
-	City        string  `json:"city" gorm:"not null; column:city"`
-	Country     string  `json:"country" gorm:"not null; column:country"`
-	AddressType string  `json:"address_type,omitempty" gorm:"column:address_type"`
-	IsDefault   bool    `json:"is_default,omitempty" gorm:"column:is_default"`
+	UserID      uint    `gorm:"not null; column:user_id"`
+	State       *string `gorm:"column:state"`
+	ZipCode     *string `gorm:"column:zip_code"`
+	Street      string  `gorm:"not null; column:street"`
+	City        string  `gorm:"not null; column:city"`
+	Country     string  `gorm:"not null; column:country"`
+	AddressType string  `gorm:"column:address_type"`
+	IsDefault   bool    `gorm:"column:is_default"`
 }
 
 func (a *Address) Sanitize() {
