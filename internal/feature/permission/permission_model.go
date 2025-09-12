@@ -10,8 +10,8 @@ import (
 
 type Permission struct {
 	models.BaseModel
-	Name        string  `json:"name" gorm:"uniqueIndex;not null;column:name"`
-	Description *string `json:"description,omitempty" gorm:"column:description"`
+	Description *string `gorm:"column:description"`
+	Name        string  `gorm:"uniqueIndex;not null;column:name"`
 }
 
 func (Permission) TableName() string {
@@ -19,7 +19,8 @@ func (Permission) TableName() string {
 }
 
 const (
-	PermissionName = "name"
+	PermissionName        = "name"
+	PermissionDescription = "description"
 )
 
 func (p *Permission) Sanitize() {

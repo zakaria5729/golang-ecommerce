@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -80,21 +81,21 @@ func Load() Config {
 	}
 
 	cfg = Config{
-		Port:       getEnv(constants.EnvKeyPort, "8080"),
-		DBHost:     getEnv(constants.EnvKeyDBHost, "localhost"),
-		DBPort:     getEnv(constants.EnvKeyDBPort, "5432"),
-		DBUser:     getEnv(constants.EnvKeyDBUser, "postgres"),
-		DBPassword: getEnv(constants.EnvKeyDBPassword, "password"),
-		DBName:     getEnv(constants.EnvKeyDBName, "easy_commerce"),
-		DBSSLMode:  getEnv(constants.EnvKeyDBSSLMode, "disable"),
-		JWTSecret:  getEnv(constants.EnvKeyJWTSecret, "your-super-secret-jwt-key-change-this-in-production"),
+		Port:       getEnvWithPanic(constants.EnvKeyPort),
+		DBHost:     getEnvWithPanic(constants.EnvKeyDBHost),
+		DBPort:     getEnvWithPanic(constants.EnvKeyDBPort),
+		DBUser:     getEnvWithPanic(constants.EnvKeyDBUser),
+		DBPassword: getEnvWithPanic(constants.EnvKeyDBPassword),
+		DBName:     getEnvWithPanic(constants.EnvKeyDBName),
+		DBSSLMode:  getEnvWithPanic(constants.EnvKeyDBSSLMode),
+		JWTSecret:  getEnvWithPanic(constants.EnvKeyJWTSecret),
 		ObjStore: ObjectStoreConfig{
-			Region:          getEnv(constants.EnvKeyObjStoreRegion, "auto"),
-			BucketName:      getEnv(constants.EnvKeyObjStoreBucketName, "easy-commerce"),
-			AccountID:       getEnv(constants.EnvKeyObjStoreAccountID, ""),
-			AccessKeyID:     getEnv(constants.EnvKeyObjStoreAccessKeyID, ""),
-			AccessKeySecret: getEnv(constants.EnvKeyObjStoreAccessKeySecret, ""),
-			PublicDomain:    getEnv(constants.EnvKeyObjStorePublicDomain, ""),
+			Region:          getEnvWithPanic(constants.EnvKeyObjStoreRegion),
+			BucketName:      getEnvWithPanic(constants.EnvKeyObjStoreBucketName),
+			AccountID:       getEnvWithPanic(constants.EnvKeyObjStoreAccountID),
+			AccessKeyID:     getEnvWithPanic(constants.EnvKeyObjStoreAccessKeyID),
+			AccessKeySecret: getEnvWithPanic(constants.EnvKeyObjStoreAccessKeySecret),
+			PublicDomain:    getEnvWithPanic(constants.EnvKeyObjStorePublicDomain),
 		},
 	}
 	return cfg
@@ -108,7 +109,14 @@ func GetPublicDomain() string {
 	return publicDomain
 }
 
-func getEnv(key, fallback string) string {
+func getEnvWithPanic(key string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	panic(fmt.Sprintf("Environment variable %s is not set", key))
+}
+
+func getEnv(key string, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}

@@ -6,15 +6,15 @@ import (
 )
 
 type CreateRoleRequest struct {
-	RoleName    string   `json:"role_name"`
-	RoleType    string   `json:"role_type"`
 	Description *string  `json:"description,omitempty"`
 	Permissions []string `json:"permissions,omitempty"`
+	RoleName    string   `json:"role_name"`
+	RoleType    string   `json:"role_type"`
 }
 
 type AssignRoleRequest struct {
-	UserID uint     `json:"user_id"`
 	Roles  []string `json:"roles"`
+	UserID uint     `json:"user_id"`
 }
 
 func (r *CreateRoleRequest) Sanitize() {

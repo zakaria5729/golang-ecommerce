@@ -6,11 +6,11 @@ import (
 )
 
 type StorageUploadRequest struct {
-	Key         string
 	Body        io.Reader
+	Metadata    map[string]string
+	Key         string
 	ContentType string
 	Folder      string
-	Metadata    map[string]string
 }
 
 type StorageDeleteRequest struct {

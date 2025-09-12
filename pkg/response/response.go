@@ -14,9 +14,9 @@ type Response struct {
 }
 
 type Error struct {
+	Details []validator.ValidationError `json:"details,omitempty"`
 	Message string                      `json:"message"`
 	Code    string                      `json:"code,omitempty"`
-	Details []validator.ValidationError `json:"details,omitempty"`
 }
 
 func SendSuccessJSON(w http.ResponseWriter, data any, statusCode ...int) {

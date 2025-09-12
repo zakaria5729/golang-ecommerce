@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/pkg/config"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
-func RegisterRoutes(mux *http.ServeMux) {
-	cfg := config.Load()
+func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
+	logger.Logger.Info("Initializing routes with JWT secret", "jwtSecretLength", len(cfg.JWTSecret))
 	permissionMiddleware := middleware.NewAuthPermissionMiddleware(cfg.JWTSecret)
 
 	// Register all route modules

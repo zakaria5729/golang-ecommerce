@@ -49,8 +49,8 @@ const (
 )
 
 const (
-	EnvKeyJWTSecret  = "JWT_SECRET"
-	EnvActiveProfile = "ACTIVE_PROFILE"
+	EnvKeyJWTSecret  string = "JWT_SECRET"
+	EnvActiveProfile string = "ACTIVE_PROFILE"
 )
 
 const (
@@ -90,9 +90,9 @@ const (
 )
 
 const (
-	EnvDev   = "dev"
-	EnvStage = "stage"
-	EnvProd  = "prod"
+	EnvDev   string = "dev"
+	EnvStage string = "stage"
+	EnvProd  string = "prod"
 )
 
 const (

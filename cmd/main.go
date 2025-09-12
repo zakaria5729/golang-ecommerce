@@ -39,7 +39,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	route.RegisterRoutes(mux)
+	route.RegisterRoutes(mux, cfg)
 
 	handler := middleware.ChainMiddleware(
 		middleware.RecoveryMiddleware,

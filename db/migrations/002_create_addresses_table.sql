@@ -1,14 +1,14 @@
 -- Create addresses table
 CREATE TABLE IF NOT EXISTS addresses (
     id SERIAL PRIMARY KEY,
+    is_default BOOLEAN DEFAULT FALSE,
     user_id INTEGER NOT NULL,
-    street TEXT NOT NULL,
+    address_type VARCHAR(20) DEFAULT 'shipping' CHECK (address_type IN ('shipping', 'billing')),
+    zip_code VARCHAR(20),
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100),
-    zip_code VARCHAR(20),
     country VARCHAR(100) NOT NULL,
-    is_default BOOLEAN DEFAULT FALSE,
-    address_type VARCHAR(20) DEFAULT 'shipping' CHECK (address_type IN ('shipping', 'billing')),
+    street TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

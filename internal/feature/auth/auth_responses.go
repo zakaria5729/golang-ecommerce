@@ -6,16 +6,16 @@ import (
 )
 
 type LoginResponse struct {
+	ExpiresAt    int64              `json:"expires_at"`
 	AccessToken  string             `json:"access_token"`
 	RefreshToken string             `json:"refresh_token"`
-	ExpiresAt    int64              `json:"expires_at"`
 	User         *user.UserResponse `json:"user"`
 }
 
 type Claims struct {
 	UserID   uint     `json:"user_id"`
-	Email    string   `json:"email"`
 	Roles    []string `json:"roles"`
+	Email    string   `json:"email"`
 	Username string   `json:"username"`
 	jwt.RegisteredClaims
 }

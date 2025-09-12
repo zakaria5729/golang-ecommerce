@@ -13,19 +13,19 @@ import (
 
 type User struct {
 	models.BaseModel
+	PasswordResetExpires *time.Time  `gorm:"column:password_reset_expires"`
+	RefreshTokenExpires  *time.Time  `gorm:"column:refresh_token_expires"`
+	LastLoginAt          *time.Time  `gorm:"column:last_login_at"`
+	PasswordResetToken   *string     `gorm:"column:password_reset_token"`
+	RefreshToken         *string     `gorm:"column:refresh_token"`
+	PathKey              *string     `gorm:"column:path_key"`
+	ImageURL             *string     `gorm:"-"`
+	Roles                []role.Role `gorm:"many2many:user_roles;"`
 	Email                string      `gorm:"uniqueIndex;not null;column:email"`
 	Password             string      `json:"-" gorm:"not null;column:password"`
 	Name                 string      `gorm:"not null;column:name"`
 	Verified             bool        `gorm:"default:false;column:verified"`
 	Banned               bool        `gorm:"default:false;column:banned"`
-	PasswordResetToken   *string     `gorm:"column:password_reset_token"`
-	PasswordResetExpires *time.Time  `gorm:"column:password_reset_expires"`
-	RefreshToken         *string     `gorm:"column:refresh_token"`
-	RefreshTokenExpires  *time.Time  `gorm:"column:refresh_token_expires"`
-	LastLoginAt          *time.Time  `gorm:"column:last_login_at"`
-	PathKey              *string     `gorm:"column:path_key"`
-	ImageURL             *string     `gorm:"-"`
-	Roles                []role.Role `gorm:"many2many:user_roles;"`
 }
 
 func (User) TableName() string {

@@ -1,12 +1,12 @@
 -- Create categories table
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
+    is_active BOOLEAN DEFAULT true,
+    parent_id INTEGER REFERENCES categories(id),
+    priority INTEGER DEFAULT 0,
     title VARCHAR(120) NOT NULL,
     sub_title VARCHAR(255),
     image_url TEXT,
-    parent_id INTEGER REFERENCES categories(id),
-    is_active BOOLEAN DEFAULT true,
-    priority INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
