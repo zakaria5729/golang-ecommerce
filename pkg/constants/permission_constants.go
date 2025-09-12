@@ -1,6 +1,5 @@
 package constants
 
-// Role Types
 const (
 	RoleTypeSuperAdmin = "SUPER_ADMIN"
 	RoleTypeAdmin      = "ADMIN"
@@ -9,7 +8,6 @@ const (
 	RoleTypeUser       = "USER"
 )
 
-// Role Names
 const (
 	RoleNameSuperAdmin = "Super Admin"
 	RoleNameAdmin      = "Admin"
@@ -18,7 +16,6 @@ const (
 	RoleNameUser       = "User"
 )
 
-// Permission Names
 const (
 	// User permissions
 	PermissionUserCreate = "user.create"
@@ -31,9 +28,13 @@ const (
 	PermissionRoleRead   = "role.read"
 	PermissionRoleUpdate = "role.update"
 	PermissionRoleDelete = "role.delete"
+	PermissionRoleAssign = "role.assign"
 
 	// Permission permissions
-	PermissionPermissionRead = "permission.read"
+	PermissionPermissionRead   = "permission.read"
+	PermissionPermissionCreate = "permission.create"
+	PermissionPermissionUpdate = "permission.update"
+	PermissionPermissionDelete = "permission.delete"
 
 	// Category permissions
 	PermissionCategoryCreate = "category.create"
