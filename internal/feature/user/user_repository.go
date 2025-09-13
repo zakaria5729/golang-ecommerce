@@ -113,9 +113,9 @@ func (r *UserRepository) GetUserByEmail(email string, include []string) (*User, 
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
 	if err := query.Preload("Roles", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, role_name, role_type, description, created_at, updated_at")
+		return db.Select("id, role_name, role_type, description")
 	}).Preload("Roles.Permissions", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, description, created_at, updated_at")
+		return db.Select("id, name, description")
 	}).Where(UserEmail+" = ?", email).First(&user).Error; err != nil {
 		logger.Logger.Error("Failed to fetch user by email", "method", "GetUserByEmail", "error", err, "email", email, "include", include)
 		return nil, err
@@ -194,19 +194,19 @@ func (r *UserRepository) UserExistsByEmail(email string, excludeID *uint) (bool,
 	return count > 0, err
 }
 
-func (r *UserRepository) UpdateLastLogin(userID uint) error {
+func (r *UserRepository) UpdateLastLogin(userID uint) (time.Time, error) {
 	now := time.Now()
 	err := r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Update(UserLastLoginAt, now).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update last login", "method", "UpdateLastLogin", "error", err, "userID", userID)
 	}
-	return err
+	return now, err
 }
 
 func (r *UserRepository) SetPasswordResetToken(userID uint, token string, expiresAt time.Time) error {
-	err := r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Updates(map[string]interface{}{
-		"password_reset_token":   token,
-		"password_reset_expires": expiresAt,
+	err := r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Updates(map[string]any{
+		UserPasswordResetToken:   token,
+		UserPasswordResetExpires: expiresAt,
 	}).Error
 	if err != nil {
 		logger.Logger.Error("Failed to set password reset token", "method", "SetPasswordResetToken", "error", err, "userID", userID)
@@ -265,8 +265,8 @@ func (r *UserRepository) AssignRolesToUser(userID uint, roleIDs []uint) error {
 
 func (r *UserRepository) SetRefreshToken(userID uint, token string, expiresAt time.Time) error {
 	err := r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Updates(map[string]any{
-		"refresh_token":         token,
-		"refresh_token_expires": expiresAt,
+		UserRefreshToken:        token,
+		UserRefreshTokenExpires: expiresAt,
 	}).Error
 	if err != nil {
 		logger.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)

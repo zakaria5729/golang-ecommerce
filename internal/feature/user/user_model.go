@@ -19,6 +19,7 @@ type User struct {
 	PasswordResetToken   *string     `gorm:"column:password_reset_token"`
 	RefreshToken         *string     `gorm:"column:refresh_token"`
 	PathKey              *string     `gorm:"column:path_key"`
+	ImageURL             *string     `gorm:"-"`
 	Roles                []role.Role `gorm:"many2many:user_roles;"`
 	Email                string      `gorm:"uniqueIndex;not null;column:email"`
 	Password             string      `json:"-" gorm:"not null;column:password"`
@@ -74,12 +75,12 @@ func (u *User) CheckPassword(password string) bool {
 func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
 		BaseModel:   u.BaseModel,
+		LastLoginAt: u.LastLoginAt,
+		ImageURL:    utils.BuildFullImageURL(u.PathKey),
+		Roles:       u.Roles,
 		Email:       u.Email,
 		Name:        u.Name,
 		Verified:    u.Verified,
 		Banned:      u.Banned,
-		LastLoginAt: u.LastLoginAt,
-		ImageURL:    utils.BuildFullImageURL(u.PathKey),
-		Roles:       u.Roles,
 	}
 }

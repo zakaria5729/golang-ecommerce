@@ -68,8 +68,10 @@ func (uc *AuthUseCase) Login(req *LoginRequest) (*LoginResponse, error) {
 		logger.Logger.Error("Failed to set refresh token", "method", "Login", "error", err, "userID", user.ID)
 	}
 
-	if err := uc.userRepo.UpdateLastLogin(user.ID); err != nil {
+	if lastLoginAt, err := uc.userRepo.UpdateLastLogin(user.ID); err != nil {
 		logger.Logger.Error("Failed to update last login", "method", "Login", "error", err, "userID", user.ID)
+	} else {
+		user.LastLoginAt = &lastLoginAt
 	}
 
 	return &LoginResponse{
@@ -107,13 +109,13 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
 
-	defaultRole, err := uc.roleRepo.GetRoleByType(constants.RoleTypeUser, nil)
+	userRole, err := uc.roleRepo.GetRoleByType(constants.RoleTypeUser, nil)
 	if err != nil {
 		logger.Logger.Error("Failed to get default role", "method", "Register", "error", err, "email", req.Email)
 		return nil, fmt.Errorf("failed to assign default role: %w", err)
 	}
 
-	user.Roles = []role.Role{*defaultRole}
+	user.Roles = []role.Role{*userRole}
 	createdUser, err := uc.userRepo.CreateUser(user)
 	if err != nil {
 		logger.Logger.Error("Failed to create user", "method", "Register", "error", err, "email", req.Email)
