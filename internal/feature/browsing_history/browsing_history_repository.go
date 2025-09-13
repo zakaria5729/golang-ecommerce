@@ -7,6 +7,7 @@ import (
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -110,7 +111,7 @@ func (r *BrowsingHistoryRepository) GetBrowsingHistoryByID(id uint, userID uint,
 
 func (r *BrowsingHistoryRepository) CreateBrowsingHistory(history *BrowsingHistory) error {
 	if history.ViewedAt.IsZero() {
-		history.ViewedAt = time.Now()
+		history.ViewedAt = timeutil.NowUTC()
 	}
 
 	err := r.db.Create(history).Error

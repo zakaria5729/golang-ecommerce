@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 	"slices"
 	"strconv"
@@ -9,7 +13,9 @@ import (
 
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
+	"github.com/easy-comerce/backend/pkg/response"
 )
 
 func ParseCommaSeparatedString(input string) []string {
@@ -293,4 +299,21 @@ func BuildFullImageURL(pathKey *string) *string {
 	}
 
 	return &url
+}
+
+func DecodeJSON(w http.ResponseWriter, r *http.Request, target any, method string) bool {
+	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
+		logger.Logger.Error("Failed to decode request", "method", method, "error", err)
+		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+func GenerateNewToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

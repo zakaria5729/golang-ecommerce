@@ -14,7 +14,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/response"
 )
 
-// AuthPermissionMiddleware provides authentication and permission checking functionality
 type AuthPermissionMiddleware struct {
 	permissionUseCase *permission.PermissionUseCase
 	authUseCase       *auth.AuthUseCase
@@ -22,7 +21,6 @@ type AuthPermissionMiddleware struct {
 	jwtSecret         string
 }
 
-// NewAuthPermissionMiddleware creates a new auth permission middleware instance
 func NewAuthPermissionMiddleware(jwtSecret string) *AuthPermissionMiddleware {
 	return &AuthPermissionMiddleware{
 		permissionUseCase: permission.NewPermissionUseCase(),
@@ -32,11 +30,12 @@ func NewAuthPermissionMiddleware(jwtSecret string) *AuthPermissionMiddleware {
 	}
 }
 
-// RequireAuth creates middleware that requires authentication
-func (pm *AuthPermissionMiddleware) RequireAuth() func(http.Handler) http.Handler {
+// **REQUIRED
+func (pm *AuthPermissionMiddleware) RequireAuth(includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token := pm.extractToken(r)
+			token := pm.extractJwtToken(r)
+
 			if token == "" {
 				logger.Logger.Error("No token provided", "method", "RequireAuth")
 				response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -45,15 +44,21 @@ func (pm *AuthPermissionMiddleware) RequireAuth() func(http.Handler) http.Handle
 
 			claims, err := pm.authUseCase.VerifyToken(token)
 			if err != nil {
-				logger.Logger.Error("Invalid token", "method", "RequireAuth", "error", err)
-				response.SendErrorJSON(w, "Invalid token", http.StatusUnauthorized)
+				logger.Logger.Error("Invalid/expired token", "method", "RequireAuth", "error", err)
+				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
-			user, err := pm.userUseCase.GetUserByID(claims.UserID, "")
+			user, err := pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
 			if err != nil {
 				logger.Logger.Error("User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
 				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)
+				return
+			}
+
+			if user.Verified {
+				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", user.ID)
+				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
 				return
 			}
 
@@ -271,7 +276,7 @@ func (pm *AuthPermissionMiddleware) RequireAdmin() func(http.Handler) http.Handl
 }
 
 // extractToken extracts JWT token from Authorization header
-func (pm *AuthPermissionMiddleware) extractToken(r *http.Request) string {
+func (pm *AuthPermissionMiddleware) extractJwtToken(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return ""
@@ -314,7 +319,7 @@ func (pm *AuthPermissionMiddleware) GetJWTSecret() string {
 
 // validateTokenAndGetUserID validates JWT token and returns user ID without any database calls
 func (pm *AuthPermissionMiddleware) validateTokenAndGetUserID(r *http.Request) (uint, error) {
-	token := pm.extractToken(r)
+	token := pm.extractJwtToken(r)
 	if token == "" {
 		return 0, errors.New("no token provided")
 	}

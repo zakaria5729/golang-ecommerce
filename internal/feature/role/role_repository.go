@@ -62,14 +62,25 @@ func (r *RoleRepository) GetRoleByID(id uint, include []string) (*Role, error) {
 
 func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, error) {
 	var role Role
-
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	if err := query.Preload("Permissions", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, description, created_at, updated_at")
-	}).Where(RoleRoleName+" = ?", name).First(&role).Error; err != nil {
+	if err := query.Preload(RolePermissionsCapitalized).
+		Where(RoleRoleName+" = ?", name).
+		First(&role).Error; err != nil {
 		logger.Logger.Error("Failed to fetch role by name", "method", "GetRoleByName", "error", err, "name", name, "include", include)
+		return nil, err
+	}
+
+	return &role, nil
+}
+
+// **REQUIRED
+func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, error) {
+	var role Role
+
+	if err := r.db.Model(&Role{}).Preload(RolePermissionsCapitalized).Where(RoleRoleType+" = ?", roleType).First(&role).Error; err != nil {
+		logger.Logger.Error("Failed to fetch role by type", "method", "GetRoleWithPermissionsByType", "error", err, "roleType", roleType)
 		return nil, err
 	}
 
@@ -78,13 +89,12 @@ func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, er
 
 func (r *RoleRepository) GetRoleByType(roleType string, include []string) (*Role, error) {
 	var role Role
-
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	if err := query.Preload("Permissions", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, description, created_at, updated_at")
-	}).Where(RoleRoleType+" = ?", roleType).First(&role).Error; err != nil {
+	if err := query.Preload(RolePermissionsCapitalized).
+		Where(RoleRoleType+" = ?", roleType).
+		First(&role).Error; err != nil {
 		logger.Logger.Error("Failed to fetch role by type", "method", "GetRoleByType", "error", err, "roleType", roleType, "include", include)
 		return nil, err
 	}

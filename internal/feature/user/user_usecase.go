@@ -86,7 +86,7 @@ func (uc *UserUseCase) GetAllUsers(includeStr, sortBy, sortOrder string) ([]User
 }
 
 // GetUserByID retrieves a specific user by ID
-func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*UserResponse, error) {
+func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*User, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	user, err := uc.userRepo.GetUserByID(userID, include)
 	if err != nil {
@@ -95,7 +95,16 @@ func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*UserRespons
 	}
 
 	user.Password = ""
-	return user.ToResponse(), nil
+	return user, nil
+}
+
+func (uc *UserUseCase) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*User, error) {
+	user, err := uc.userRepo.GetAuthUserByID(userID, includeRoles, includePermissions)
+	if err != nil {
+		logger.Logger.Error("User not found", "method", "GetUserByID", "error", err, "userID", userID)
+		return nil, errors.New("user not found")
+	}
+	return user, nil
 }
 
 // DeleteUser soft deletes a user

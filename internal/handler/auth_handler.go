@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
@@ -21,11 +22,10 @@ func NewAuthHandler(jwtSecret string) *AuthHandler {
 	}
 }
 
+// **REQUIRED
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode login request", "method", "Login", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "Login") {
 		return
 	}
 
@@ -44,11 +44,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, loginResponse)
 }
 
+// **REQUIRED
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req auth.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode register request", "method", "Register", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "Register") {
 		return
 	}
 
@@ -67,6 +66,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, user, http.StatusCreated)
 }
 
+// **REQUIRED
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	user, err := middleware.GetUserFromContext(r)
 	if err != nil {
@@ -75,9 +75,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req auth.ChangePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode change password request", "method", "ChangePassword", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "ChangePassword") {
 		return
 	}
 
@@ -86,7 +84,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authUseCase.ChangePassword(user.ID, &req); err != nil {
+	if err := h.authUseCase.ChangePassword(*user, &req); err != nil {
 		logger.Logger.Error("Change password failed", "method", "ChangePassword", "error", err, "userID", user.ID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
@@ -95,11 +93,10 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, map[string]string{"message": "Password changed successfully"})
 }
 
+// **REQUIRED
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req auth.ForgotPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode forgot password request", "method", "ForgotPassword", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "ForgotPassword") {
 		return
 	}
 
@@ -119,9 +116,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req auth.ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode reset password request", "method", "ResetPassword", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "ResetPassword") {
 		return
 	}
 
@@ -139,11 +134,10 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, map[string]string{"message": "Password reset successfully"})
 }
 
+// **REQUIRED
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req auth.RefreshTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode refresh token request", "method", "RefreshToken", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "RefreshToken") {
 		return
 	}
 
@@ -162,15 +156,16 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, loginResponse)
 }
 
+// **REQUIRED
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	user, err := middleware.GetUserFromContext(r)
-	if err != nil {
-		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.authUseCase.Logout(user.ID); err != nil {
-		logger.Logger.Error("Logout failed", "method", "Logout", "error", err, "userID", user.ID)
+	if err := h.authUseCase.Logout(*id); err != nil {
+		logger.Logger.Error("Logout failed", "method", "Logout", "error", err, "userID", id)
 		response.SendErrorJSON(w, "Logout failed", http.StatusInternalServerError)
 		return
 	}

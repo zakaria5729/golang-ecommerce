@@ -8,11 +8,12 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		start := timeutil.NowUTC()
 
 		logger.Logger.Info("HTTP Request", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr, "userAgent", r.UserAgent())
 
@@ -78,12 +79,12 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 			client = &ClientInfo{
 				IP:           clientIP,
 				RequestCount: 0,
-				LastRequest:  time.Now(),
+				LastRequest:  timeutil.NowUTC(),
 			}
 			clients[clientIP] = client
 		}
 
-		now := time.Now()
+		now := timeutil.NowUTC()
 		if now.Sub(client.LastRequest) > time.Minute {
 			client.RequestCount = 0
 			client.LastRequest = now
@@ -127,30 +128,33 @@ func ChainAuthMiddleware(middlewares ...func(http.HandlerFunc) http.HandlerFunc)
 	}
 }
 
-// GetUserFromContext extracts the user from the request context
+// **REQUIRED
 func GetUserFromContext(r *http.Request) (*user.User, error) {
 	userInterface := r.Context().Value(constants.UserContextKey)
 	if userInterface == nil {
+		logger.Logger.Error("User not found in context", "method", "GetUserFromContext")
 		return nil, errors.New("user not found in context")
 	}
 
 	user, ok := userInterface.(*user.User)
 	if !ok {
+		logger.Logger.Error("Invalid user type in context", "method", "GetUserFromContext")
 		return nil, errors.New("invalid user type in context")
 	}
 
 	return user, nil
 }
 
-// GetUserIDFromContext extracts user ID from request context
 func GetUserIDFromContext(r *http.Request) (uint, error) {
-	userIDInterface := r.Context().Value("user_id")
+	userIDInterface := r.Context().Value(constants.UserIDContextKey)
 	if userIDInterface == nil {
+		logger.Logger.Error("User ID not found in context", "method", "GetUserIDFromContext")
 		return 0, errors.New("user ID not found in context")
 	}
 
 	userID, ok := userIDInterface.(uint)
 	if !ok {
+		logger.Logger.Error("Invalid user ID type in context", "method", "GetUserIDFromContext")
 		return 0, errors.New("invalid user ID type in context")
 	}
 

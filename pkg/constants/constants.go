@@ -4,6 +4,7 @@ type userContextKey string
 
 const (
 	UserContextKey     userContextKey = "user"
+	UserIDContextKey   userContextKey = "user_id"
 	ObjStoreProviderR2 string         = "r2"
 	ProjectName        string         = "easy-comerce"
 )
@@ -59,10 +60,10 @@ const (
 )
 
 const (
-	MaxRequestSize           = 5 * 1024 * 1024  // 5MB
-	AccessTokenExpiry        = 12 * 60 * 60     // 12 hours
-	RefreshTokenExpiry       = 3 * 24 * 60 * 60 // 3 days
-	PasswordResetTokenExpiry = 1 * 60 * 60      // 5 hours
+	MaxRequestSizeMB              = 5 * 1024 * 1024 // 5MB
+	AccessTokenExpiryHours        = 12
+	RefreshTokenExpiryHours       = 48
+	PasswordResetTokenExpiryHours = 5
 )
 
 const (
@@ -71,7 +72,7 @@ const (
 )
 
 const (
-	MaxFileSize       = 5 * 1024 * 1024 // 5MB
+	MaxFileSizeMB     = 5 * 1024 * 1024 // 5MB
 	AllowedImageTypes = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
 	AllowedDocTypes   = "application/pdf"
 )

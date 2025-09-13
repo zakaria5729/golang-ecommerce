@@ -6,6 +6,7 @@ import (
 
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
@@ -81,7 +82,7 @@ func (uc *BrowsingHistoryUseCase) CreateBrowsingHistory(userID uint, req *Browsi
 	}
 
 	if history.ViewedAt.IsZero() {
-		history.ViewedAt = time.Now()
+		history.ViewedAt = timeutil.NowUTC()
 	}
 
 	if err := uc.repo.CreateBrowsingHistory(history); err != nil {

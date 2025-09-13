@@ -33,20 +33,22 @@ func (User) TableName() string {
 }
 
 const (
-	UserEmail                = "email"
-	UserName                 = "name"
-	UserVerified             = "verified"
-	UserBanned               = "banned"
-	UserLastLoginAt          = "last_login_at"
-	UserRoles                = "roles"
-	UserPermissions          = "permissions"
-	UserPassword             = "password"
-	UserPathKey              = "path_key"
-	UserImageURL             = "image_url"
-	UserRefreshToken         = "refresh_token"
-	UserRefreshTokenExpires  = "refresh_token_expires"
-	UserPasswordResetToken   = "password_reset_token"
-	UserPasswordResetExpires = "password_reset_expires"
+	UserEmail                       = "email"
+	UserName                        = "name"
+	UserVerified                    = "verified"
+	UserBanned                      = "banned"
+	UserLastLoginAt                 = "last_login_at"
+	UserRoles                       = "roles"
+	UserPermissions                 = "permissions"
+	UserPassword                    = "password"
+	UserPathKey                     = "path_key"
+	UserImageURL                    = "image_url"
+	UserRefreshToken                = "refresh_token"
+	UserRefreshTokenExpires         = "refresh_token_expires"
+	UserPasswordResetToken          = "password_reset_token"
+	UserPasswordResetExpires        = "password_reset_expires"
+	UserRolesCapitalized            = "Roles"
+	UserRolesPermissionsCapitalized = "Roles.Permissions"
 )
 
 func (u *User) Sanitize() {

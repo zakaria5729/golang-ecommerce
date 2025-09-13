@@ -20,8 +20,10 @@ func (Role) TableName() string {
 }
 
 const (
-	RoleRoleName = "role_name"
-	RoleRoleType = "role_type"
+	RoleRoleName               = "role_name"
+	RoleRoleType               = "role_type"
+	RolePermissions            = "role_permissions"
+	RolePermissionsCapitalized = "Permissions"
 )
 
 func (r *Role) Sanitize() {

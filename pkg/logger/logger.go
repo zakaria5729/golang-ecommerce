@@ -8,7 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
+
+	"github.com/easy-comerce/backend/pkg/timeutil"
 )
 
 var Logger *slog.Logger
@@ -44,7 +45,7 @@ func IsInitialized() bool {
 }
 
 func getLogFileName() string {
-	today := time.Now().Format("2006-01-02")
+	today := timeutil.NowUTC().Format("2006-01-02")
 	logsDir := getProjectRoot() + "/logs"
 	return filepath.Join(logsDir, fmt.Sprintf("app-%s.log", today))
 }

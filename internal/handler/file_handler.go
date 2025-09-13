@@ -30,7 +30,7 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(constants.MaxRequestSize)
+	err := r.ParseMultipartForm(constants.MaxRequestSizeMB)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to parse multipart form", http.StatusBadRequest)
 		return
@@ -54,8 +54,8 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	if fileHeader.Size > constants.MaxFileSize {
-		response.SendErrorJSON(w, fmt.Sprintf("File size exceeds maximum allowed size of %d bytes", constants.MaxFileSize), http.StatusBadRequest)
+	if fileHeader.Size > constants.MaxFileSizeMB {
+		response.SendErrorJSON(w, fmt.Sprintf("File size exceeds maximum allowed size of %d bytes", constants.MaxFileSizeMB), http.StatusBadRequest)
 		return
 	}
 

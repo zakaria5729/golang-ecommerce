@@ -9,6 +9,7 @@ import (
 
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/google/uuid"
 )
 
@@ -27,8 +28,8 @@ func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIReq
 		return nil, fmt.Errorf("file is required")
 	}
 
-	if req.File.Size > constants.MaxFileSize {
-		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", constants.MaxFileSize)
+	if req.File.Size > constants.MaxFileSizeMB {
+		return nil, fmt.Errorf("file size exceeds maximum allowed size of %d bytes", constants.MaxFileSizeMB)
 	}
 
 	contentType := req.File.Header.Get("Content-Type")
@@ -45,7 +46,7 @@ func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIReq
 	defer file.Close()
 
 	ext := filepath.Ext(req.File.Filename)
-	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
+	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), timeutil.NowUTC().Unix(), ext)
 	uploadReq := StorageUploadRequest{
 		Key:         filename,
 		Body:        file,
@@ -54,7 +55,7 @@ func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIReq
 		Metadata: map[string]string{
 			"original_filename": req.File.Filename,
 			"user_id":           req.UserID,
-			"uploaded_at":       time.Now().Format(time.RFC3339),
+			"uploaded_at":       timeutil.NowUTC().Format(time.RFC3339),
 		},
 	}
 

@@ -17,12 +17,9 @@ func RegisterAuthRoute(mux *http.ServeMux, permissionMiddleware *middleware.Auth
 	mux.HandleFunc(constants.POST+" /v1/auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc(constants.POST+" /v1/auth/reset-password", authHandler.ResetPassword)
 	mux.HandleFunc(constants.POST+" /v1/auth/refresh-token", authHandler.RefreshToken)
+	mux.HandleFunc(constants.POST+" /v1/auth/logout/id/{id}", authHandler.Logout)
 
 	mux.Handle(constants.POST+" /v1/auth/change-password", middleware.ChainMiddleware(
-		permissionMiddleware.RequireAuth(),
+		permissionMiddleware.RequireAuth(false, false),
 	)(http.HandlerFunc(authHandler.ChangePassword)))
-
-	mux.Handle(constants.POST+" /v1/auth/logout", middleware.ChainMiddleware(
-		permissionMiddleware.RequireAuth(),
-	)(http.HandlerFunc(authHandler.Logout)))
 }
