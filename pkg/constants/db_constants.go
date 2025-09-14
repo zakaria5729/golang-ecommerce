@@ -45,6 +45,7 @@ const (
 	UserPasswordResetExpires        = "password_reset_expires"
 	UserRolesCapitalized            = "Roles"
 	UserRolesPermissionsCapitalized = "Roles.Permissions"
+	UsersCapitalized                = "Users"
 )
 
 const (
@@ -90,6 +91,7 @@ const (
 const (
 	RoleRoleName               = "role_name"
 	RoleRoleType               = "role_type"
+	RoleDescription            = "description"
 	RolePermissions            = "role_permissions"
 	RolePermissionsCapitalized = "Permissions"
 )

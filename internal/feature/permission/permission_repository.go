@@ -63,14 +63,12 @@ func (r *PermissionRepository) GetPermissionByName(name string, include []string
 	return &permission, nil
 }
 
-func (r *PermissionRepository) GetPermissionsByNames(names []string, include []string) ([]Permission, error) {
+// **REQUIRED
+func (r *PermissionRepository) GetPermissionsByIDs(ids []uint) ([]Permission, error) {
 	var permissions []Permission
 
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if err := query.Where(constants.PermissionName+" IN ?", names).Find(&permissions).Error; err != nil {
-		logger.Logger.Error("Failed to fetch permissions by names", "method", "GetPermissionsByNames", "error", err, "names", names, "include", include)
+	if err := r.db.Model(&Permission{}).Where(constants.FieldID+" IN ?", ids).Find(&permissions).Error; err != nil {
+		logger.Logger.Error("Failed to fetch permissions by IDs", "method", "GetPermissionsByIDs", "error", err, "ids", ids)
 		return nil, err
 	}
 

@@ -36,113 +36,113 @@ func (uc *PermissionUseCase) GetPermissionByID(id uint) (*Permission, error) {
 	return permission, nil
 }
 
-func (uc *PermissionUseCase) CreatePermission(permission *Permission) (*Permission, error) {
-	// Sanitize input
-	permission.Sanitize()
+// func (uc *PermissionUseCase) CreatePermission(permission *Permission) (*Permission, error) {
+// 	// Sanitize input
+// 	permission.Sanitize()
 
-	// Validate permission
-	if err := permission.IsValid(); err != nil {
-		logger.Logger.Error("Invalid permission data", "method", "CreatePermission", "error", err)
-		return nil, err
-	}
+// 	// Validate permission
+// 	if err := permission.IsValid(); err != nil {
+// 		logger.Logger.Error("Invalid permission data", "method", "CreatePermission", "error", err)
+// 		return nil, err
+// 	}
 
-	// Check if permission already exists
-	exists, err := uc.permissionRepo.PermissionExistsByName(permission.Name, nil)
-	if err != nil {
-		logger.Logger.Error("Failed to check if permission exists", "method", "CreatePermission", "error", err)
-		return nil, err
-	}
-	if exists {
-		logger.Logger.Error("Permission already exists", "method", "CreatePermission", "name", permission.Name)
-		return nil, errors.New("permission already exists")
-	}
+// 	// Check if permission already exists
+// 	exists, err := uc.permissionRepo.PermissionExistsByName(permission.Name, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to check if permission exists", "method", "CreatePermission", "error", err)
+// 		return nil, err
+// 	}
+// 	if exists {
+// 		logger.Logger.Error("Permission already exists", "method", "CreatePermission", "name", permission.Name)
+// 		return nil, errors.New("permission already exists")
+// 	}
 
-	// Create permission
-	err = uc.permissionRepo.CreatePermission(permission)
-	if err != nil {
-		logger.Logger.Error("Failed to create permission", "method", "CreatePermission", "error", err)
-		return nil, err
-	}
+// 	// Create permission
+// 	err = uc.permissionRepo.CreatePermission(permission)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to create permission", "method", "CreatePermission", "error", err)
+// 		return nil, err
+// 	}
 
-	logger.Logger.Info("Permission created successfully", "method", "CreatePermission", "id", permission.ID, "name", permission.Name)
-	return permission, nil
-}
+// 	logger.Logger.Info("Permission created successfully", "method", "CreatePermission", "id", permission.ID, "name", permission.Name)
+// 	return permission, nil
+// }
 
-func (uc *PermissionUseCase) UpdatePermission(id uint, permission *Permission) (*Permission, error) {
-	// Sanitize input
-	permission.Sanitize()
+// func (uc *PermissionUseCase) UpdatePermission(id uint, permission *Permission) (*Permission, error) {
+// 	// Sanitize input
+// 	permission.Sanitize()
 
-	// Validate permission
-	if err := permission.IsValid(); err != nil {
-		logger.Logger.Error("Invalid permission data", "method", "UpdatePermission", "error", err)
-		return nil, err
-	}
+// 	// Validate permission
+// 	if err := permission.IsValid(); err != nil {
+// 		logger.Logger.Error("Invalid permission data", "method", "UpdatePermission", "error", err)
+// 		return nil, err
+// 	}
 
-	// Check if permission exists
-	existingPermission, err := uc.permissionRepo.GetPermissionByID(id)
-	if err != nil {
-		logger.Logger.Error("Failed to get existing permission", "method", "UpdatePermission", "error", err, "id", id)
-		return nil, err
-	}
+// 	// Check if permission exists
+// 	existingPermission, err := uc.permissionRepo.GetPermissionByID(id)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to get existing permission", "method", "UpdatePermission", "error", err, "id", id)
+// 		return nil, err
+// 	}
 
-	// Check if new name conflicts with existing permission (excluding current one)
-	if permission.Name != existingPermission.Name {
-		exists, err := uc.permissionRepo.PermissionExistsByName(permission.Name, &id)
-		if err != nil {
-			logger.Logger.Error("Failed to check if permission exists", "method", "UpdatePermission", "error", err)
-			return nil, err
-		}
-		if exists {
-			logger.Logger.Error("Permission name already exists", "method", "UpdatePermission", "name", permission.Name)
-			return nil, errors.New("permission name already exists")
-		}
-	}
+// 	// Check if new name conflicts with existing permission (excluding current one)
+// 	if permission.Name != existingPermission.Name {
+// 		exists, err := uc.permissionRepo.PermissionExistsByName(permission.Name, &id)
+// 		if err != nil {
+// 			logger.Logger.Error("Failed to check if permission exists", "method", "UpdatePermission", "error", err)
+// 			return nil, err
+// 		}
+// 		if exists {
+// 			logger.Logger.Error("Permission name already exists", "method", "UpdatePermission", "name", permission.Name)
+// 			return nil, errors.New("permission name already exists")
+// 		}
+// 	}
 
-	// Set the ID for update
-	permission.ID = id
+// 	// Set the ID for update
+// 	permission.ID = id
 
-	// Update permission
-	err = uc.permissionRepo.UpdatePermission(permission)
-	if err != nil {
-		logger.Logger.Error("Failed to update permission", "method", "UpdatePermission", "error", err, "id", id)
-		return nil, err
-	}
+// 	// Update permission
+// 	err = uc.permissionRepo.UpdatePermission(permission)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to update permission", "method", "UpdatePermission", "error", err, "id", id)
+// 		return nil, err
+// 	}
 
-	logger.Logger.Info("Permission updated successfully", "method", "UpdatePermission", "id", id, "name", permission.Name)
-	return permission, nil
-}
+// 	logger.Logger.Info("Permission updated successfully", "method", "UpdatePermission", "id", id, "name", permission.Name)
+// 	return permission, nil
+// }
 
-func (uc *PermissionUseCase) DeletePermission(id uint) error {
-	// Check if permission exists
-	_, err := uc.permissionRepo.GetPermissionByID(id)
-	if err != nil {
-		logger.Logger.Error("Failed to get permission for deletion", "method", "DeletePermission", "error", err, "id", id)
-		return err
-	}
+// func (uc *PermissionUseCase) DeletePermission(id uint) error {
+// 	// Check if permission exists
+// 	_, err := uc.permissionRepo.GetPermissionByID(id)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to get permission for deletion", "method", "DeletePermission", "error", err, "id", id)
+// 		return err
+// 	}
 
-	// Delete permission
-	if err := uc.permissionRepo.DeletePermission(id); err != nil {
-		logger.Logger.Error("Failed to delete permission", "method", "DeletePermission", "error", err, "id", id)
-		return err
-	}
+// 	// Delete permission
+// 	if err := uc.permissionRepo.DeletePermission(id); err != nil {
+// 		logger.Logger.Error("Failed to delete permission", "method", "DeletePermission", "error", err, "id", id)
+// 		return err
+// 	}
 
-	logger.Logger.Info("Permission deleted successfully", "method", "DeletePermission", "id", id)
-	return nil
-}
+// 	logger.Logger.Info("Permission deleted successfully", "method", "DeletePermission", "id", id)
+// 	return nil
+// }
 
-func (uc *PermissionUseCase) GetUserPermissions(userID uint) ([]string, error) {
-	if userID == 0 {
-		return nil, errors.New("invalid user ID")
-	}
+// func (uc *PermissionUseCase) GetUserPermissions(userID uint) ([]string, error) {
+// 	if userID == 0 {
+// 		return nil, errors.New("invalid user ID")
+// 	}
 
-	permissions, err := uc.permissionRepo.GetUserPermissions(userID)
-	if err != nil {
-		logger.Logger.Error("Failed to get user permissions", "method", "GetUserPermissions", "error", err, "userID", userID)
-		return nil, err
-	}
+// 	permissions, err := uc.permissionRepo.GetUserPermissions(userID)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to get user permissions", "method", "GetUserPermissions", "error", err, "userID", userID)
+// 		return nil, err
+// 	}
 
-	return permissions, nil
-}
+// 	return permissions, nil
+// }
 
 func (uc *PermissionUseCase) GetUserPermissionsByRole(userID uint, roleType string) ([]string, error) {
 	if userID == 0 {
@@ -219,26 +219,26 @@ func (uc *PermissionUseCase) GetUserStatusAndAnyPermission(userID uint, permissi
 	return uc.permissionRepo.GetUserStatusAndAnyPermission(userID, permissions)
 }
 
-func (uc *PermissionUseCase) GetUsersWithPermission(permission string) ([]uint, error) {
-	if permission == "" {
-		return nil, errors.New("permission cannot be empty")
-	}
+// func (uc *PermissionUseCase) GetUsersWithPermission(permission string) ([]uint, error) {
+// 	if permission == "" {
+// 		return nil, errors.New("permission cannot be empty")
+// 	}
 
-	userIDs, err := uc.permissionRepo.GetUsersWithPermission(permission)
-	if err != nil {
-		logger.Logger.Error("Failed to get users with permission", "method", "GetUsersWithPermission", "error", err, "permission", permission)
-		return nil, err
-	}
+// 	userIDs, err := uc.permissionRepo.GetUsersWithPermission(permission)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to get users with permission", "method", "GetUsersWithPermission", "error", err, "permission", permission)
+// 		return nil, err
+// 	}
 
-	return userIDs, nil
-}
+// 	return userIDs, nil
+// }
 
-func (uc *PermissionUseCase) GetPermissionStats() (map[string]int, error) {
-	stats, err := uc.permissionRepo.GetPermissionStats()
-	if err != nil {
-		logger.Logger.Error("Failed to get permission stats", "method", "GetPermissionStats", "error", err)
-		return nil, err
-	}
+// func (uc *PermissionUseCase) GetPermissionStats() (map[string]int, error) {
+// 	stats, err := uc.permissionRepo.GetPermissionStats()
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to get permission stats", "method", "GetPermissionStats", "error", err)
+// 		return nil, err
+// 	}
 
-	return stats, nil
-}
+// 	return stats, nil
+// }

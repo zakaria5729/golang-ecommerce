@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
-func RegisterFileRoute(mux *http.ServeMux, permissionMiddleware *middleware.AuthPermissionMiddleware) {
+func RegisterFileRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
 	fileHandler := handler.NewFileHandler()
 
 	mux.Handle(constants.POST+" /v1/files/upload", middleware.ChainMiddleware(

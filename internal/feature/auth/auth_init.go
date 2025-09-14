@@ -11,7 +11,7 @@ import (
 
 func InitializeDefaultSuperAdmin() error {
 	userRepo := user.NewUserRepository()
-	roleUseCase := role.NewRoleUseCase(userRepo.ToSharedInterface())
+	roleUseCase := role.NewRoleUseCase()
 
 	superAdminEmail := os.Getenv(constants.EnvSuperAdminEmail)
 	if superAdminEmail == "" {
@@ -34,7 +34,7 @@ func InitializeDefaultSuperAdmin() error {
 		return nil
 	}
 
-	superAdminRole, err := roleUseCase.GetRoleByType(constants.RoleTypeSuperAdmin, "")
+	superAdminRole, err := roleUseCase.GetRoleByType(constants.RoleTypeSuperAdmin)
 	if err != nil {
 		logger.Logger.Error("Failed to get super admin role", "method", "InitializeDefaultSuperAdmin", "error", err)
 		return err
@@ -49,6 +49,7 @@ func InitializeDefaultSuperAdmin() error {
 		Banned:   false,
 		Roles:    []role.Role{*superAdminRole},
 	}
+
 	_, err = userRepo.CreateUser(userModel)
 	if err != nil {
 		logger.Logger.Error("Failed to create super admin", "method", "InitializeDefaultSuperAdmin", "error", err)

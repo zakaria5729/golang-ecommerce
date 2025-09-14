@@ -41,6 +41,14 @@ func ValidateRequired(value, fieldName string) ValidationErrors {
 	return errors
 }
 
+func ValidateRequiredBool(value bool, fieldName string) ValidationErrors {
+	var errors ValidationErrors
+	if !value {
+		errors.AddError(fieldName, fmt.Sprintf("%s is required", fieldName))
+	}
+	return errors
+}
+
 func ValidateMinLength(value, fieldName string, minLength int) ValidationErrors {
 	var errors ValidationErrors
 	if len(strings.TrimSpace(value)) < minLength {

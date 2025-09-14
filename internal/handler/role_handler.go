@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/easy-comerce/backend/internal/feature/role"
-	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
@@ -17,17 +16,18 @@ type RoleHandler struct {
 }
 
 func NewRoleHandler() *RoleHandler {
-	userRepo := user.NewUserRepository()
 	return &RoleHandler{
-		roleUseCase: role.NewRoleUseCase(userRepo.ToSharedInterface()),
+		roleUseCase: role.NewRoleUseCase(),
 	}
 }
 
+// **REQUIRED
 func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
-	include := r.URL.Query().Get("include")
-	roleType := r.URL.Query().Get("role_type")
-	sortBy := r.URL.Query().Get("sort_by")
-	sortOrder := r.URL.Query().Get("sort_order")
+	q := r.URL.Query()
+	include := q.Get(constants.Include)
+	roleType := q.Get(constants.RoleRoleType)
+	sortBy := q.Get(constants.SortBy)
+	sortOrder := q.Get(constants.SortOrder)
 
 	roles, err := h.roleUseCase.GetAllRoles(include, roleType, sortBy, sortOrder)
 	if err != nil {
@@ -39,21 +39,16 @@ func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, roles)
 }
 
+// **REQUIRED
 func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "Role ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
 		return
 	}
 
-	include := r.URL.Query().Get("include")
-	role, err := h.roleUseCase.GetRoleByID(uint(id), include)
+	include := r.URL.Query().Get(constants.Include)
+	role, err := h.roleUseCase.GetRoleByID(*id, include)
 	if err != nil {
 		logger.Logger.Error("Get role by ID failed", "method", "GetRoleByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -63,11 +58,10 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, role)
 }
 
+// **REQUIRED
 func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	var req role.CreateRoleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode create role request", "method", "CreateRole", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "CreateRole") {
 		return
 	}
 
@@ -86,33 +80,25 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, role, http.StatusCreated)
 }
 
+// **REQUIRED
 func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
-
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "Role ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
 		return
 	}
 
-	var req role.CreateRoleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode update role request", "method", "UpdateRole", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	var req role.UpdateRoleRequest
+	if !utils.DecodeJSON(w, r, &req, "UpdateRole") {
 		return
 	}
 
-	if validationErrors := h.validateCreateRoleRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := h.validateUpdateRoleRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	role, err := h.roleUseCase.UpdateRole(uint(id), &req)
+	role, err := h.roleUseCase.UpdateRole(*id, &req)
 	if err != nil {
 		logger.Logger.Error("Update role failed", "method", "UpdateRole", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
@@ -122,20 +108,15 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, role)
 }
 
+// **REQUIRED
 func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "Role ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.roleUseCase.DeleteRole(uint(id)); err != nil {
+	if err := h.roleUseCase.DeleteRole(*id); err != nil {
 		logger.Logger.Error("Delete role failed", "method", "DeleteRole", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
@@ -144,11 +125,10 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	response.SendDeleteJSON(w, "Role deleted successfully")
 }
 
+// **REQUIRED
 func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	var req role.AssignRoleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode assign role request", "method", "AssignRoleToUser", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "AssignRoleToUser") {
 		return
 	}
 
@@ -158,7 +138,7 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.roleUseCase.AssignRoleToUser(req.UserID, &req); err != nil {
-		logger.Logger.Error("Assign role to user failed", "method", "AssignRoleToUser", "error", err, "userID", req.UserID)
+		logger.Logger.Error("Assign roles to user failed", "method", "AssignRoleToUser", "error", err, "userID", req.UserID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -170,6 +150,16 @@ func (h *RoleHandler) validateCreateRoleRequest(req *role.CreateRoleRequest) val
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.RoleName, "role_name"),
 		validator.ValidateMinLength(req.RoleName, "role_name", 2),
+		validator.ValidateRequired(req.RoleType, "role_type"),
+		validator.ValidateRequiredBool(len(req.PermissionIDs) > 0, "permission_ids"),
+	)
+}
+
+func (h *RoleHandler) validateUpdateRoleRequest(req *role.UpdateRoleRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidateRequired(req.RoleName, "role_name"),
+		validator.ValidateMinLength(req.RoleName, "role_name", 2),
+		validator.ValidateRequired(req.RoleType, "role_type"),
 	)
 }
 
@@ -178,8 +168,8 @@ func (h *RoleHandler) validateAssignRoleRequest(req *role.AssignRoleRequest) val
 	if req.UserID == 0 {
 		errors.AddError("user_id", "user_id is required")
 	}
-	if len(req.Roles) == 0 {
-		errors.AddError("roles", "at least one role is required")
+	if req.RoleId == 0 {
+		errors.AddError("roles", "role_id is required")
 	}
 	return errors
 }

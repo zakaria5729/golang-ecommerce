@@ -420,10 +420,10 @@ func (r *UserRepository) getLoginSelectableFields(include []string) []string {
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
 
-// ToSharedInterface converts UserRepository to shared.UserRepositoryInterface
-func (r *UserRepository) ToSharedInterface() shared.UserRepositoryInterface {
-	return &sharedUserRepository{repo: r}
-}
+// // ToSharedInterface converts UserRepository to shared.UserRepositoryInterface
+// func (r *UserRepository) ToSharedInterface() shared.UserRepositoryInterface {
+// 	return &sharedUserRepository{repo: r}
+// }
 
 // sharedUserRepository wraps UserRepository to implement shared.UserRepositoryInterface
 type sharedUserRepository struct {

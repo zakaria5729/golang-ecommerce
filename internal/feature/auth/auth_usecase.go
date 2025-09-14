@@ -82,6 +82,7 @@ func (uc *AuthUseCase) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
+// **REQUIRED
 func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
