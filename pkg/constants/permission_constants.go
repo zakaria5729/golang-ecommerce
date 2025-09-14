@@ -31,10 +31,10 @@ const (
 	PermissionRoleAssign = "role.assign"
 
 	// Permission permissions
-	PermissionPermissionRead   = "permission.read"
-	PermissionPermissionCreate = "permission.create"
-	PermissionPermissionUpdate = "permission.update"
-	PermissionPermissionDelete = "permission.delete"
+	PermissionPermissionRead = "permission.read"
+	// PermissionPermissionCreate = "permission.create"
+	// PermissionPermissionUpdate = "permission.update"
+	// PermissionPermissionDelete = "permission.delete"
 
 	// Category permissions
 	PermissionCategoryCreate = "category.create"

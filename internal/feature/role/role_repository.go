@@ -79,7 +79,10 @@ func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, er
 func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, error) {
 	var role Role
 
-	if err := r.db.Model(&Role{}).Preload(RolePermissionsCapitalized).Where(RoleRoleType+" = ?", roleType).First(&role).Error; err != nil {
+	if err := r.db.Model(&Role{}).
+		Preload(constants.RolePermissionsCapitalized).
+		Where(constants.RoleRoleType+" = ?", roleType).
+		First(&role).Error; err != nil {
 		logger.Logger.Error("Failed to fetch role by type", "method", "GetRoleWithPermissionsByType", "error", err, "roleType", roleType)
 		return nil, err
 	}

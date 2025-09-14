@@ -19,13 +19,6 @@ func (Role) TableName() string {
 	return constants.TableRole
 }
 
-const (
-	RoleRoleName               = "role_name"
-	RoleRoleType               = "role_type"
-	RolePermissions            = "role_permissions"
-	RolePermissionsCapitalized = "Permissions"
-)
-
 func (r *Role) Sanitize() {
 	if r.RoleName != "" {
 		r.RoleName = utils.Trim(r.RoleName)

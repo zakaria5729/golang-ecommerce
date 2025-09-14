@@ -2,7 +2,6 @@ package permission
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/easy-comerce/backend/pkg/logger"
 )
@@ -17,13 +16,9 @@ func NewPermissionUseCase() *PermissionUseCase {
 	}
 }
 
-func (uc *PermissionUseCase) GetAllPermissions(include, sortBy, sortOrder string) ([]Permission, error) {
-	var includeList []string
-	if include != "" {
-		includeList = strings.Split(include, ",")
-	}
-
-	permissions, err := uc.permissionRepo.GetAllPermissions(includeList, sortBy, sortOrder)
+// **REQUIRED
+func (uc *PermissionUseCase) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
+	permissions, err := uc.permissionRepo.GetAllPermissions(sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to get all permissions", "method", "GetAllPermissions", "error", err)
 		return nil, err
@@ -31,13 +26,9 @@ func (uc *PermissionUseCase) GetAllPermissions(include, sortBy, sortOrder string
 	return permissions, nil
 }
 
-func (uc *PermissionUseCase) GetPermissionByID(id uint, include string) (*Permission, error) {
-	var includeList []string
-	if include != "" {
-		includeList = strings.Split(include, ",")
-	}
-
-	permission, err := uc.permissionRepo.GetPermissionByID(id, includeList)
+// **REQUIRED
+func (uc *PermissionUseCase) GetPermissionByID(id uint) (*Permission, error) {
+	permission, err := uc.permissionRepo.GetPermissionByID(id)
 	if err != nil {
 		logger.Logger.Error("Failed to get permission by ID", "method", "GetPermissionByID", "error", err, "id", id)
 		return nil, err
@@ -88,7 +79,7 @@ func (uc *PermissionUseCase) UpdatePermission(id uint, permission *Permission) (
 	}
 
 	// Check if permission exists
-	existingPermission, err := uc.permissionRepo.GetPermissionByID(id, []string{})
+	existingPermission, err := uc.permissionRepo.GetPermissionByID(id)
 	if err != nil {
 		logger.Logger.Error("Failed to get existing permission", "method", "UpdatePermission", "error", err, "id", id)
 		return nil, err
@@ -123,7 +114,7 @@ func (uc *PermissionUseCase) UpdatePermission(id uint, permission *Permission) (
 
 func (uc *PermissionUseCase) DeletePermission(id uint) error {
 	// Check if permission exists
-	_, err := uc.permissionRepo.GetPermissionByID(id, []string{})
+	_, err := uc.permissionRepo.GetPermissionByID(id)
 	if err != nil {
 		logger.Logger.Error("Failed to get permission for deletion", "method", "DeletePermission", "error", err, "id", id)
 		return err
@@ -207,8 +198,9 @@ func (uc *PermissionUseCase) HasAnyPermission(userID uint, permissions []string)
 	return hasPermission, nil
 }
 
+// **REQUIRED
 func (uc *PermissionUseCase) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
-	if userID == 0 {
+	if userID <= 0 {
 		return false, false, false, errors.New("invalid user ID")
 	}
 

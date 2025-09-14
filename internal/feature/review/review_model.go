@@ -24,15 +24,3 @@ func (r *Review) Sanitize() {
 		r.Comment = &sanitized
 	}
 }
-
-const (
-	ReviewProductID = "product_id"
-	ReviewUserID    = "user_id"
-	ReviewRating    = "rating"
-	ReviewComment   = "comment"
-)
-
-const (
-	MinRating = 1
-	MaxRating = 5
-)

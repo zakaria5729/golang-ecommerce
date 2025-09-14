@@ -17,9 +17,3 @@ type BrowsingHistory struct {
 func (BrowsingHistory) TableName() string {
 	return constants.TableBrowsingHistory
 }
-
-const (
-	BrowsingHistoryUserID    = "user_id"
-	BrowsingHistoryProductID = "product_id"
-	BrowsingHistoryViewedAt  = "viewed_at"
-)

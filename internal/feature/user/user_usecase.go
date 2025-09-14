@@ -98,7 +98,12 @@ func (uc *UserUseCase) GetUserByID(userID uint, includeStr string) (*User, error
 	return user, nil
 }
 
+// **REQUIRED
 func (uc *UserUseCase) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*User, error) {
+	if userID <= 0 {
+		return nil, errors.New("invalid user ID")
+	}
+
 	user, err := uc.userRepo.GetAuthUserByID(userID, includeRoles, includePermissions)
 	if err != nil {
 		logger.Logger.Error("User not found", "method", "GetUserByID", "error", err, "userID", userID)

@@ -127,3 +127,8 @@ const (
 	PATCH   = "PATCH"
 	OPTIONS = "OPTIONS"
 )
+
+const (
+	MinReviewRating = 1
+	MaxReviewRating = 5
+)

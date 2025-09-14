@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"os/user"
 	"regexp"
 	"slices"
 	"strconv"
@@ -310,10 +310,10 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, target any, method strin
 	return true
 }
 
-func GenerateNewToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+func GetUserFromContext(r *http.Request) (*user.User, error) {
+	user, ok := r.Context().Value(constants.UserContextKey).(*user.User)
+	if !ok || user == nil {
+		return nil, errors.New("user not found in context")
 	}
-	return hex.EncodeToString(bytes), nil
+	return user, nil
 }

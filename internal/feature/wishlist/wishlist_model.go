@@ -14,8 +14,3 @@ type Wishlist struct {
 func (Wishlist) TableName() string {
 	return constants.TableWishlist
 }
-
-const (
-	WishlistUserID    = "user_id"
-	WishlistProductID = "product_id"
-)

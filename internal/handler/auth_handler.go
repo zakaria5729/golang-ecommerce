@@ -114,6 +114,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, map[string]string{"message": "Password reset email sent"})
 }
 
+// **REQUIRED
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req auth.ResetPasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ResetPassword") {

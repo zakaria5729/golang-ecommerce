@@ -1,6 +1,7 @@
 package permission
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
@@ -20,11 +21,10 @@ func NewPermissionRepository() *PermissionRepository {
 	}
 }
 
-func (r *PermissionRepository) GetAllPermissions(include []string, sortBy, sortOrder string) ([]Permission, error) {
+// **REQUIRED
+func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
 	var permissions []Permission
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
+	query := r.db.Model(&Permission{})
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
@@ -32,19 +32,17 @@ func (r *PermissionRepository) GetAllPermissions(include []string, sortBy, sortO
 
 	err := query.Find(&permissions).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "include", include, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return permissions, err
 }
 
-func (r *PermissionRepository) GetPermissionByID(id uint, include []string) (*Permission, error) {
+// **REQUIRED
+func (r *PermissionRepository) GetPermissionByID(id uint) (*Permission, error) {
 	var permission Permission
 
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if err := query.Where(constants.FieldID+" = ?", id).First(&permission).Error; err != nil {
-		logger.Logger.Error("Failed to fetch permission by ID", "method", "GetPermissionByID", "error", err, "id", id, "include", include)
+	if err := r.db.Model(&Permission{}).Where(constants.FieldID+" = ?", id).First(&permission).Error; err != nil {
+		logger.Logger.Error("Failed to fetch permission by ID", "method", "GetPermissionByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -57,7 +55,7 @@ func (r *PermissionRepository) GetPermissionByName(name string, include []string
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	if err := query.Where(PermissionName+" = ?", name).First(&permission).Error; err != nil {
+	if err := query.Where(constants.PermissionName+" = ?", name).First(&permission).Error; err != nil {
 		logger.Logger.Error("Failed to fetch permission by name", "method", "GetPermissionByName", "error", err, "name", name, "include", include)
 		return nil, err
 	}
@@ -71,7 +69,7 @@ func (r *PermissionRepository) GetPermissionsByNames(names []string, include []s
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	if err := query.Where(PermissionName+" IN ?", names).Find(&permissions).Error; err != nil {
+	if err := query.Where(constants.PermissionName+" IN ?", names).Find(&permissions).Error; err != nil {
 		logger.Logger.Error("Failed to fetch permissions by names", "method", "GetPermissionsByNames", "error", err, "names", names, "include", include)
 		return nil, err
 	}
@@ -114,7 +112,7 @@ func (r *PermissionRepository) PermissionExists(id uint) (bool, error) {
 
 func (r *PermissionRepository) PermissionExistsByName(name string, excludeID *uint) (bool, error) {
 	var count int64
-	query := r.db.Model(&Permission{}).Where(PermissionName+" = ?", name)
+	query := r.db.Model(&Permission{}).Where(constants.PermissionName+" = ?", name)
 
 	if excludeID != nil {
 		query = query.Where(constants.FieldID+" != ?", *excludeID)
@@ -189,16 +187,25 @@ func (r *PermissionRepository) GetUserPermissionsByRole(userID uint, roleType st
 	return permissions, err
 }
 
+// **REQUIRED
 func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
 	var userStatus PermissionUserStatus
 
-	err = r.db.Select("banned, verified").
+	err = r.db.Select(constants.UserBanned, constants.UserVerified).
 		Where("id = ?", userID).
 		First(&userStatus).Error
 
 	if err != nil {
 		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
 		return false, false, false, err
+	}
+
+	if !userStatus.Verified {
+		return false, false, false, errors.New("account is not verified yet")
+	}
+
+	if userStatus.Banned {
+		return false, false, false, errors.New("account is banned")
 	}
 
 	hasPermission, err = r.HasPermission(userID, permission)
@@ -284,7 +291,7 @@ func (r *PermissionRepository) buildPermissionJoinQuery() *gorm.DB {
 }
 
 func (r *PermissionRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{constants.FieldID, PermissionName, constants.FieldCreatedAt, constants.FieldUpdatedAt}
+	defaultFields := []string{constants.FieldID, constants.PermissionName, constants.FieldCreatedAt, constants.FieldUpdatedAt}
 	optionalFields := []string{"description"}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }

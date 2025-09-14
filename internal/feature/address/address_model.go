@@ -39,19 +39,3 @@ func (a *Address) Sanitize() {
 		a.AddressType = utils.Trim(a.AddressType)
 	}
 }
-
-const (
-	AddressUserID      = "user_id"
-	AddressStreet      = "street"
-	AddressCity        = "city"
-	AddressState       = "state"
-	AddressZipCode     = "zip_code"
-	AddressCountry     = "country"
-	AddressIsDefault   = "is_default"
-	AddressAddressType = "address_type"
-)
-
-const (
-	AddressTypeShipping = "shipping"
-	AddressTypeBilling  = "billing"
-)

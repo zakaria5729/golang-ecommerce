@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
@@ -21,12 +23,13 @@ func NewPermissionHandler() *PermissionHandler {
 	}
 }
 
+// **REQUIRED
 func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Request) {
-	include := r.URL.Query().Get("include")
-	sortBy := r.URL.Query().Get("sort_by")
-	sortOrder := r.URL.Query().Get("sort_order")
+	q := r.URL.Query()
+	sortBy := q.Get(constants.SortBy)
+	sortOrder := q.Get(constants.SortOrder)
 
-	permissions, err := h.permissionUseCase.GetAllPermissions(include, sortBy, sortOrder)
+	permissions, err := h.permissionUseCase.GetAllPermissions(sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Get all permissions failed", "method", "GetAllPermissions", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
@@ -36,21 +39,15 @@ func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Req
 	response.SendSuccessJSON(w, permissions)
 }
 
+// **REQUIRED
 func (h *PermissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "Permission ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.URL.Query().Get(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid permission ID", http.StatusBadRequest)
 		return
 	}
 
-	include := r.URL.Query().Get("include")
-	permission, err := h.permissionUseCase.GetPermissionByID(uint(id), include)
+	permission, err := h.permissionUseCase.GetPermissionByID(*id)
 	if err != nil {
 		logger.Logger.Error("Get permission by ID failed", "method", "GetPermissionByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)

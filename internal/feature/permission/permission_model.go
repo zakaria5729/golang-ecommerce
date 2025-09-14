@@ -18,11 +18,6 @@ func (Permission) TableName() string {
 	return constants.TablePermission
 }
 
-const (
-	PermissionName        = "name"
-	PermissionDescription = "description"
-)
-
 func (p *Permission) Sanitize() {
 	if p.Name != "" {
 		p.Name = utils.Trim(p.Name)

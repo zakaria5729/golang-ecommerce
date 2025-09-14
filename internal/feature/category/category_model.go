@@ -31,15 +31,6 @@ func (c *Category) Sanitize() {
 	}
 }
 
-const (
-	CategoryTitle    = "title"
-	CategorySubTitle = "sub_title"
-	CategoryImageURL = "image_url"
-	CategoryParentID = "parent_id"
-	CategoryIsActive = "is_active"
-	CategoryPriority = "priority"
-)
-
 func (c *Category) ToResponse() *CategoryResponse {
 	return &CategoryResponse{
 		BaseModel: c.BaseModel,
