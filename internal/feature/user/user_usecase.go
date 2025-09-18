@@ -41,12 +41,14 @@ func NewUserUseCase() *UserUseCase {
 // }
 
 // **REQUIRED
-func (uc *UserUseCase) UpdateProfile(user *User, req *UpdateProfileRequest) error {
-	user.Name = req.Name
-	user.PathKey = req.PathKey
+func (uc *UserUseCase) UpdateProfile(userID uint, req *UpdateProfileRequest) error {
+	user := &User{
+		Name:    req.Name,
+		PathKey: req.PathKey,
+	}
 	user.Sanitize()
 
-	err := uc.userRepo.UpdateNameAndPathKey(user.ID, user.Name, user.PathKey)
+	err := uc.userRepo.UpdateNameAndPathKey(userID, user.Name, user.PathKey)
 	if err != nil {
 		logger.Logger.Error("Failed to update user profile", "method", "UpdateUserProfile", "error", err, "userID", user.ID)
 		return fmt.Errorf("failed to update profile: %w", err)
@@ -93,6 +95,20 @@ func (uc *UserUseCase) GetAuthUserByID(userID uint, includeRoles bool, includePe
 		return nil, errors.New("user not found")
 	}
 	return user, nil
+}
+
+// **REQUIRED
+func (uc *UserUseCase) GetAuthUserStatusByID(userID uint) (bool, bool, error) {
+	if userID <= 0 {
+		return false, false, errors.New("invalid user ID")
+	}
+
+	banned, verified, err := uc.userRepo.GetAuthUserStatusByID(userID)
+	if err != nil {
+		logger.Logger.Error("User not found", "method", "GetAuthUserStatusByID", "error", err, "userID", userID)
+		return false, false, errors.New("user not found")
+	}
+	return banned, verified, nil
 }
 
 // **REQUIRED

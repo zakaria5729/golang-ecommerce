@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	file_storage "github.com/easy-comerce/backend/internal/feature/file_storage"
-	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 )
 
@@ -24,13 +24,13 @@ func NewFileHandler() *FileHandler {
 }
 
 func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	user, exists := r.Context().Value(constants.UserContextKey).(*user.User)
-	if !exists {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
+	userID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	err := r.ParseMultipartForm(constants.MaxRequestSizeMB)
+	err = r.ParseMultipartForm(constants.MaxRequestSizeMB)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to parse multipart form", http.StatusBadRequest)
 		return
@@ -69,12 +69,12 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	uploadReq := file_storage.FileUploadAPIRequest{
 		File:   fileHeader,
 		Folder: folder,
-		UserID: fmt.Sprintf("%d", user.ID),
+		UserID: fmt.Sprintf("%d", *userID),
 	}
 
 	result, err := h.fileUseCase.UploadFile(r.Context(), uploadReq)
 	if err != nil {
-		logger.Logger.Error("Failed to upload file", "error", err, "user_id", user.ID)
+		logger.Logger.Error("Failed to upload file", "error", err, "user_id", *userID)
 		response.SendErrorJSON(w, "Failed to upload file", http.StatusInternalServerError)
 		return
 	}

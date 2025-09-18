@@ -12,6 +12,6 @@ func RegisterFileRoute(mux *http.ServeMux, permissionMiddleware *middleware.Perm
 	fileHandler := handler.NewFileHandler()
 
 	mux.Handle(constants.POST+" /v1/files/upload", middleware.ChainMiddleware(
-		permissionMiddleware.RequireAuth(),
+		permissionMiddleware.RequireAuthUserId(),
 	)(http.HandlerFunc(fileHandler.UploadFile)))
 }

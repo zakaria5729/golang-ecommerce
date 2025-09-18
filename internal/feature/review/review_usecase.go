@@ -3,6 +3,7 @@ package review
 import (
 	"fmt"
 
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -50,19 +51,16 @@ func (uc *ReviewUseCase) GetReviewByID(id uint, includeStr string) (*Review, err
 	return review, nil
 }
 
+// **REQUIRED
 func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingStr string, comment string) (*Review, error) {
 	productID, err := utils.ParseUint(productIDStr)
-	if err != nil {
+	if err != nil || productID == nil || *productID == 0 {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
 
 	rating, err := utils.ParseInt(ratingStr)
-	if err != nil {
+	if err != nil || rating == nil || *rating < constants.MinReviewRating || *rating > constants.MaxReviewRating {
 		return nil, fmt.Errorf("invalid rating: %w", err)
-	}
-
-	if *rating < MinRating || *rating > MaxRating {
-		return nil, fmt.Errorf("rating must be between %d and %d", MinRating, MaxRating)
 	}
 
 	exists, err := uc.repo.CheckUserReviewExists(*productID, userID)
@@ -75,11 +73,12 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingSt
 		return nil, fmt.Errorf("user has already reviewed this product")
 	}
 
+	comment = utils.Trim(comment)
 	review := &Review{
 		ProductID: *productID,
 		UserID:    userID,
 		Rating:    *rating,
-		Comment:   utils.ParseStringPtr(comment),
+		Comment:   &comment,
 	}
 
 	err = uc.repo.CreateReview(review)
@@ -91,53 +90,44 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingSt
 	return review, nil
 }
 
-func (uc *ReviewUseCase) UpdateReview(idStr string, userID uint, ratingStr string, comment string) (*Review, error) {
-	id, err := utils.ParseUint(idStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid review ID: %w", err)
-	}
-
+// **REQUIRED
+func (uc *ReviewUseCase) UpdateReview(id uint, userID uint, ratingStr string, comment string) error {
 	updates := make(map[string]any)
 
 	if ratingStr != "" {
 		rating, err := utils.ParseInt(ratingStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid rating: %w", err)
+			return fmt.Errorf("invalid rating: %w", err)
 		}
 
-		if *rating < MinRating || *rating > MaxRating {
-			return nil, fmt.Errorf("rating must be between %d and %d", MinRating, MaxRating)
+		if *rating < constants.MinReviewRating || *rating > constants.MaxReviewRating {
+			return fmt.Errorf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating)
 		}
 
-		updates[ReviewRating] = *rating
+		updates[constants.ReviewRating] = *rating
 	}
 
 	if comment != "" {
-		updates[ReviewComment] = utils.Trim(comment)
+		updates[constants.ReviewComment] = utils.Trim(comment)
 	}
 
 	if len(updates) == 0 {
-		return nil, fmt.Errorf("no fields to update")
+		return fmt.Errorf("no fields to update")
 	}
 
-	err = uc.repo.UpdateReview(*id, userID, updates)
+	err := uc.repo.UpdateReview(id, userID, updates)
 	if err != nil {
-		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", err, "id", *id, "userID", userID, "updates", updates)
-		return nil, fmt.Errorf("failed to update review: %w", err)
+		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", err, "id", id, "userID", userID, "updates", updates)
+		return fmt.Errorf("failed to update review: %w", err)
 	}
 
-	review, err := uc.repo.GetReviewByID(*id, []string{})
-	if err != nil {
-		logger.Logger.Error("Failed to fetch updated review", "method", "UpdateReview", "error", err, "id", *id)
-		return nil, fmt.Errorf("failed to fetch updated review: %w", err)
-	}
-
-	return review, nil
+	return nil
 }
 
+// **REQUIRED
 func (uc *ReviewUseCase) DeleteReview(idStr string, userID uint) error {
 	id, err := utils.ParseUint(idStr)
-	if err != nil {
+	if err != nil || id == nil || *id == 0 {
 		return fmt.Errorf("invalid review ID: %w", err)
 	}
 
@@ -150,45 +140,40 @@ func (uc *ReviewUseCase) DeleteReview(idStr string, userID uint) error {
 	return nil
 }
 
-func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, includeStr string, ratingFilter string, sortBy, sortOrder string) ([]Review, error) {
+// **REQUIRED
+func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	rating, _ := utils.ParseInt(ratingFilter)
+	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
-	var ratingPtr *int
-	if rating != nil {
-		ratingPtr = rating
-	}
-
-	reviews, err := uc.repo.GetReviewsByProduct(productID, include, ratingPtr, sortBy, sortOrder)
+	reviews, total, err := uc.repo.GetReviewsByProduct(productID, include, rating, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch reviews by product", "method", "GetReviewsByProduct", "error", err, "productID", productID, "include", include, "rating", ratingPtr, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	return reviews, nil
+	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-func (uc *ReviewUseCase) GetReviewsByUser(userIDStr string, includeStr string, ratingFilter string, sortBy, sortOrder string) ([]Review, error) {
-	userID, err := utils.ParseUint(userIDStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID: %w", err)
-	}
-
+// **REQUIRED
+func (uc *ReviewUseCase) GetReviewsByUser(userID uint, productIDStr string, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	rating, _ := utils.ParseInt(ratingFilter)
+	productID, _ := utils.ParseUint(productIDStr)
+	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	var ratingPtr *int
 	if rating != nil {
 		ratingPtr = rating
 	}
 
-	reviews, err := uc.repo.GetReviewsByUser(*userID, include, ratingPtr, sortBy, sortOrder)
+	reviews, total, err := uc.repo.GetReviewsByUser(userID, productID, include, ratingPtr, page, pageSize, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by user", "method", "GetReviewsByUser", "error", err, "userID", *userID, "include", include, "rating", ratingPtr, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews by user", "method", "GetReviewsByUser", "error", err, "userID", userID, "productID", productID, "include", include, "rating", ratingPtr, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	return reviews, nil
+	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
 // **REQUIRED
@@ -226,15 +211,15 @@ func (uc *ReviewUseCase) ValidateReviewInput(ratingStr string, comment string) [
 				Field:   "rating",
 				Message: "rating must be a valid number",
 			})
-		} else if *rating < MinRating || *rating > MaxRating {
+		} else if *rating < constants.MinReviewRating || *rating > constants.MaxReviewRating {
 			errors = append(errors, validator.ValidationError{
 				Field:   "rating",
-				Message: fmt.Sprintf("rating must be between %d and %d", MinRating, MaxRating),
+				Message: fmt.Sprintf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating),
 			})
 		}
 	}
 
-	if comment != "" && len(comment) > 1000 {
+	if comment != "" || len(comment) > 1000 {
 		errors = append(errors, validator.ValidationError{
 			Field:   "comment",
 			Message: "comment must be less than 1000 characters",

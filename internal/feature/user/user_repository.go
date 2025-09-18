@@ -91,6 +91,21 @@ func (r *UserRepository) GetAuthUserByID(id uint, includeRoles bool, includePerm
 }
 
 // **REQUIRED
+func (r *UserRepository) GetAuthUserStatusByID(id uint) (bool, bool, error) {
+	var user User
+
+	if err := r.db.Model(&User{}).
+		Select(constants.UserBanned, constants.UserVerified).
+		Where(constants.FieldID+" = ?", id).
+		First(&user).Error; err != nil {
+		logger.Logger.Error("Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id)
+		return false, false, err
+	}
+
+	return user.Banned, user.Verified, nil
+}
+
+// **REQUIRED
 func (r *UserRepository) GetUserIdByEmail(email string) (*uint, error) {
 	var user User
 

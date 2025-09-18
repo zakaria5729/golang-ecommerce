@@ -1,15 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/easy-comerce/backend/internal/feature/review"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -66,94 +64,85 @@ func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, review)
 }
 
+// **REQUIRED
 func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
-	var requestData struct {
-		ProductID string `json:"product_id"`
-		Rating    string `json:"rating"`
-		Comment   string `json:"comment"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	userID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if validationErrors := h.validateReviewRequest(requestData.Rating, requestData.Comment); validationErrors.HasErrors() {
+	var req review.CreateReviewRequest
+	if !utils.DecodeJSON(w, r, &req, "CreateReview") {
+		return
+	}
+
+	if validationErrors := h.validateReviewRequest(req.Rating, req.Comment); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	userID := h.getUserID()
-	review, err := h.useCase.CreateReview(userID, requestData.ProductID, requestData.Rating, requestData.Comment)
+	review, err := h.useCase.CreateReview(*userID, req.ProductID, req.Rating, req.Comment)
 	if err != nil {
-		if strings.Contains(err.Error(), "already reviewed") {
-			response.SendErrorJSON(w, "You have already reviewed this product", http.StatusConflict)
-			return
-		}
-		response.SendErrorJSON(w, "Failed to create review", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response.SendSuccessJSON(w, review, http.StatusCreated)
 }
 
+// **REQUIRED
 func (h *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+	userID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil {
 		response.SendErrorJSON(w, "Invalid review ID", http.StatusBadRequest)
 		return
 	}
 
-	var requestData struct {
-		Rating  string `json:"rating"`
-		Comment string `json:"comment"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	var req review.UpdateReviewRequest
+	if !utils.DecodeJSON(w, r, &req, "CreateReview") {
 		return
 	}
 
-	if validationErrors := h.validateReviewRequest(requestData.Rating, requestData.Comment); validationErrors.HasErrors() {
+	if validationErrors := h.validateReviewRequest(req.Rating, req.Comment); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	userID := h.getUserID()
-	review, err := h.useCase.UpdateReview(fmt.Sprintf("%d", *id), userID, requestData.Rating, requestData.Comment)
+	err = h.useCase.UpdateReview(*id, *userID, req.Rating, req.Comment)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			response.SendErrorJSON(w, "Review not found or not owned by user", http.StatusNotFound)
-			return
-		}
-		response.SendErrorJSON(w, "Failed to update review", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccessJSON(w, review)
+	response.SendCommonResponseJSON(w, "Review updated successfully")
 }
 
+// **REQUIRED
 func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil || *id == 0 {
-		response.SendErrorJSON(w, "Invalid review ID", http.StatusBadRequest)
+	userID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	userID := h.getUserID()
-	err = h.useCase.DeleteReview(fmt.Sprintf("%d", *id), userID)
+	idStr := r.PathValue(constants.FieldID)
+	err = h.useCase.DeleteReview(idStr, *userID)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			response.SendErrorJSON(w, "Review not found or not owned by user", http.StatusNotFound)
-			return
-		}
-		response.SendErrorJSON(w, "Failed to delete review", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response.SendDeleteJSON(w, "Review deleted successfully")
 }
 
+// **REQUIRED
 func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Request) {
 	productID, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
@@ -164,10 +153,12 @@ func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Reque
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
 	ratingFilter := q.Get(constants.ReviewRating)
+	pageStr := q.Get(constants.Page)
+	pageSizeStr := q.Get(constants.PageSize)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
 
-	reviews, err := h.useCase.GetReviewsByProduct(*productID, includeStr, ratingFilter, sortBy, sortOrder)
+	reviews, err := h.useCase.GetReviewsByProduct(*productID, includeStr, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to fetch reviews", http.StatusInternalServerError)
 		return
@@ -176,6 +167,7 @@ func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Reque
 	response.SendSuccessJSON(w, reviews)
 }
 
+// **REQUIRED
 func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || userID == nil || *userID == 0 {
@@ -185,17 +177,20 @@ func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request)
 
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
-	ratingFilter := q.Get(review.ReviewRating)
+	ratingFilter := q.Get(constants.ReviewRating)
+	productIDFilter := q.Get(constants.ReviewProductID)
+	pageStr := q.Get(constants.Page)
+	pageSizeStr := q.Get(constants.PageSize)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
 
-	reviews, err := h.useCase.GetReviewsByUser(fmt.Sprintf("%d", *userID), includeStr, ratingFilter, sortBy, sortOrder)
+	paginatedResponse, err := h.useCase.GetReviewsByUser(*userID, productIDFilter, includeStr, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to fetch reviews", http.StatusInternalServerError)
 		return
 	}
 
-	response.SendSuccessJSON(w, reviews)
+	response.SendSuccessJSON(w, paginatedResponse)
 }
 
 // **REQUIRED
@@ -215,10 +210,7 @@ func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Req
 	response.SendSuccessJSON(w, stats)
 }
 
-func (h *ReviewHandler) getUserID() uint {
-	return uint(1)
-}
-
+// **REQUIRED
 func (h *ReviewHandler) validateReviewRequest(rating, comment string) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
@@ -230,10 +222,10 @@ func (h *ReviewHandler) validateReviewRequest(rating, comment string) validator.
 		}
 	}
 
-	if comment != "" {
-		if len(comment) > 1000 {
-			errors.AddError("comment", "Comment must not exceed 1000 characters")
-		}
+	if utils.Trim(comment) != "" {
+		errors.AddError("comment", "Comment is required")
+	} else if len(comment) > constants.MaxReviewCommentLength {
+		errors.AddError("comment", "Comment must not exceed"+strconv.Itoa(constants.MaxReviewCommentLength)+" characters")
 	}
 
 	return errors

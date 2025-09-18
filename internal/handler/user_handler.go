@@ -35,8 +35,8 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // **REQUIRED
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := middleware.GetUserFromContext(r)
-	if err != nil {
+	userID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -52,9 +52,9 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userUseCase.UpdateProfile(currentUser, &req)
+	err = h.userUseCase.UpdateProfile(*userID, &req)
 	if err != nil {
-		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", currentUser.ID)
+		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", *userID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -145,18 +145,18 @@ func GetUserFromContext(r *http.Request) (*user.User, error) {
 	return user, nil
 }
 
-func GetUserIDFromContext(r *http.Request) (uint, error) {
+func GetUserIDFromContext(r *http.Request) (*uint, error) {
 	userIDInterface := r.Context().Value(constants.UserIDContextKey)
 	if userIDInterface == nil {
 		logger.Logger.Error("User ID not found in context", "method", "GetUserIDFromContext")
-		return 0, errors.New("user ID not found in context")
+		return nil, errors.New("user ID not found in context")
 	}
 
 	userID, ok := userIDInterface.(uint)
 	if !ok {
 		logger.Logger.Error("Invalid user ID type in context", "method", "GetUserIDFromContext")
-		return 0, errors.New("invalid user ID type in context")
+		return nil, errors.New("invalid user ID type in context")
 	}
 
-	return userID, nil
+	return &userID, nil
 }

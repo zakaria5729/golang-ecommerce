@@ -129,6 +129,7 @@ const (
 )
 
 const (
-	MinReviewRating = 1
-	MaxReviewRating = 5
+	MinReviewRating        = 1
+	MaxReviewRating        = 5
+	MaxReviewCommentLength = 1000
 )

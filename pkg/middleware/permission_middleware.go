@@ -30,60 +30,36 @@ func NewPermissionMiddleware(jwtSecret string) *PermissionMiddleware {
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAuth() func(http.Handler) http.Handler {
-	return pm.requireFullAuth(false, false)
+func (pm *PermissionMiddleware) RequireAuthUserId() func(http.Handler) http.Handler {
+	return pm.loadAuthUser(false, false, false)
+}
+
+// **REQUIRED
+func (pm *PermissionMiddleware) RequireAuthUser() func(http.Handler) http.Handler {
+	return pm.loadAuthUser(true, false, false)
 }
 
 // **REQUIRED
 func (pm *PermissionMiddleware) RequireAuthWithRolePermission() func(http.Handler) http.Handler {
-	return pm.requireFullAuth(true, true)
+	return pm.loadAuthUser(true, true, true)
 }
 
 // **REQUIRED
 func (pm *PermissionMiddleware) RequirePermission(permission string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
-			if err != nil {
-				logger.Logger.Error("Token validation failed", "method", "RequirePermission", "error", err)
-				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndPermission(claims.UserID, permission)
-			if err != nil {
-				logger.Logger.Error("Failed to get user status and permission", "method", "RequirePermission", "error", err, "userID", claims.UserID, "permission", permission)
-				response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			if !verified {
-				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequirePermission", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
-				return
-			}
-
-			if banned {
-				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequirePermission", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
-				return
-			}
-
-			if !hasPermission {
-				logger.Logger.Warn("User lacks required permission", "method", "RequirePermission", "userID", claims.UserID, "permission", permission)
-				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+	return pm.loadPermissionsStatus([]string{permission})
 }
 
 // **REQUIRED
 func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(http.Handler) http.Handler {
+	return pm.loadPermissionsStatus(permissions)
+}
+
+func (pm *PermissionMiddleware) GetJWTSecret() string {
+	return pm.jwtSecret
+}
+
+// **REQUIRED
+func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -94,7 +70,17 @@ func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(
 				return
 			}
 
-			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
+			err = nil
+			banned := false
+			verified := true
+			hasPermission := false
+
+			if len(permissions) == 1 {
+				banned, verified, hasPermission, err = pm.permissionUseCase.GetUserStatusAndPermission(claims.UserID, permissions[0])
+			} else {
+				banned, verified, hasPermission, err = pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
+			}
+
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and permissions", "method", "RequireAnyPermission", "error", err, "userID", claims.UserID, "permissions", permissions)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
@@ -125,12 +111,8 @@ func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(
 	}
 }
 
-func (pm *PermissionMiddleware) GetJWTSecret() string {
-	return pm.jwtSecret
-}
-
 // **REQUIRED
-func (pm *PermissionMiddleware) requireFullAuth(includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -141,27 +123,41 @@ func (pm *PermissionMiddleware) requireFullAuth(includeRoles bool, includePermis
 				return
 			}
 
-			user, err := pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
+			banned := false
+			verified := false
+			user := &user.User{}
+
+			if !loadFullUser {
+				banned, verified, err = pm.userUseCase.GetAuthUserStatusByID(claims.UserID)
+			} else {
+				user, err = pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
+			}
+
 			if err != nil {
 				logger.Logger.Error("User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
 				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)
 				return
 			}
 
-			if !user.Verified {
-				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", user.ID)
+			if !verified {
+				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
 				return
 			}
 
-			if user.Banned {
-				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", user.ID)
+			if banned {
+				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			if !loadFullUser {
+				ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			} else {
+				ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			}
 		})
 	}
 }

@@ -16,7 +16,7 @@ func RegisterUserRoute(mux *http.ServeMux, permissionMiddleware *middleware.Perm
 	)(http.HandlerFunc(userHandler.GetProfile)))
 
 	mux.Handle(constants.PUT+" /v1/users/profile", middleware.ChainMiddleware(
-		permissionMiddleware.RequireAuth(),
+		permissionMiddleware.RequireAuthUserId(),
 	)(http.HandlerFunc(userHandler.UpdateProfile)))
 
 	mux.Handle(constants.POST+" /v1/users", middleware.ChainMiddleware(
