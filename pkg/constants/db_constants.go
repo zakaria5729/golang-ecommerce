@@ -12,7 +12,9 @@ const (
 
 const (
 	TableUser            = "users"
+	TableUserRole        = "user_roles"
 	TableRole            = "roles"
+	TableRolePermission  = "role_permissions"
 	TablePermission      = "permissions"
 	TableUserStatus      = "user_status"
 	TableCategory        = "categories"
@@ -26,6 +28,7 @@ const (
 	FieldID        = "id"
 	FieldCreatedAt = "created_at"
 	FieldUpdatedAt = "updated_at"
+	FieldDeletedAt = "deleted_at"
 )
 
 const (

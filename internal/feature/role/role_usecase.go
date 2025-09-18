@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/easy-comerce/backend/internal/feature/permission"
-	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -14,7 +13,6 @@ import (
 type RoleUseCase struct {
 	roleRepo       *RoleRepository
 	permissionRepo *permission.PermissionRepository
-	userUseCase    *user.UserUseCase
 }
 
 func NewRoleUseCase() *RoleUseCase {

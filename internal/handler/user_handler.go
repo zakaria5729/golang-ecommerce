@@ -1,14 +1,15 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
+	"github.com/easy-comerce/backend/pkg/utils"
+	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type UserHandler struct {
@@ -21,6 +22,7 @@ func NewUserHandler() *UserHandler {
 	}
 }
 
+// **REQUIRED
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
@@ -28,35 +30,10 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	include := r.URL.Query().Get("include")
-	profileResponse, err := h.userUseCase.GetUserProfile(currentUser.ID, include)
-	if err != nil {
-		logger.Logger.Error("Get profile failed", "method", "GetProfile", "error", err, "userID", currentUser.ID)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, profileResponse)
+	response.SendSuccessJSON(w, currentUser.ToResponse())
 }
 
-func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := middleware.GetUserFromContext(r)
-	if err != nil {
-		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	include := r.URL.Query().Get("include")
-	profileResponse, err := h.userUseCase.GetUserProfile(currentUser.ID, include)
-	if err != nil {
-		logger.Logger.Error("Get me failed", "method", "GetMe", "error", err, "userID", currentUser.ID)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, profileResponse)
-}
-
+// **REQUIRED
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
@@ -65,51 +42,86 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req user.UpdateProfileRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Logger.Error("Failed to decode update profile request", "method", "UpdateProfile", "error", err)
-		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
+	if !utils.DecodeJSON(w, r, &req, "UpdateProfile") {
 		return
 	}
 
-	updatedUserResponse, err := h.userUseCase.UpdateUserProfile(currentUser.ID, &req)
+	validationErrors := h.validateUpdateProfileRequest(&req)
+	if validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	err = h.userUseCase.UpdateProfile(currentUser, &req)
 	if err != nil {
 		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", currentUser.ID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response.SendSuccessJSON(w, updatedUserResponse)
+	response.SendCommonResponseJSON(w, "Profile updated successfully")
 }
 
-func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	include := r.URL.Query().Get("include")
-	sortBy := r.URL.Query().Get("sort_by")
-	sortOrder := r.URL.Query().Get("sort_order")
-	page := r.URL.Query().Get("page")
-	pageSize := r.URL.Query().Get("page_size")
-
-	// Parse pagination parameters
-	var pageInt, pageSizeInt int
-	var err error
-	if page != "" {
-		pageInt, err = strconv.Atoi(page)
-		if err != nil || pageInt < 1 {
-			pageInt = 1
-		}
-	} else {
-		pageInt = 1
+// **REQUIRED
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var req user.CreateUserRequest
+	if !utils.DecodeJSON(w, r, &req, "CreateUser") {
+		return
 	}
 
-	if pageSize != "" {
-		pageSizeInt, err = strconv.Atoi(pageSize)
-		if err != nil || pageSizeInt < 1 || pageSizeInt > 100 {
-			pageSizeInt = 10
-		}
-	} else {
-		pageSizeInt = 10
+	if validationErrors := h.validateCreateUserRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
 	}
 
-	userResponses, err := h.userUseCase.GetAllUsers(include, sortBy, sortOrder)
+	userResponse, err := h.userUseCase.CreateUser(&req)
+	if err != nil {
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccessJSON(w, userResponse)
+
+}
+
+// **REQUIRED
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var req user.UpdateUserRequest
+	if !utils.DecodeJSON(w, r, &req, "UpdateUser") {
+		return
+	}
+
+	if validationErrors := h.validateUpdateUserRequest(&req); validationErrors.HasErrors() {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	err = h.userUseCase.UpdateUser(*id, &req)
+	if err != nil {
+		logger.Logger.Error("Update user failed", "method", "UpdateUser", "error", err)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendCommonResponseJSON(w, "Update user info successfully")
+}
+
+// **REQUIRED
+func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	includeStr := q.Get(constants.Include)
+	pageStr := q.Get(constants.Page)
+	pageSizeStr := q.Get(constants.PageSize)
+	sortBy := q.Get(constants.SortBy)
+	sortOrder := q.Get(constants.SortOrder)
+
+	userResponses, err := h.userUseCase.GetAllUsersPaginated(includeStr, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Get all users failed", "method", "GetAllUsers", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
@@ -119,21 +131,16 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, userResponses)
 }
 
+// **REQUIRED
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	include := r.URL.Query().Get("include")
-	userResponse, err := h.userUseCase.GetUserByID(uint(id), include)
+	include := r.URL.Query().Get(constants.Include)
+	userResponse, err := h.userUseCase.GetUserByID(*id, include)
 	if err != nil {
 		logger.Logger.Error("Get user by ID failed", "method", "GetUserByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -143,24 +150,48 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, userResponse)
 }
 
+// **REQUIRED
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		response.SendErrorJSON(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.userUseCase.DeleteUser(uint(id)); err != nil {
+	if err := h.userUseCase.DeleteUser(*id); err != nil {
 		logger.Logger.Error("Delete user failed", "method", "DeleteUser", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	response.SendDeleteJSON(w, "User deleted successfully")
+}
+
+func (h *UserHandler) validateUpdateProfileRequest(req *user.UpdateProfileRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidateRequired(req.Name, "name"),
+		validator.ValidateRequired(*req.PathKey, "path_key"),
+	)
+}
+
+func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidateRequired(req.Name, "name"),
+		validator.ValidateRequired(req.Email, "email"),
+		validator.ValidateRequiredBool(req.Banned, "banned"),
+		validator.ValidateRequiredBool(req.Verified, "verified"),
+		validator.ValidateRequired(req.Password, "password"),
+		validator.ValidateMinLength(req.Password, "password", 8),
+		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
+	)
+}
+
+func (h *UserHandler) validateUpdateUserRequest(req *user.UpdateUserRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidateRequired(req.Name, "name"),
+		validator.ValidateRequiredBool(req.Banned, "banned"),
+		validator.ValidateRequiredBool(req.Verified, "verified"),
+		validator.ValidateRequired(req.Password, "password"),
+		validator.ValidateMinLength(req.Password, "password", 8),
+	)
 }

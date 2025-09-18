@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
-func RegisterAuthRoute(mux *http.ServeMux, permissionMiddleware *middleware.AuthPermissionMiddleware) {
+func RegisterAuthRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
 	jwtSecret := permissionMiddleware.GetJWTSecret()
 	authHandler := handler.NewAuthHandler(jwtSecret)
 
@@ -20,6 +20,6 @@ func RegisterAuthRoute(mux *http.ServeMux, permissionMiddleware *middleware.Auth
 	mux.HandleFunc(constants.POST+" /v1/auth/logout/id/{id}", authHandler.Logout)
 
 	mux.Handle(constants.POST+" /v1/auth/change-password", middleware.ChainMiddleware(
-		permissionMiddleware.RequireAuth(false, false),
+		permissionMiddleware.RequireAuth(),
 	)(http.HandlerFunc(authHandler.ChangePassword)))
 }

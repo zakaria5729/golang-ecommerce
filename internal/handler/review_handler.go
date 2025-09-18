@@ -9,6 +9,7 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/review"
 	"github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -24,34 +25,16 @@ func NewReviewHandler() *ReviewHandler {
 	}
 }
 
-func (h *ReviewHandler) GetAllReviews(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-
-	includeStr := q.Get(constants.Include)
-	productIDFilter := q.Get(review.ReviewProductID)
-	userIDFilter := q.Get(review.ReviewUserID)
-	ratingFilter := q.Get(review.ReviewRating)
-	sortBy := q.Get(constants.SortBy)
-	sortOrder := q.Get(constants.SortOrder)
-
-	reviews, err := h.useCase.GetAllReviews(includeStr, productIDFilter, userIDFilter, ratingFilter, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch reviews", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, reviews)
-}
-
+// **REQUIRED
 func (h *ReviewHandler) GetAllReviewsPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	includeStr := q.Get(constants.Include)
 	pageStr := q.Get(constants.Page)
 	pageSizeStr := q.Get(constants.PageSize)
-	productIDFilter := q.Get(review.ReviewProductID)
-	userIDFilter := q.Get(review.ReviewUserID)
-	ratingFilter := q.Get(review.ReviewRating)
+	productIDFilter := q.Get(constants.ReviewProductID)
+	userIDFilter := q.Get(constants.ReviewUserID)
+	ratingFilter := q.Get(constants.ReviewRating)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
 
@@ -64,6 +47,7 @@ func (h *ReviewHandler) GetAllReviewsPaginated(w http.ResponseWriter, r *http.Re
 	response.SendSuccessJSON(w, paginatedResponse)
 }
 
+// **REQUIRED
 func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -71,16 +55,11 @@ func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := r.URL.Query()
-	includeStr := q.Get(constants.Include)
-
-	review, err := h.useCase.GetReviewByID(fmt.Sprintf("%d", *id), includeStr)
+	includeStr := r.URL.Query().Get(constants.Include)
+	review, err := h.useCase.GetReviewByID(*id, includeStr)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			response.SendErrorJSON(w, "Review not found", http.StatusNotFound)
-			return
-		}
-		response.SendErrorJSON(w, "Failed to fetch review", http.StatusInternalServerError)
+		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
+		response.SendErrorJSON(w, "Review not found", http.StatusInternalServerError)
 		return
 	}
 
@@ -184,11 +163,11 @@ func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Reque
 
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
-	ratingFilter := q.Get(review.ReviewRating)
+	ratingFilter := q.Get(constants.ReviewRating)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
 
-	reviews, err := h.useCase.GetReviewsByProduct(fmt.Sprintf("%d", *productID), includeStr, ratingFilter, sortBy, sortOrder)
+	reviews, err := h.useCase.GetReviewsByProduct(*productID, includeStr, ratingFilter, sortBy, sortOrder)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to fetch reviews", http.StatusInternalServerError)
 		return
@@ -219,6 +198,7 @@ func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request)
 	response.SendSuccessJSON(w, reviews)
 }
 
+// **REQUIRED
 func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Request) {
 	productID, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
@@ -226,7 +206,7 @@ func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	stats, err := h.useCase.GetProductRatingStats(fmt.Sprintf("%d", *productID))
+	stats, err := h.useCase.GetProductRatingStats(*productID)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to fetch rating statistics", http.StatusInternalServerError)
 		return

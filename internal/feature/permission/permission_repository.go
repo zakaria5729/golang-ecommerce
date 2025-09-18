@@ -138,11 +138,12 @@ func (r *PermissionRepository) GetUserPermissions(userID uint) ([]string, error)
 	return permissions, err
 }
 
+// **REQUIRED
 func (r *PermissionRepository) HasPermission(userID uint, permission string) (bool, error) {
 	var count int64
 
 	err := r.buildPermissionJoinQuery().
-		Where("u.id = ? AND p.name = ?", userID, permission).
+		Where(constants.FieldID+" = ? AND "+constants.PermissionName+" = ?", userID, permission).
 		Count(&count).Error
 
 	if err != nil {
@@ -152,6 +153,7 @@ func (r *PermissionRepository) HasPermission(userID uint, permission string) (bo
 	return count > 0, err
 }
 
+// **REQUIRED
 func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []string) (bool, error) {
 	if len(permissions) == 0 {
 		return true, nil
@@ -160,7 +162,7 @@ func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []strin
 	var count int64
 
 	err := r.buildPermissionJoinQuery().
-		Where("u.id = ? AND p.name IN ?", userID, permissions).
+		Where(constants.FieldID+" = ? AND "+constants.PermissionName+" IN ?", userID, permissions).
 		Count(&count).Error
 
 	if err != nil {
@@ -215,14 +217,11 @@ func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permissio
 	return userStatus.Banned, userStatus.Verified, hasPermission, nil
 }
 
+// **REQUIRED
 func (r *PermissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
-	if len(permissions) == 0 {
-		return false, false, true, nil
-	}
-
 	var userStatus PermissionUserStatus
 
-	err = r.db.Select("banned, verified").
+	err = r.db.Select(constants.UserBanned, constants.UserVerified).
 		Where("id = ?", userID).
 		First(&userStatus).Error
 
@@ -280,11 +279,11 @@ func (r *PermissionRepository) GetPermissionStats() (map[string]int, error) {
 }
 
 func (r *PermissionRepository) buildPermissionJoinQuery() *gorm.DB {
-	return r.db.Table("users u").
-		Joins("JOIN user_roles ur ON u.id = ur.user_id").
-		Joins("JOIN roles r ON ur.role_id = r.id").
-		Joins("JOIN role_permissions rp ON r.id = rp.role_id").
-		Joins("JOIN permissions p ON rp.permission_id = p.id").
+	return r.db.Table(constants.TableUser + " u").
+		Joins("JOIN " + constants.TableUserRole + " ur ON u.id = ur.user_id").
+		Joins("JOIN " + constants.TableRole + " r ON ur.role_id = r.id").
+		Joins("JOIN " + constants.TableRolePermission + " rp ON r.id = rp.role_id").
+		Joins("JOIN " + constants.TablePermission + " p ON rp.permission_id = p.id").
 		Where("u.deleted_at IS NULL AND r.deleted_at IS NULL AND p.deleted_at IS NULL")
 }
 

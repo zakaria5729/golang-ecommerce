@@ -51,6 +51,7 @@ func (r *ReviewRepository) GetAllReviews(include []string, productID *uint, user
 	return reviews, err
 }
 
+// **REQUIRED
 func (r *ReviewRepository) GetAllReviewsPaginated(include []string, productID *uint, userID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
@@ -59,48 +60,37 @@ func (r *ReviewRepository) GetAllReviewsPaginated(include []string, productID *u
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
 	if productID != nil {
-		query = query.Where(ReviewProductID+" = ?", *productID)
+		query = query.Where(constants.ReviewProductID+" = ?", *productID)
 	}
 
 	if userID != nil {
-		query = query.Where(ReviewUserID+" = ?", *userID)
+		query = query.Where(constants.ReviewUserID+" = ?", *userID)
 	}
 
 	if rating != nil {
-		query = query.Where(ReviewRating+" = ?", *rating)
+		query = query.Where(constants.ReviewRating+" = ?", *rating)
+	}
+
+	err := query.Model(&Review{}).Count(&total).Error
+	if err != nil {
+		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "rating", rating)
+		return nil, 0, err
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
 	}
 
-	offset := (page - 1) * pageSize
-	err := query.Offset(offset).Limit(pageSize).Find(&reviews).Error
+	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
 		logger.Logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "include", include, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
-		return nil, 0, err
-	}
-
-	countQuery := r.db.Model(&Review{})
-	if productID != nil {
-		countQuery = countQuery.Where(ReviewProductID+" = ?", *productID)
-	}
-	if userID != nil {
-		countQuery = countQuery.Where(ReviewUserID+" = ?", *userID)
-	}
-	if rating != nil {
-		countQuery = countQuery.Where(ReviewRating+" = ?", *rating)
-	}
-
-	err = countQuery.Count(&total).Error
-	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "rating", rating)
 		return nil, 0, err
 	}
 
 	return reviews, total, nil
 }
 
+// **REQUIRED
 func (r *ReviewRepository) GetReviewByID(id uint, include []string) (*Review, error) {
 	var review Review
 
@@ -161,14 +151,15 @@ func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
 	return nil
 }
 
+// **REQUIRED
 func (r *ReviewRepository) GetReviewsByProduct(productID uint, include []string, rating *int, sortBy, sortOrder string) ([]Review, error) {
 	var reviews []Review
 
 	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", ")).Where(ReviewProductID+" = ?", productID)
+	query := r.db.Select(strings.Join(selectFields, ", ")).Where(constants.ReviewProductID+" = ?", productID)
 
 	if rating != nil {
-		query = query.Where(ReviewRating+" = ?", *rating)
+		query = query.Where(constants.ReviewRating+" = ?", *rating)
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
@@ -215,6 +206,7 @@ func (r *ReviewRepository) GetAverageRating(productID uint) (float64, error) {
 	return avgRating, nil
 }
 
+// **REQUIRED
 func (r *ReviewRepository) GetRatingCounts(productID uint) (map[int]int, error) {
 	var results []struct {
 		Rating int
@@ -222,10 +214,10 @@ func (r *ReviewRepository) GetRatingCounts(productID uint) (map[int]int, error) 
 	}
 
 	err := r.db.Model(&Review{}).
-		Select("rating, COUNT(*) as count").
-		Where(ReviewProductID+" = ?", productID).
-		Group("rating").
-		Order("rating").
+		Select(constants.ReviewRating+", COUNT(*) as count").
+		Where(constants.ReviewProductID+" = ?", productID).
+		Group(constants.ReviewRating).
+		Order(constants.ReviewRating).
 		Scan(&results).Error
 
 	if err != nil {

@@ -90,7 +90,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessJSON(w, map[string]string{"message": "Password changed successfully"})
+	response.SendCommonResponseJSON(w, "Password changed successfully")
 }
 
 // **REQUIRED
@@ -111,7 +111,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessJSON(w, map[string]string{"message": "Password reset email sent"})
+	response.SendCommonResponseJSON(w, "Password reset email sent")
 }
 
 // **REQUIRED
@@ -132,7 +132,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessJSON(w, map[string]string{"message": "Password reset successfully"})
+	response.SendCommonResponseJSON(w, "Password reset successfully")
 }
 
 // **REQUIRED
@@ -171,7 +171,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessJSON(w, map[string]string{"message": "Logged out successfully"})
+	response.SendCommonResponseJSON(w, "Logged out successfully")
 }
 
 func (h *AuthHandler) validateRefreshTokenRequest(req *auth.RefreshTokenRequest) validator.ValidationErrors {

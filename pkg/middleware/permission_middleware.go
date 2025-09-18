@@ -30,40 +30,13 @@ func NewPermissionMiddleware(jwtSecret string) *PermissionMiddleware {
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAuth(includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (pm *PermissionMiddleware) RequireAuth() func(http.Handler) http.Handler {
+	return pm.requireFullAuth(false, false)
+}
 
-			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
-			if err != nil {
-				logger.Logger.Error("Invalid/expired token", "method", "RequireAuth", "error", err)
-				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-
-			user, err := pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
-			if err != nil {
-				logger.Logger.Error("User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
-				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)
-				return
-			}
-
-			if !user.Verified {
-				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", user.ID)
-				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
-				return
-			}
-
-			if user.Banned {
-				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", user.ID)
-				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
+// **REQUIRED
+func (pm *PermissionMiddleware) RequireAuthWithRolePermission() func(http.Handler) http.Handler {
+	return pm.requireFullAuth(true, true)
 }
 
 // **REQUIRED
@@ -109,11 +82,11 @@ func (pm *PermissionMiddleware) RequirePermission(permission string) func(http.H
 	}
 }
 
-// RequireAnyPermission creates middleware that requires any of the specified permissions
+// **REQUIRED
 func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Validate JWT token and get user ID (no database calls)
+
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
 				logger.Logger.Error("Token validation failed", "method", "RequireAnyPermission", "error", err)
@@ -121,7 +94,6 @@ func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(
 				return
 			}
 
-			// Check user status and permissions in single query
 			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and permissions", "method", "RequireAnyPermission", "error", err, "userID", claims.UserID, "permissions", permissions)
@@ -147,122 +119,160 @@ func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(
 				return
 			}
 
-			// Add user ID and permissions to context for downstream handlers
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
-			ctx = context.WithValue(ctx, "permissions", permissions)
+			ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// RequireRole creates middleware that requires a specific role type
-func (pm *PermissionMiddleware) RequireRole(roleType string) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) GetJWTSecret() string {
+	return pm.jwtSecret
+}
+
+// **REQUIRED
+func (pm *PermissionMiddleware) requireFullAuth(includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Validate JWT token and get user ID (no database calls)
+
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
-				logger.Logger.Error("Token validation failed", "method", "RequireRole", "error", err)
-				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
+				logger.Logger.Error("Invalid/expired token", "method", "RequireAuth", "error", err)
+				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
-			// Check user status from users table (banned, verified)
-			banned, verified, err := pm.userUseCase.GetUserStatus(claims.UserID)
+			user, err := pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
 			if err != nil {
-				logger.Logger.Error("Failed to get user status", "method", "RequireRole", "error", err, "userID", claims.UserID)
-				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+				logger.Logger.Error("User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
+				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)
 				return
 			}
 
-			if banned {
-				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequireRole", "userID", claims.UserID)
+			if !user.Verified {
+				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", user.ID)
+				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
+				return
+			}
+
+			if user.Banned {
+				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", user.ID)
 				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
 				return
 			}
 
-			if !verified {
-				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequireRole", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account not verified", http.StatusForbidden)
-				return
-			}
-
-			// Get user permissions for the specific role using 5-table joins
-			permissions, err := pm.permissionUseCase.GetUserPermissionsByRole(claims.UserID, roleType)
-			if err != nil {
-				logger.Logger.Error("Failed to get user permissions by role", "method", "RequireRole", "error", err, "userID", claims.UserID, "roleType", roleType)
-				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
-
-			if len(permissions) == 0 {
-				logger.Logger.Warn("User lacks required role", "method", "RequireRole", "userID", claims.UserID, "roleType", roleType)
-				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
-				return
-			}
-
-			// Add user ID and role to context for downstream handlers
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
-			ctx = context.WithValue(ctx, "role_type", roleType)
+			ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// RequireSuperAdmin creates middleware that requires super admin role
-func (pm *PermissionMiddleware) RequireSuperAdmin() func(http.Handler) http.Handler {
-	return pm.RequireRole("SUPER_ADMIN")
-}
+// func (pm *PermissionMiddleware) RequireRole(roleType string) func(http.Handler) http.Handler {
+// 	return func(next http.Handler) http.Handler {
+// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 			// Validate JWT token and get user ID (no database calls)
+// 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
+// 			if err != nil {
+// 				logger.Logger.Error("Token validation failed", "method", "RequireRole", "error", err)
+// 				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
+// 				return
+// 			}
 
-// RequireAdmin creates middleware that requires admin role or higher
-func (pm *PermissionMiddleware) RequireAdmin() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Validate JWT token and get user ID (no database calls)
-			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
-			if err != nil {
-				logger.Logger.Error("Token validation failed", "method", "RequireAdmin", "error", err)
-				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
+// 			// Check user status from users table (banned, verified)
+// 			banned, verified, err := pm.userUseCase.GetUserStatus(claims.UserID)
+// 			if err != nil {
+// 				logger.Logger.Error("Failed to get user status", "method", "RequireRole", "error", err, "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+// 				return
+// 			}
 
-			// Check user status and admin permissions in single query
-			adminPermissions := []string{
-				"system.admin",
-				"system.super_admin",
-			}
+// 			if banned {
+// 				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequireRole", "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
+// 				return
+// 			}
 
-			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, adminPermissions)
-			if err != nil {
-				logger.Logger.Error("Failed to get user status and admin permissions", "method", "RequireAdmin", "error", err, "userID", claims.UserID)
-				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
-				return
-			}
+// 			if !verified {
+// 				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequireRole", "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Account not verified", http.StatusForbidden)
+// 				return
+// 			}
 
-			if banned {
-				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequireAdmin", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
-				return
-			}
+// 			// Get user permissions for the specific role using 5-table joins
+// 			permissions, err := pm.permissionUseCase.GetUserPermissionsByRole(claims.UserID, roleType)
+// 			if err != nil {
+// 				logger.Logger.Error("Failed to get user permissions by role", "method", "RequireRole", "error", err, "userID", claims.UserID, "roleType", roleType)
+// 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+// 				return
+// 			}
 
-			if !verified {
-				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequireAdmin", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account not verified", http.StatusForbidden)
-				return
-			}
+// 			if len(permissions) == 0 {
+// 				logger.Logger.Warn("User lacks required role", "method", "RequireRole", "userID", claims.UserID, "roleType", roleType)
+// 				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
+// 				return
+// 			}
 
-			if !hasPermission {
-				logger.Logger.Warn("User lacks admin permissions", "method", "RequireAdmin", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
-				return
-			}
+// 			// Add user ID and role to context for downstream handlers
+// 			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+// 			ctx = context.WithValue(ctx, "role_type", roleType)
+// 			next.ServeHTTP(w, r.WithContext(ctx))
+// 		})
+// 	}
+// }
 
-			// Add user ID to context for downstream handlers
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
+// // RequireSuperAdmin creates middleware that requires super admin role
+// func (pm *PermissionMiddleware) RequireSuperAdmin() func(http.Handler) http.Handler {
+// 	return pm.RequireRole("SUPER_ADMIN")
+// }
+
+// // RequireAdmin creates middleware that requires admin role or higher
+// func (pm *PermissionMiddleware) RequireAdmin() func(http.Handler) http.Handler {
+// 	return func(next http.Handler) http.Handler {
+// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 			// Validate JWT token and get user ID (no database calls)
+// 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
+// 			if err != nil {
+// 				logger.Logger.Error("Token validation failed", "method", "RequireAdmin", "error", err)
+// 				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
+// 				return
+// 			}
+
+// 			// Check user status and admin permissions in single query
+// 			adminPermissions := []string{
+// 				"system.admin",
+// 				"system.super_admin",
+// 			}
+
+// 			banned, verified, hasPermission, err := pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, adminPermissions)
+// 			if err != nil {
+// 				logger.Logger.Error("Failed to get user status and admin permissions", "method", "RequireAdmin", "error", err, "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+// 				return
+// 			}
+
+// 			if banned {
+// 				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequireAdmin", "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
+// 				return
+// 			}
+
+// 			if !verified {
+// 				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequireAdmin", "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Account not verified", http.StatusForbidden)
+// 				return
+// 			}
+
+// 			if !hasPermission {
+// 				logger.Logger.Warn("User lacks admin permissions", "method", "RequireAdmin", "userID", claims.UserID)
+// 				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
+// 				return
+// 			}
+
+// 			// Add user ID to context for downstream handlers
+// 			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+// 			next.ServeHTTP(w, r.WithContext(ctx))
+// 		})
+// 	}
+// }
 
 // extractToken extracts JWT token from Authorization header
 // func (pm *AuthPermissionMiddleware) extractJwtToken(r *http.Request) string {
@@ -289,21 +299,16 @@ func (pm *PermissionMiddleware) RequireAdmin() func(http.Handler) http.Handler {
 // 	return user.ID, nil
 // }
 
-// Helper function to check permission in handlers
-func CheckPermission(userID uint, permission string) (bool, error) {
-	pm := NewPermissionMiddleware("")
-	return pm.permissionUseCase.HasPermission(userID, permission)
-}
+// // Helper function to check permission in handlers
+// func CheckPermission(userID uint, permission string) (bool, error) {
+// 	pm := NewPermissionMiddleware("")
+// 	return pm.permissionUseCase.HasPermission(userID, permission)
+// }
 
-// Helper function to check multiple permissions in handlers
-func CheckAnyPermission(userID uint, permissions []string) (bool, error) {
-	pm := NewPermissionMiddleware("")
-	return pm.permissionUseCase.HasAnyPermission(userID, permissions)
-}
-
-// // GetJWTSecret returns the JWT secret used by this middleware
-// func (pm *AuthPermissionMiddleware) GetJWTSecret() string {
-// 	return pm.jwtSecret
+// // Helper function to check multiple permissions in handlers
+// func CheckAnyPermission(userID uint, permissions []string) (bool, error) {
+// 	pm := NewPermissionMiddleware("")
+// 	return pm.permissionUseCase.HasAnyPermission(userID, permissions)
 // }
 
 // validateTokenAndGetUserID validates JWT token and returns user ID without any database calls

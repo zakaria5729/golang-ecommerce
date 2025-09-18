@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
@@ -54,6 +55,20 @@ func SendDeleteJSON(w http.ResponseWriter, message string, statusCode ...int) {
 		Success: true,
 		Data: map[string]string{
 			"message": message,
+		},
+	}
+	sendJSON(w, response, code)
+}
+
+func SendCommonResponseJSON(w http.ResponseWriter, message string, statusCode ...int) {
+	code := http.StatusOK
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := Response{
+		Success: true,
+		Data: models.CommonResponse{
+			Message: message,
 		},
 	}
 	sendJSON(w, response, code)

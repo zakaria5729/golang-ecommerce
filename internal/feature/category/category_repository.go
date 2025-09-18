@@ -48,7 +48,7 @@ func (r *CategoryRepository) GetAllCategories(include []string, parentID *uint, 
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, page, pageSize int, showPriority *bool, sortBy, sortOrder string) ([]Category, int, error) {
+func (r *CategoryRepository) GetAllCategoriesPaginated(include []string, parentID *uint, page int, pageSize int, showPriority *bool, sortBy, sortOrder string) ([]Category, int, error) {
 	var categories []Category
 	var total int64
 

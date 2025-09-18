@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
-func RegisterBrowsingHistoryRoute(mux *http.ServeMux, permissionMiddleware *middleware.AuthPermissionMiddleware) {
+func RegisterBrowsingHistoryRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
 	handler := handler.NewBrowsingHistoryHandler()
 
 	mux.Handle(constants.GET+" /v1/browsing-history", middleware.ChainMiddleware(

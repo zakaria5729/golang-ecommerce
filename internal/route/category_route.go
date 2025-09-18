@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
-func RegisterCategoryRoute(mux *http.ServeMux, permissionMiddleware *middleware.AuthPermissionMiddleware) {
+func RegisterCategoryRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
 	handler := handler.NewCategoryHandler()
 
 	mux.HandleFunc(constants.GET+" /v1/categories", handler.GetAllCategories)

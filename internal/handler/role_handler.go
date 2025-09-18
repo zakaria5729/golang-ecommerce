@@ -143,7 +143,7 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccessJSON(w, map[string]string{"message": "Roles assigned successfully"})
+	response.SendCommonResponseJSON(w, "Roles assigned successfully")
 }
 
 func (h *RoleHandler) validateCreateRoleRequest(req *role.CreateRoleRequest) validator.ValidationErrors {

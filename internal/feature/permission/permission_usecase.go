@@ -144,6 +144,7 @@ func (uc *PermissionUseCase) GetPermissionByID(id uint) (*Permission, error) {
 // 	return permissions, nil
 // }
 
+// **REQUIRED
 func (uc *PermissionUseCase) GetUserPermissionsByRole(userID uint, roleType string) ([]string, error) {
 	if userID == 0 {
 		return nil, errors.New("invalid user ID")
@@ -211,9 +212,14 @@ func (uc *PermissionUseCase) GetUserStatusAndPermission(userID uint, permission 
 	return uc.permissionRepo.GetUserStatusAndPermission(userID, permission)
 }
 
+// **REQUIRED
 func (uc *PermissionUseCase) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
 	if userID == 0 {
 		return false, false, false, errors.New("invalid user ID")
+	}
+
+	if len(permissions) == 0 {
+		return false, false, false, errors.New("permissions cannot be empty")
 	}
 
 	return uc.permissionRepo.GetUserStatusAndAnyPermission(userID, permissions)

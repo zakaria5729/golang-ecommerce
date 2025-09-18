@@ -8,7 +8,7 @@ import (
 )
 
 func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
-	permissionMiddleware := middleware.NewAuthPermissionMiddleware(cfg.JWTSecret)
+	permissionMiddleware := middleware.NewPermissionMiddleware(cfg.JWTSecret)
 
 	RegisterAuthRoute(mux, permissionMiddleware)
 	RegisterUserRoute(mux, permissionMiddleware)
