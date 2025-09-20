@@ -181,7 +181,7 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 		return fmt.Errorf("failed to process new password: %w", err)
 	}
 
-	err = uc.userRepo.UpdatePasswordAndClearResetPasswordToken(user.ID, user.Password)
+	err = uc.userRepo.ResetPassword(user.ID, user.Password)
 	if err != nil {
 		logger.Logger.Error("Failed to update password", "method", "ResetPassword", "error", err, "userID", user.ID)
 		return fmt.Errorf("failed to update password: %w", err)

@@ -143,14 +143,15 @@ func (r *UserRepository) CreateUser(user *User) (*User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) UpdatePasswordAndClearResetPasswordToken(userID uint, password string) error {
+func (r *UserRepository) ResetPassword(userID uint, password string) error {
 	err := r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Updates(map[string]any{
 		constants.UserPassword:             password,
 		constants.UserPasswordResetToken:   nil,
 		constants.UserPasswordResetExpires: nil,
+		constants.UserVerified:             true,
 	}).Error
 	if err != nil {
-		logger.Logger.Error("Failed to update user password and clear reset password token", "method", "UpdatePasswordAndClearResetPasswordToken", "error", err, "userID", userID)
+		logger.Logger.Error("Failed to reset user password", "method", "ResetPassword", "error", err, "userID", userID)
 	}
 	return err
 }
