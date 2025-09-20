@@ -31,7 +31,6 @@ func NewAuthUseCase(jwtSecret string) *AuthUseCase {
 	}
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) Login(req *LoginRequest) (*LoginResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
@@ -82,7 +81,6 @@ func (uc *AuthUseCase) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
@@ -126,7 +124,6 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error
 	return createdUser.ToResponse(), nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) ChangePassword(user user.User, req *ChangePasswordRequest) error {
 	if !user.CheckPassword(req.CurrentPassword) {
 		logger.Logger.Error("Invalid current password", "method", "ChangePassword", "userID", user.ID)
@@ -147,7 +144,6 @@ func (uc *AuthUseCase) ChangePassword(user user.User, req *ChangePasswordRequest
 	return nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) ForgotPassword(req *ForgotPasswordRequest) error {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
@@ -172,7 +168,6 @@ func (uc *AuthUseCase) ForgotPassword(req *ForgotPasswordRequest) error {
 	return nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 	user, err := uc.userRepo.GetUserByResetPasswordToken(req.Token)
 	if err != nil || user == nil || user.PasswordResetExpires.Before(timeutil.NowUTC()) {
@@ -195,7 +190,6 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 	return nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, error) {
 	user, err := uc.userRepo.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
@@ -236,7 +230,6 @@ func (uc *AuthUseCase) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, e
 	}, nil
 }
 
-// **REQUIRED
 func (uc *AuthUseCase) Logout(userID uint) error {
 	if err := uc.userRepo.SetRefreshToken(userID, nil, nil); err != nil {
 		logger.Logger.Error("Failed to clear refresh token", "method", "Logout", "error", err, "userID", userID)
@@ -244,100 +237,3 @@ func (uc *AuthUseCase) Logout(userID uint) error {
 	}
 	return nil
 }
-
-// func (uc *AuthUseCase) VerifyToken(tokenString string) (*JwtClaims, error) {
-// 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (any, error) {
-// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-// 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-// 		}
-// 		return []byte(uc.jwtSecret), nil
-// 	})
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	claims, ok := token.Claims.(*JwtClaims)
-// 	if ok && token.Valid {
-// 		return claims, nil
-// 	}
-
-// 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-// 		logger.Logger.Error("Token expired", "method", "VerifyToken", "error", err)
-// 		return nil, errors.New("token expired")
-// 	}
-
-// 	return nil, errors.New("invalid token")
-// }
-
-// func (uc *AuthUseCase) HasPermission(userID uint, permissionName string) (bool, error) {
-// 	if userID == 0 {
-// 		return false, errors.New("invalid user ID")
-// 	}
-
-// 	if permissionName == "" {
-// 		return false, errors.New("permission cannot be empty")
-// 	}
-
-// 	return uc.permissionRepo.HasPermission(userID, permissionName)
-// }
-
-// func (uc *AuthUseCase) HasRole(userID uint, roleType string) (bool, error) {
-// 	if userID == 0 {
-// 		return false, errors.New("invalid user ID")
-// 	}
-
-// 	if roleType == "" {
-// 		return false, errors.New("role type cannot be empty")
-// 	}
-
-// 	if permissions, err := uc.permissionRepo.GetUserPermissionsByRole(userID, roleType); err != nil {
-// 		return false, err
-// 	} else {
-// 		return len(permissions) > 0, nil
-// 	}
-// }
-
-// // **REQUIRED
-// func (uc *AuthUseCase) generateRefreshToken() (string, time.Time, error) {
-// 	token, err := tokenutil.GenerateNewToken()
-// 	if err != nil {
-// 		return "", time.Time{}, err
-// 	}
-
-// 	expiresAt := timeutil.AddHoursUTC(constants.RefreshTokenExpiryHours)
-// 	return token, expiresAt, nil
-// }
-
-// func (uc *AuthUseCase) generateJWT(user *user.User) (string, int64, error) {
-// 	now := timeutil.NowUTC()
-// 	expirationTime := timeutil.AddHoursUTC(constants.AccessTokenExpiryHours)
-// 	expiresAt := expirationTime.Unix()
-
-// 	var roleNames []string
-// 	for _, role := range user.Roles {
-// 		roleNames = append(roleNames, role.RoleType)
-// 	}
-
-// 	claims := &JwtClaims{
-// 		UserID:   user.ID,
-// 		Email:    user.Email,
-// 		Roles:    roleNames,
-// 		Username: user.Name,
-// 		RegisteredClaims: jwt.RegisteredClaims{
-// 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-// 			IssuedAt:  jwt.NewNumericDate(now),
-// 			NotBefore: jwt.NewNumericDate(now),
-// 			Issuer:    constants.ProjectName,
-// 			Subject:   fmt.Sprintf("%d", user.ID),
-// 		},
-// 	}
-
-// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-// 	tokenString, err := token.SignedString([]byte(uc.jwtSecret))
-// 	if err != nil {
-// 		return "", 0, err
-// 	}
-
-// 	return tokenString, expiresAt, nil
-// }

@@ -4,17 +4,17 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/pkg/config"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
 func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
-	pm := middleware.NewPermissionMiddleware(cfg.JWTSecret)
-
+	pm := m.NewPermissionMiddleware(cfg.JWTSecret)
 	r := router.New(mux)
 	r.Use(
-		middleware.RecoveryMiddleware,
-		middleware.CORSMiddleware,
+		m.RecoveryMiddleware,
+		m.CORSMiddleware,
+		m.LoggingMiddleware,
 	)
 
 	RegisterAuthRoute(r, pm)

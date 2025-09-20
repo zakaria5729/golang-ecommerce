@@ -19,8 +19,7 @@ func NewReviewUseCase() *ReviewUseCase {
 	}
 }
 
-// **REQUIRED
-func (uc *ReviewUseCase) GetAllReviewsPaginated(includeStr string, productIDFilter string, userIDFilter string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *ReviewUseCase) GetAllReviewsPaginated(showDeleted *bool, includeStr string, productIDFilter string, userIDFilter string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	productID, _ := utils.ParseUint(productIDFilter)
 	userID, _ := utils.ParseUint(userIDFilter)
 	rating, _ := utils.ParseInt(ratingFilter)
@@ -28,7 +27,7 @@ func (uc *ReviewUseCase) GetAllReviewsPaginated(includeStr string, productIDFilt
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	include := utils.ParseCommaSeparatedString(includeStr)
 
-	reviews, total, err := uc.repo.GetAllReviewsPaginated(include, productID, userID, rating, page, pageSize, sortBy, sortOrder)
+	reviews, total, err := uc.repo.GetAllReviewsPaginated(showDeleted, include, productID, userID, rating, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "include", include, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
@@ -37,10 +36,9 @@ func (uc *ReviewUseCase) GetAllReviewsPaginated(includeStr string, productIDFilt
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-// **REQUIRED
-func (uc *ReviewUseCase) GetReviewByID(id uint, includeStr string) (*Review, error) {
+func (uc *ReviewUseCase) GetReviewByID(id uint, showDeleted *bool, includeStr string) (*Review, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
-	review, err := uc.repo.GetReviewByID(id, include)
+	review, err := uc.repo.GetReviewByID(id, showDeleted, include)
 
 	if err != nil {
 		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
@@ -50,7 +48,6 @@ func (uc *ReviewUseCase) GetReviewByID(id uint, includeStr string) (*Review, err
 	return review, nil
 }
 
-// **REQUIRED
 func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingStr string, comment string) (*Review, error) {
 	productID, err := utils.ParseUint(productIDStr)
 	if err != nil || productID == nil || *productID == 0 {
@@ -89,7 +86,6 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingSt
 	return review, nil
 }
 
-// **REQUIRED
 func (uc *ReviewUseCase) UpdateReview(id uint, userID uint, ratingStr string, comment string) error {
 	updates := make(map[string]any)
 
@@ -123,7 +119,21 @@ func (uc *ReviewUseCase) UpdateReview(id uint, userID uint, ratingStr string, co
 	return nil
 }
 
-// **REQUIRED
+func (uc *ReviewUseCase) UndoDeletedReview(idStr string, userID uint) error {
+	id, err := utils.ParseUint(idStr)
+	if err != nil || id == nil || *id == 0 {
+		return fmt.Errorf("invalid review ID: %w", err)
+	}
+
+	err = uc.repo.UndoDeletedReview(*id, userID)
+	if err != nil {
+		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", err, "id", *id, "userID", userID)
+		return fmt.Errorf("failed to undo deleted review: %w", err)
+	}
+
+	return nil
+}
+
 func (uc *ReviewUseCase) DeleteReview(idStr string, userID uint) error {
 	id, err := utils.ParseUint(idStr)
 	if err != nil || id == nil || *id == 0 {
@@ -139,13 +149,12 @@ func (uc *ReviewUseCase) DeleteReview(idStr string, userID uint) error {
 	return nil
 }
 
-// **REQUIRED
-func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, showDeleted *bool, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	rating, _ := utils.ParseInt(ratingFilter)
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
-	reviews, total, err := uc.repo.GetReviewsByProduct(productID, include, rating, page, pageSize, sortBy, sortOrder)
+	reviews, total, err := uc.repo.GetReviewsByProduct(productID, showDeleted, include, rating, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch reviews by product", "method", "GetReviewsByProduct", "error", err, "productID", productID, "include", include, "rating", rating, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
@@ -154,8 +163,7 @@ func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, includeStr string, 
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-// **REQUIRED
-func (uc *ReviewUseCase) GetReviewsByUser(userID uint, productIDStr string, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *ReviewUseCase) GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, includeStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	rating, _ := utils.ParseInt(ratingFilter)
 	productID, _ := utils.ParseUint(productIDStr)
@@ -166,7 +174,7 @@ func (uc *ReviewUseCase) GetReviewsByUser(userID uint, productIDStr string, incl
 		ratingPtr = rating
 	}
 
-	reviews, total, err := uc.repo.GetReviewsByUser(userID, productID, include, ratingPtr, page, pageSize, sortBy, sortOrder)
+	reviews, total, err := uc.repo.GetReviewsByUser(userID, showDeleted, productID, include, ratingPtr, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch reviews by user", "method", "GetReviewsByUser", "error", err, "userID", userID, "productID", productID, "include", include, "rating", ratingPtr, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
@@ -175,15 +183,14 @@ func (uc *ReviewUseCase) GetReviewsByUser(userID uint, productIDStr string, incl
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-// **REQUIRED
-func (uc *ReviewUseCase) GetProductRatingStats(productID uint) (*ProductRatingStatsResponse, error) {
-	avgRating, err := uc.repo.GetAverageRating(productID)
+func (uc *ReviewUseCase) GetProductRatingStats(productID uint, showDeleted *bool) (*ProductRatingStatsResponse, error) {
+	avgRating, err := uc.repo.GetAverageRating(productID, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Failed to get average rating", "method", "GetProductRatingStats", "error", err, "productID", productID)
 		return nil, fmt.Errorf("failed to get average rating: %w", err)
 	}
 
-	ratingCounts, err := uc.repo.GetRatingCounts(productID)
+	ratingCounts, err := uc.repo.GetRatingCounts(productID, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Failed to get rating counts", "method", "GetProductRatingStats", "error", err, "productID", productID)
 		return nil, fmt.Errorf("failed to get rating counts: %w", err)

@@ -21,15 +21,15 @@ func NewRoleHandler() *RoleHandler {
 	}
 }
 
-// **REQUIRED
 func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	include := q.Get(constants.Include)
 	roleType := q.Get(constants.RoleRoleType)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
+	showDeleted := q.Get(constants.ShowDeleted)
 
-	roles, err := h.roleUseCase.GetAllRoles(include, roleType, sortBy, sortOrder)
+	roles, err := h.roleUseCase.GetAllRoles(include, showDeleted, roleType, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Get all roles failed", "method", "GetAllRoles", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
@@ -39,7 +39,6 @@ func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, roles)
 }
 
-// **REQUIRED
 func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -47,8 +46,11 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	include := r.URL.Query().Get(constants.Include)
-	role, err := h.roleUseCase.GetRoleByID(*id, include)
+	q := r.URL.Query()
+	include := q.Get(constants.Include)
+	showDeleted := q.Get(constants.ShowDeleted)
+
+	role, err := h.roleUseCase.GetRoleByID(*id, include, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Get role by ID failed", "method", "GetRoleByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -58,8 +60,7 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, role)
 }
 
-// **REQUIRED
-func (h *RoleHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Request) {
+func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	var req role.CreateRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateRole") {
 		return
@@ -80,7 +81,6 @@ func (h *RoleHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Reques
 	response.SendSuccessJSON(w, role, http.StatusCreated)
 }
 
-// **REQUIRED
 func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -108,7 +108,6 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, role)
 }
 
-// **REQUIRED
 func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -125,7 +124,22 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	response.SendDeleteJSON(w, "Role deleted successfully")
 }
 
-// **REQUIRED
+func (h *RoleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.roleUseCase.UndoDeletedRole(*id); err != nil {
+		logger.Logger.Error("Delete role failed", "method", "DeleteRole", "error", err, "id", id)
+		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.SendDeleteJSON(w, "Undo role deleted successfully")
+}
+
 func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	var req role.AssignRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "AssignRoleToUser") {

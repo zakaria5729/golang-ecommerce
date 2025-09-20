@@ -122,10 +122,6 @@ func (uc *FileStorageUseCase) isValidFolder(folder string) bool {
 		constants.FolderCategory,
 		constants.FolderProduct,
 		constants.FolderUser,
-		constants.FolderReview,
-		constants.FolderAddress,
-		constants.FolderWishlist,
 	}
-
 	return slices.Contains(validFolders, folder)
 }

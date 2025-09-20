@@ -20,7 +20,6 @@ func NewAddressUseCase() *AddressUseCase {
 	}
 }
 
-// **REQUIRED
 func (uc *AddressUseCase) GetAllAddressesByUser(userID uint, includeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) ([]Address, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	addressType := utils.ParseStringPtr(addressTypeFilter)
@@ -35,8 +34,7 @@ func (uc *AddressUseCase) GetAllAddressesByUser(userID uint, includeStr string, 
 	return addresses, nil
 }
 
-// **REQUIRED
-func (uc *AddressUseCase) GetAllAddressesPaginated(userIdStr string, includeStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *AddressUseCase) GetAllAddressesPaginated(showDeleted *bool, userIdStr string, includeStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	include := utils.ParseCommaSeparatedString(includeStr)
@@ -44,7 +42,7 @@ func (uc *AddressUseCase) GetAllAddressesPaginated(userIdStr string, includeStr 
 	isDefault := utils.ParseBoolPtr(isDefaultFilter)
 	userID, _ := utils.ParseUint(userIdStr)
 
-	addresses, total, err := uc.repo.GetAllAddressesPaginated(userID, include, page, pageSize, addressType, isDefault, sortBy, sortOrder)
+	addresses, total, err := uc.repo.GetAllAddressesPaginated(showDeleted, userID, include, page, pageSize, addressType, isDefault, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch addresses paginated", "method", "GetAllAddressesPaginated", "error", err, "userID", userID, "include", include, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch addresses: %w", err)
@@ -58,9 +56,8 @@ func (uc *AddressUseCase) GetAllAddressesPaginated(userIdStr string, includeStr 
 	return utils.BuildPaginatedResponse(addressPtrs, total, page, pageSize), nil
 }
 
-// **REQUIRED
-func (uc *AddressUseCase) GetAddressByID(id uint) (*Address, error) {
-	address, err := uc.repo.GetAddressByID(id, nil)
+func (uc *AddressUseCase) GetAddressByID(id uint, showDeleted *bool) (*Address, error) {
+	address, err := uc.repo.GetAddressByID(id, nil, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Address not found", "method", "GetAddressByID", "error", err, "id", id)
 		return nil, fmt.Errorf("address not found: %w", err)
@@ -69,7 +66,6 @@ func (uc *AddressUseCase) GetAddressByID(id uint) (*Address, error) {
 	return address, nil
 }
 
-// **REQUIRED
 func (uc *AddressUseCase) CreateAddress(userID uint, req *Address) (*Address, error) {
 	req.UserID = userID
 	req.Sanitize()
@@ -97,11 +93,10 @@ func (uc *AddressUseCase) CreateAddress(userID uint, req *Address) (*Address, er
 	return address, nil
 }
 
-// **REQUIRED
 func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Address, error) {
 	req.Sanitize()
 
-	existingAddress, err := uc.repo.GetAddressByID(id, &userID)
+	existingAddress, err := uc.repo.GetAddressByID(id, &userID, nil)
 	if err != nil {
 		logger.Logger.Error("Address not found", "method", "UpdateAddress", "error", err, "id", id, "userID", userID)
 		return nil, fmt.Errorf("address not found: %w", err)
@@ -137,9 +132,8 @@ func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Ad
 	return existingAddress, nil
 }
 
-// **REQUIRED
 func (uc *AddressUseCase) DeleteAddress(id uint, userID uint) error {
-	exists, err := uc.repo.AddressExists(id, userID)
+	exists, err := uc.repo.AddressExists(id, &userID, nil)
 	if err != nil || !exists {
 		logger.Logger.Error("Address not found", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
 		return fmt.Errorf("address not found: %w", err)
@@ -153,14 +147,29 @@ func (uc *AddressUseCase) DeleteAddress(id uint, userID uint) error {
 	return nil
 }
 
-// **REQUIRED
+func (uc *AddressUseCase) UndoDeleteAddress(id uint) error {
+	showDeleted := true
+	exists, err := uc.repo.AddressExists(id, nil, &showDeleted)
+	if err != nil || !exists {
+		logger.Logger.Error("Address not found", "method", "DeleteAddress", "error", err, "id", id, "showDeleted", showDeleted)
+		return fmt.Errorf("address not found: %w", err)
+	}
+
+	if err := uc.repo.UndoDeleteAddress(id); err != nil {
+		logger.Logger.Error("Failed to undo delete address", "method", "DeleteAddress", "error", err, "id", id, "showDeleted", showDeleted)
+		return fmt.Errorf("failed to undo delete address: %w", err)
+	}
+
+	return nil
+}
+
 func (uc *AddressUseCase) SetDefaultAddress(id uint, userID uint, addressType string) error {
 	if addressType != c.AddressTypeShipping && addressType != c.AddressTypeBilling {
 		logger.Logger.Error("Invalid address type", "method", "SetDefaultAddress", "addressType", addressType)
 		return errors.New("invalid address type. Must be " + c.AddressTypeShipping + " or " + c.AddressTypeBilling)
 	}
 
-	exists, err := uc.repo.AddressExists(id, userID)
+	exists, err := uc.repo.AddressExists(id, &userID, nil)
 	if err != nil || !exists {
 		logger.Logger.Error("Address not found", "method", "SetDefaultAddress", "error", err, "id", id, "userID", userID)
 		return fmt.Errorf("address not found: %w", err)
@@ -174,7 +183,6 @@ func (uc *AddressUseCase) SetDefaultAddress(id uint, userID uint, addressType st
 	return nil
 }
 
-// **REQUIRED
 func (uc *AddressUseCase) GetDefaultAddress(userID uint, addressType string) (*Address, error) {
 	if addressType != c.AddressTypeShipping && addressType != c.AddressTypeBilling {
 		logger.Logger.Error("Invalid address type", "method", "GetDefaultAddress", "addressType", addressType)

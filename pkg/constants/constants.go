@@ -47,6 +47,7 @@ const (
 	SortOrder       = "sort_order"
 	SortOrderDesc   = "DESC"
 	SortOrderAsc    = "ASC"
+	ShowDeleted     = "show_deleted"
 )
 
 const (
@@ -54,13 +55,17 @@ const (
 	EnvActiveProfile string = "ACTIVE_PROFILE"
 )
 
-const (
-	DefaultRateLimit       = 100
-	DefaultRateLimitWindow = 60
-)
+// const (
+// 	DefaultRateLimit       = 100
+// 	DefaultRateLimitWindow = 60
+// )
+
+// const (
+// 	DefaultCacheTTL = 300
+// 	MaxCacheSize    = 1000
+// )
 
 const (
-	MaxRequestSizeMB              = 5 * 1024 * 1024 // 5MB
 	AccessTokenExpiryHours        = 12
 	RefreshTokenExpiryHours       = 48
 	PasswordResetTokenExpiryHours = 5
@@ -77,18 +82,13 @@ const (
 	AllowedDocTypes   = "application/pdf"
 )
 
-const (
-	DefaultCacheTTL = 300
-	MaxCacheSize    = 1000
-)
-
-const (
-	LogLevelDebug = "debug"
-	LogLevelInfo  = "info"
-	LogLevelWarn  = "warn"
-	LogLevelError = "error"
-	LogLevelFatal = "fatal"
-)
+// const (
+// 	LogLevelDebug = "debug"
+// 	LogLevelInfo  = "info"
+// 	LogLevelWarn  = "warn"
+// 	LogLevelError = "error"
+// 	LogLevelFatal = "fatal"
+// )
 
 const (
 	EnvDev   string = "dev"
@@ -114,9 +114,6 @@ const (
 	FolderCategory = "category"
 	FolderProduct  = "product"
 	FolderUser     = "user"
-	FolderReview   = "review"
-	FolderAddress  = "address"
-	FolderWishlist = "wishlist"
 )
 
 const (
@@ -130,10 +127,12 @@ const (
 
 const (
 	VersionPrefix = "/v"
+	V1            = "v1"
 )
 
 const (
 	MinReviewRating        = 1
 	MaxReviewRating        = 5
 	MaxReviewCommentLength = 1000
+	PriorityLimit          = 10
 )

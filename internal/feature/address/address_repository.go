@@ -20,7 +20,6 @@ func NewAddressRepository() *AddressRepository {
 	}
 }
 
-// **REQUIRED
 func (r *AddressRepository) GetAllAddressesByUser(userID uint, include []string, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]Address, error) {
 	var addresses []Address
 
@@ -47,13 +46,16 @@ func (r *AddressRepository) GetAllAddressesByUser(userID uint, include []string,
 	return addresses, err
 }
 
-// **REQUIRED
-func (r *AddressRepository) GetAllAddressesPaginated(userID *uint, include []string, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]Address, int, error) {
+func (r *AddressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *uint, include []string, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]Address, int, error) {
 	var addresses []Address
 	var total int64
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if userID != nil {
 		query = query.Where(c.AddressUserID+" = ?", *userID)
@@ -84,10 +86,14 @@ func (r *AddressRepository) GetAllAddressesPaginated(userID *uint, include []str
 	return addresses, int(total), err
 }
 
-// **REQUIRED
-func (r *AddressRepository) GetAddressByID(id uint, userID *uint) (*Address, error) {
+func (r *AddressRepository) GetAddressByID(id uint, userID *uint, showDeleted *bool) (*Address, error) {
 	var address Address
 	query := r.db.Where(c.FieldID+" = ?", id)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
 	if userID != nil {
 		query = query.Where(c.AddressUserID+" = ?", *userID)
 	}
@@ -100,7 +106,6 @@ func (r *AddressRepository) GetAddressByID(id uint, userID *uint) (*Address, err
 	return &address, nil
 }
 
-// **REQUIRED
 func (r *AddressRepository) CreateAddress(address *Address) error {
 	err := r.db.Create(address).Error
 	if err != nil {
@@ -109,7 +114,6 @@ func (r *AddressRepository) CreateAddress(address *Address) error {
 	return err
 }
 
-// **REQUIRED
 func (r *AddressRepository) UpdateAddress(address *Address) error {
 	err := r.db.Model(&Address{}).Where(c.FieldID+" = ?", address.ID).Updates(address).Error
 	if err != nil {
@@ -126,7 +130,14 @@ func (r *AddressRepository) DeleteAddress(id uint, userID uint) error {
 	return err
 }
 
-// **REQUIRED
+func (r *AddressRepository) UndoDeleteAddress(id uint) error {
+	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
+	if err != nil {
+		logger.Logger.Error("Failed to undo delete address", "method", "UndoDeleteAddress", "error", err, "id", id)
+	}
+	return err
+}
+
 func (r *AddressRepository) SetDefaultAddress(id uint, userID uint, addressType string) error {
 	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Update(c.AddressIsDefault, true).Error
 	if err != nil {
@@ -135,17 +146,24 @@ func (r *AddressRepository) SetDefaultAddress(id uint, userID uint, addressType 
 	return err
 }
 
-// **REQUIRED
-func (r *AddressRepository) AddressExists(id uint, userID uint) (bool, error) {
+func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bool) (bool, error) {
 	var count int64
-	err := r.db.Model(&Address{}).Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Count(&count).Error
+	query := r.db.Where(c.FieldID+" = ?", id)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+	if userID != nil {
+		query = query.Where(c.AddressUserID+" = ?", *userID)
+	}
+
+	err := r.db.Model(&Address{}).Where(query).Count(&count).Error
 	if err != nil {
 		logger.Logger.Error("Failed to check if address exists", "method", "AddressExists", "error", err, "id", id, "userID", userID)
 	}
 	return count > 0, err
 }
 
-// **REQUIRED
 func (r *AddressRepository) GetDefaultAddress(userID uint, addressType string) (*Address, error) {
 	var address Address
 

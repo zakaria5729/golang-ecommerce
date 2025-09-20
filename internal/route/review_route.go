@@ -10,52 +10,39 @@ import (
 func RegisterReviewRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	h := handler.NewReviewHandler()
 
-	r.GET("/reviews/id/{id}", h.GetReviewByID)
+	r.GET("/reviews/id/{id}/public", h.GetReviewByIdPublic).Register()
 
-	r.GET("/reviews/paginated", h.GetAllReviewsPaginated)
+	r.GET("/reviews/paginated/public", h.GetAllReviewsPaginatedPublic).Register()
 
-	r.GET("/products/{id}/reviews", h.GetReviewsByProduct)
+	r.GET("/products/{id}/reviews/public", h.GetReviewsByProductPublic).Register()
 
-	r.GET("/products/{id}/rating-stats", h.GetProductRatingStats)
+	r.GET("/products/{id}/rating-stats/public", h.GetProductRatingStatsPublic).Register()
+
+	r.GET("/reviews/id/{id}", h.GetReviewByID).Register()
+
+	r.GET("/reviews/paginated", h.GetAllReviewsPaginated).Register()
+
+	r.GET("/products/{id}/reviews", h.GetReviewsByProduct).Register()
+
+	r.GET("/products/{id}/rating-stats", h.GetProductRatingStats).Register()
 
 	r.GET("/users/{id}/reviews", h.GetReviewsByUser).Use(
 		pm.RequirePermission(c.PermissionReviewRead),
-	)
+	).Register()
 
 	r.POST("/reviews", h.CreateReview).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.PUT("/reviews/id/{id}", h.UpdateReview).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.DELETE("/reviews/id/{id}", h.DeleteReview).Use(
-		pm.RequireAuthUserStatus(),
-	)
+		pm.RequirePermission(c.PermissionReviewDelete),
+	).Register()
+
+	r.POST("/reviews/id/{id}/undo", h.UndoDeletedReview).Use(
+		pm.RequirePermission(c.PermissionReviewUndoDelete),
+	).Register()
 }
-
-// func RegisterReviewRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
-// 	handler := handler.NewReviewHandler()
-
-// 	mux.HandleFunc(constants.GET+" /v1/products/{id}/rating-stats", handler.GetProductRatingStats)
-// 	mux.HandleFunc(constants.GET+" /v1/reviews/paginated", handler.GetAllReviewsPaginated)
-// 	mux.HandleFunc(constants.GET+" /v1/reviews/id/{id}", handler.GetReviewByID)
-// 	mux.HandleFunc(constants.GET+" /v1/products/{id}/reviews", handler.GetReviewsByProduct)
-
-// 	mux.Handle(constants.GET+" /v1/users/{id}/reviews", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionReviewRead),
-// 	)(http.HandlerFunc(handler.GetReviewsByUser)))
-
-// 	mux.Handle(constants.POST+" /v1/reviews", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequireAuthUserId(),
-// 	)(http.HandlerFunc(handler.CreateReview)))
-
-// 	mux.Handle(constants.PUT+" /v1/reviews/id/{id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequireAuthUserId(),
-// 	)(http.HandlerFunc(handler.UpdateReview)))
-
-// 	mux.Handle(constants.DELETE+" /v1/reviews/id/{id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequireAuthUserId(),
-// 	)(http.HandlerFunc(handler.DeleteReview)))
-// }

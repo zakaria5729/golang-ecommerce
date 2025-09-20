@@ -21,7 +21,6 @@ func NewAddressHandler() *AddressHandler {
 	}
 }
 
-// **REQUIRED
 func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -45,7 +44,6 @@ func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Re
 	response.SendSuccessJSON(w, addresses)
 }
 
-// **REQUIRED
 func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	includeStr := q.Get(c.Include)
@@ -56,8 +54,9 @@ func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http
 	isDefaultFilter := q.Get(c.AddressIsDefault)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
+	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 
-	paginatedResponse, err := h.useCase.GetAllAddressesPaginated(userIdStr, includeStr, pageStr, pageSizeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
+	paginatedResponse, err := h.useCase.GetAllAddressesPaginated(showDeleted, userIdStr, includeStr, pageStr, pageSizeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to fetch addresses", http.StatusInternalServerError)
 		return
@@ -66,7 +65,6 @@ func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http
 	response.SendSuccessJSON(w, paginatedResponse)
 }
 
-// **REQUIRED
 func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -74,7 +72,8 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	address, err := h.useCase.GetAddressByID(*id)
+	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
+	address, err := h.useCase.GetAddressByID(*id, showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, "Address not found", http.StatusNotFound)
 		return
@@ -83,7 +82,6 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 	response.SendSuccessJSON(w, address)
 }
 
-// **REQUIRED
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -110,7 +108,6 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, address, http.StatusCreated)
 }
 
-// **REQUIRED
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -143,7 +140,6 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, address)
 }
 
-// **REQUIRED
 func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -165,7 +161,21 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendDeleteJSON(w, "Address deleted successfully")
 }
 
-// **REQUIRED
+func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.useCase.UndoDeleteAddress(*id); err != nil {
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendDeleteJSON(w, "Undo delete address successfully")
+}
+
 func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -193,7 +203,6 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 	response.SendSuccessJSON(w, "Address set as default successfully")
 }
 
-// **REQUIRED
 func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {

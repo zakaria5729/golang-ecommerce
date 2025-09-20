@@ -57,15 +57,13 @@ func (u *User) CheckPassword(password string) bool {
 
 func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
-		BaseModel:      u.BaseModel,
-		LastLoginAt:    u.LastLoginAt,
-		ImageURL:       utils.BuildFullImageURL(u.PathKey),
-		Roles:          u.Roles,
-		Email:          u.Email,
-		Name:           u.Name,
-		Verified:       u.Verified,
-		Banned:         u.Banned,
-		TotalPurchases: u.TotalPurchases,
-		TotalSpent:     u.TotalSpent,
+		BaseModel:   u.BaseModel,
+		LastLoginAt: u.LastLoginAt,
+		ImageURL:    utils.BuildFullImageURL(u.PathKey),
+		Roles:       u.Roles,
+		Email:       u.Email,
+		Name:        u.Name,
+		Verified:    u.Verified,
+		Banned:      u.Banned,
 	}
 }

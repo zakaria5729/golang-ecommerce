@@ -28,24 +28,3 @@ func (r *Role) Sanitize() {
 		r.Description = &sanitized
 	}
 }
-
-// func (r *Role) IsValidRoleType() bool {
-// 	switch r.RoleType {
-// 	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeManager, constants.RoleTypeSeller, constants.RoleTypeUser:
-// 		return true
-// 	default:
-// 		return false
-// 	}
-// }
-
-// func (r *Role) CanCreateRoles() bool {
-// 	return r.RoleType == constants.RoleTypeSuperAdmin || r.RoleType == constants.RoleTypeAdmin
-// }
-
-// func (r *Role) CanManageUsers() bool {
-// 	return r.RoleType == constants.RoleTypeSuperAdmin || r.RoleType == constants.RoleTypeAdmin || r.RoleType == constants.RoleTypeManager
-// }
-
-// func (r *Role) CanManageContent() bool {
-// 	return r.RoleType == constants.RoleTypeSuperAdmin || r.RoleType == constants.RoleTypeAdmin || r.RoleType == constants.RoleTypeManager || r.RoleType == constants.RoleTypeSeller
-// }

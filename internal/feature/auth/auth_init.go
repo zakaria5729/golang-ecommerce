@@ -14,14 +14,7 @@ func InitializeDefaultSuperAdmin() error {
 	roleUseCase := role.NewRoleUseCase()
 
 	superAdminEmail := os.Getenv(constants.EnvSuperAdminEmail)
-	if superAdminEmail == "" {
-		superAdminEmail = "super123@admin.com"
-	}
-
 	superAdminPassword := os.Getenv(constants.EnvSuperAdminPassword)
-	if superAdminPassword == "" {
-		superAdminPassword = "super123@admin"
-	}
 
 	exists, err := userRepo.UserExistsByEmail(superAdminEmail, nil)
 	if err != nil {

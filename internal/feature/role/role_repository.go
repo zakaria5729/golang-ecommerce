@@ -21,14 +21,13 @@ func NewRoleRepository() *RoleRepository {
 	}
 }
 
-// **REQUIRED
-func (r *RoleRepository) GetAllRoles(include []string, roleType *string, sortBy, sortOrder string) ([]Role, error) {
+func (r *RoleRepository) GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]Role, error) {
 	var roles []Role
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
-	if roleType != nil {
+	if roleType != nil && *roleType != "" {
 		query = query.Where(constants.RoleRoleType+" = ?", *roleType)
 	}
 
@@ -40,6 +39,10 @@ func (r *RoleRepository) GetAllRoles(include []string, roleType *string, sortBy,
 		query = query.Preload(constants.RolePermissionsCapitalized)
 	}
 
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
 	err := query.Find(&roles).Error
 	if err != nil {
 		logger.Logger.Error("Failed to fetch roles", "method", "GetAllRoles", "error", err, "include", include, "roleType", roleType, "sortBy", sortBy, "sortOrder", sortOrder)
@@ -47,12 +50,15 @@ func (r *RoleRepository) GetAllRoles(include []string, roleType *string, sortBy,
 	return roles, err
 }
 
-// **REQUIRED
-func (r *RoleRepository) GetRoleByID(id uint, include []string) (*Role, error) {
+func (r *RoleRepository) GetRoleByID(id uint, include []string, showDeleted *bool) (*Role, error) {
 	var role Role
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if utils.ContainsString(include, constants.RolePermissions) {
 		query = query.Preload(constants.RolePermissionsCapitalized)
@@ -66,7 +72,6 @@ func (r *RoleRepository) GetRoleByID(id uint, include []string) (*Role, error) {
 	return &role, nil
 }
 
-// **REQUIRED
 func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, error) {
 	var role Role
 
@@ -81,7 +86,6 @@ func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, e
 	return &role, nil
 }
 
-// **REQUIRED
 func (r *RoleRepository) GetRoleByType(roleType string) (*Role, error) {
 	var role Role
 
@@ -95,7 +99,6 @@ func (r *RoleRepository) GetRoleByType(roleType string) (*Role, error) {
 	return &role, nil
 }
 
-// **REQUIRED
 func (r *RoleRepository) CreateRole(role *Role) error {
 	err := r.db.Create(role).Error
 	if err != nil {
@@ -104,7 +107,6 @@ func (r *RoleRepository) CreateRole(role *Role) error {
 	return err
 }
 
-// **REQUIRED
 func (r *RoleRepository) UpdateRole(role *Role) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(role).Error; err != nil {
@@ -124,7 +126,6 @@ func (r *RoleRepository) UpdateRole(role *Role) error {
 	return err
 }
 
-// **REQUIRED
 func (r *RoleRepository) UpdateRoleWithoutPermissions(role *Role) error {
 	err := r.db.Model(&Role{}).Where(constants.FieldID+" = ?", role.ID).Updates(map[string]any{
 		constants.RoleRoleName:    role.RoleName,
@@ -137,20 +138,8 @@ func (r *RoleRepository) UpdateRoleWithoutPermissions(role *Role) error {
 	return err
 }
 
-// **REQUIRED
 func (r *RoleRepository) DeleteRole(id uint) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&Role{}).Where(constants.FieldID+" = ?", id).Association(constants.RolePermissionsCapitalized).Clear(); err != nil {
-			return err
-		}
-
-		if err := tx.Delete(&Role{}, id).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-
+	err := r.db.Where(constants.FieldID+" = ?", id).Delete(&Role{}).Error
 	if err != nil {
 		logger.Logger.Error("Failed to delete role", "method", "DeleteRole", "error", err, "id", id)
 	}
@@ -158,7 +147,16 @@ func (r *RoleRepository) DeleteRole(id uint) error {
 	return err
 }
 
-// **REQUIRED
+func (r *RoleRepository) UndoDeletedRole(id uint) error {
+	err := r.db.Unscoped().Model(&Role{}).Where(constants.FieldID+" = ?", id).Update(constants.FieldDeletedAt, nil).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to undo deleted role", "method", "UndoDeletedRole", "error", err, "id", id)
+	}
+
+	return err
+}
+
 func (r *RoleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var role Role
@@ -180,17 +178,21 @@ func (r *RoleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	return err
 }
 
-// **REQUIRED
-func (r *RoleRepository) RoleExists(id uint) (bool, error) {
+func (r *RoleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
 	var count int64
-	err := r.db.Model(&Role{}).Where(constants.FieldID+" = ?", id).Count(&count).Error
+	query := r.db.Model(&Role{}).Where(constants.FieldID+" = ?", id)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	err := query.Count(&count).Error
 	if err != nil {
 		logger.Logger.Error("Failed to check if role exists", "method", "RoleExists", "error", err, "id", id)
 	}
 	return count > 0, err
 }
 
-// **REQUIRED
 func (r *RoleRepository) RoleExistsByName(name string, excludeID ...uint) (bool, error) {
 	var count int64
 	query := r.db.Model(&Role{}).Where(constants.RoleRoleName+" = ?", name)
@@ -206,7 +208,6 @@ func (r *RoleRepository) RoleExistsByName(name string, excludeID ...uint) (bool,
 	return count > 0, err
 }
 
-// **REQUIRED
 func (r *RoleRepository) RoleExistsByType(roleType string) (bool, error) {
 	var count int64
 
@@ -222,38 +223,3 @@ func (r *RoleRepository) getSelectableFields(include []string) []string {
 	optionalFields := []string{constants.RoleDescription}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
-
-// func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, error) {
-// 	var role Role
-// 	selectFields := r.getSelectableFields(include)
-// 	query := r.db.Select(strings.Join(selectFields, ", "))
-
-// 	if err := query.Preload(RolePermissionsCapitalized).
-// 		Where(RoleRoleName+" = ?", name).
-// 		First(&role).Error; err != nil {
-// 		logger.Logger.Error("Failed to fetch role by name", "method", "GetRoleByName", "error", err, "name", name, "include", include)
-// 		return nil, err
-// 	}
-
-// 	return &role, nil
-// }
-
-// func (r *RoleRepository) AssignPermissionsToRole(roleID uint, permissionIDs []uint) error {
-// 	err := r.db.Transaction(func(tx *gorm.DB) error {
-// 		var permissions []permission.Permission
-// 		if err := tx.Select("id, name, description, created_at, updated_at").Where(constants.FieldID+" IN ?", permissionIDs).Find(&permissions).Error; err != nil {
-// 			return err
-// 		}
-
-// 		var role Role
-// 		if err := tx.Select("id").First(&role, roleID).Error; err != nil {
-// 			return err
-// 		}
-
-// 		return tx.Model(&role).Association("Permissions").Replace(permissions)
-// 	})
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to assign permissions to role", "method", "AssignPermissionsToRole", "error", err, "roleID", roleID, "permissionIDs", permissionIDs)
-// 	}
-// 	return err
-// }

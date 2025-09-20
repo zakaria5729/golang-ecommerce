@@ -45,26 +45,3 @@ func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) 
 
 	response.SendSuccessJSON(w, responseData)
 }
-
-// func (h *FileHandler) isValidFolder(folder string) bool {
-// 	validFolders := []string{
-// 		constants.FolderCategory,
-// 		constants.FolderProduct,
-// 		constants.FolderUser,
-// 		constants.FolderReview,
-// 		constants.FolderAddress,
-// 		constants.FolderWishlist,
-// 	}
-
-// 	return slices.Contains(validFolders, folder)
-// }
-
-// func (h *FileHandler) isValidFileType(contentType string, allowedTypes string) bool {
-// 	types := strings.Split(allowedTypes, ",")
-// 	for _, allowedType := range types {
-// 		if strings.TrimSpace(allowedType) == contentType {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }

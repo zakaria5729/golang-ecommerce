@@ -28,6 +28,7 @@ const (
 	FieldID        = "id"
 	FieldCreatedAt = "created_at"
 	FieldUpdatedAt = "updated_at"
+	FieldDeletedBy = "deleted_by"
 	FieldDeletedAt = "deleted_at"
 )
 

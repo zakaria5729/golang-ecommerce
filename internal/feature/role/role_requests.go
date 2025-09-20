@@ -1,7 +1,6 @@
 package role
 
 import (
-	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -42,17 +41,4 @@ func (r *UpdateRoleRequest) Sanitize() {
 		sanitized := utils.Trim(*r.Description)
 		r.Description = &sanitized
 	}
-}
-
-func (r *CreateRoleRequest) IsValidRoleType() bool {
-	switch r.RoleType {
-	case constants.RoleTypeAdmin, constants.RoleTypeManager, constants.RoleTypeSeller, constants.RoleTypeUser:
-		return true
-	default:
-		return false
-	}
-}
-
-func (r *CreateRoleRequest) CanCreateRoles() bool {
-	return r.RoleType == constants.RoleTypeSuperAdmin || r.RoleType == constants.RoleTypeAdmin
 }

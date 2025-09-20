@@ -12,85 +12,33 @@ func RegisterWishlistRoute(r *router.Router, pm *middleware.PermissionMiddleware
 
 	r.GET("/wishlists/count/me", h.GetWishlistCountByUser).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.GET("/wishlists/me/paginated", h.GetAllWishlistsPaginatedByUser).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.POST("/wishlists/product/{product_id}", h.AddToWishlistsByUser).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.DELETE("/wishlists/product/{product_id}", h.RemoveFromWishlistByUser).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.DELETE("/wishlists/clear", h.ClearUserWishlist).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 
 	r.GET("/wishlists/paginated", h.GetAllWishlistsPaginated).Use(
 		pm.RequirePermission(c.PermissionWishlistRead),
-	)
+	).Register()
 
-	// r.GET("/wishlists/product/{product_id}", h.GetWishlistByProduct).Use(
-	// 	pm.RequireAuthUserStatus(),
-	// )
+	r.DELETE("/wishlists/delete", h.DeleteWishlistById).Use(
+		pm.RequirePermission(c.PermissionWishlistDelete),
+	).Register()
 
-	// r.GET("/wishlists/product/{product_id}/check", h.IsProductInWishlist).Use(
-	// 	pm.RequirePermission(c.PermissionWishlistRead),
-	// )
-
-	// r.DELETE("/wishlists/id/{id}", h.DeleteWishlist).Use(
-	// 	pm.RequirePermission(c.PermissionWishlistDelete),
-	// )
-
-	// r.GET("/wishlists", h.GetAllWishlists).Use(
-	// 	pm.RequirePermission(c.PermissionWishlistRead),
-	// )
+	r.POST("/wishlists/delete/undo", h.UndoDeleteWishlistById).Use(
+		pm.RequirePermission(c.PermissionWishlistUndoDelete),
+	).Register()
 }
-
-// func RegisterWishlistRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
-// 	handler := handler.NewWishlistHandler()
-
-// 	mux.Handle(constants.GET+" /v1/wishlists", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.GetAllWishlists)))
-
-// 	mux.Handle(constants.GET+" /v1/wishlists/paginated", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.GetAllWishlistsPaginated)))
-
-// 	mux.Handle(constants.GET+" /v1/wishlists/id/{id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.GetWishlistByID)))
-
-// 	mux.Handle(constants.POST+" /v1/wishlists", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistCreate),
-// 	)(http.HandlerFunc(handler.CreateWishlist)))
-
-// 	mux.Handle(constants.DELETE+" /v1/wishlists/id/{id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistDelete),
-// 	)(http.HandlerFunc(handler.DeleteWishlist)))
-
-// 	mux.Handle(constants.DELETE+" /v1/wishlists/clear", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistDelete),
-// 	)(http.HandlerFunc(handler.ClearWishlist)))
-
-// 	mux.Handle(constants.GET+" /v1/wishlists/count", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.GetWishlistCount)))
-
-// 	mux.Handle(constants.GET+" /v1/wishlists/product/{product_id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.GetWishlistByProduct)))
-
-// 	mux.Handle(constants.DELETE+" /v1/wishlists/product/{product_id}", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistDelete),
-// 	)(http.HandlerFunc(handler.DeleteWishlistByProduct)))
-
-// 	mux.Handle(constants.GET+" /v1/wishlists/product/{product_id}/check", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequirePermission(constants.PermissionWishlistRead),
-// 	)(http.HandlerFunc(handler.IsProductInWishlist)))
-// }

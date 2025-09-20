@@ -1,8 +1,6 @@
 package permission
 
 import (
-	"errors"
-
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -26,14 +24,4 @@ func (p *Permission) Sanitize() {
 		sanitized := utils.Trim(*p.Description)
 		p.Description = &sanitized
 	}
-}
-
-func (p *Permission) IsValid() error {
-	if p.Name == "" {
-		return errors.New("permission name is required")
-	}
-	if len(p.Name) < 2 {
-		return errors.New("permission name must be at least 2 characters long")
-	}
-	return nil
 }

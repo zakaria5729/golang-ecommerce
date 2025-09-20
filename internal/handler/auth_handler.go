@@ -22,7 +22,6 @@ func NewAuthHandler(jwtSecret string) *AuthHandler {
 	}
 }
 
-// **REQUIRED
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
 	if !utils.DecodeJSON(w, r, &req, "Login") {
@@ -44,7 +43,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, loginResponse)
 }
 
-// **REQUIRED
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req auth.RegisterRequest
 	if !utils.DecodeJSON(w, r, &req, "Register") {
@@ -66,7 +64,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, user, http.StatusCreated)
 }
 
-// **REQUIRED
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	user, err := middleware.GetUserFromContext(r)
 	if err != nil {
@@ -93,7 +90,6 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Password changed successfully")
 }
 
-// **REQUIRED
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req auth.ForgotPasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ForgotPassword") {
@@ -114,7 +110,6 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Password reset email sent")
 }
 
-// **REQUIRED
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req auth.ResetPasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ResetPassword") {
@@ -135,7 +130,6 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Password reset successfully")
 }
 
-// **REQUIRED
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req auth.RefreshTokenRequest
 	if !utils.DecodeJSON(w, r, &req, "RefreshToken") {
@@ -157,7 +151,6 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, loginResponse)
 }
 
-// **REQUIRED
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {

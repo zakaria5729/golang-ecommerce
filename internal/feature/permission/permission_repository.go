@@ -21,7 +21,6 @@ func NewPermissionRepository() *PermissionRepository {
 	}
 }
 
-// **REQUIRED
 func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
 	var permissions []Permission
 	query := r.db.Model(&Permission{})
@@ -37,7 +36,6 @@ func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string
 	return permissions, err
 }
 
-// **REQUIRED
 func (r *PermissionRepository) GetPermissionByID(id uint) (*Permission, error) {
 	var permission Permission
 
@@ -63,7 +61,6 @@ func (r *PermissionRepository) GetPermissionByName(name string, include []string
 	return &permission, nil
 }
 
-// **REQUIRED
 func (r *PermissionRepository) GetPermissionsByIDs(ids []uint) ([]Permission, error) {
 	var permissions []Permission
 
@@ -75,7 +72,6 @@ func (r *PermissionRepository) GetPermissionsByIDs(ids []uint) ([]Permission, er
 	return permissions, nil
 }
 
-// **REQUIRED
 func (r *PermissionRepository) HasPermission(userID uint, permission string) (bool, error) {
 	var count int64
 
@@ -90,7 +86,6 @@ func (r *PermissionRepository) HasPermission(userID uint, permission string) (bo
 	return count > 0, err
 }
 
-// **REQUIRED
 func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []string) (bool, error) {
 	if len(permissions) == 0 {
 		return true, nil
@@ -109,7 +104,6 @@ func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []strin
 	return count > 0, err
 }
 
-// **REQUIRED
 func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
 	var userStatus PermissionUserStatus
 
@@ -139,7 +133,6 @@ func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permissio
 	return userStatus.Banned, userStatus.Verified, hasPermission, nil
 }
 
-// **REQUIRED
 func (r *PermissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
 	var userStatus PermissionUserStatus
 
@@ -175,121 +168,3 @@ func (r *PermissionRepository) getSelectableFields(include []string) []string {
 	optionalFields := []string{constants.PermissionDescription}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
-
-// func (r *PermissionRepository) GetUsersWithPermission(permission string) ([]uint, error) {
-// 	var userIDs []uint
-
-// 	err := r.buildPermissionJoinQuery().
-// 		Select("DISTINCT u.id").
-// 		Where("p.name = ?", permission).
-// 		Pluck("u.id", &userIDs).Error
-
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to fetch users with permission", "method", "GetUsersWithPermission", "error", err, "permission", permission)
-// 	}
-
-// 	return userIDs, err
-// }
-
-// func (r *PermissionRepository) GetPermissionStats() (map[string]int, error) {
-// 	var results []struct {
-// 		PermissionName string `json:"permission_name"`
-// 		Count          int    `json:"count"`
-// 	}
-
-// 	err := r.buildPermissionJoinQuery().
-// 		Select("p.name as permission_name, COUNT(DISTINCT u.id) as count").
-// 		Group("p.name").
-// 		Scan(&results).Error
-
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to fetch permission stats", "method", "GetPermissionStats", "error", err)
-// 		return nil, err
-// 	}
-
-// 	stats := make(map[string]int)
-// 	for _, result := range results {
-// 		stats[result.PermissionName] = result.Count
-// 	}
-
-// 	return stats, nil
-// }
-
-// func (r *PermissionRepository) CreatePermission(permission *Permission) error {
-// 	err := r.db.Create(permission).Error
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to create permission", "method", "CreatePermission", "error", err, "permission", permission)
-// 	}
-// 	return err
-// }
-
-// func (r *PermissionRepository) UpdatePermission(permission *Permission) error {
-// 	err := r.db.Save(permission).Error
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to update permission", "method", "UpdatePermission", "error", err, "permission", permission)
-// 	}
-// 	return err
-// }
-
-// func (r *PermissionRepository) DeletePermission(id uint) error {
-// 	err := r.db.Delete(&Permission{}, id).Error
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to delete permission", "method", "DeletePermission", "error", err, "id", id)
-// 	}
-// 	return err
-// }
-
-// func (r *PermissionRepository) PermissionExists(id uint) (bool, error) {
-// 	var count int64
-// 	err := r.db.Model(&Permission{}).Where(constants.FieldID+" = ?", id).Count(&count).Error
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to check if permission exists", "method", "PermissionExists", "error", err, "id", id)
-// 	}
-// 	return count > 0, err
-// }
-
-// func (r *PermissionRepository) PermissionExistsByName(name string, excludeID *uint) (bool, error) {
-// 	var count int64
-// 	query := r.db.Model(&Permission{}).Where(constants.PermissionName+" = ?", name)
-
-// 	if excludeID != nil {
-// 		query = query.Where(constants.FieldID+" != ?", *excludeID)
-// 	}
-
-// 	err := query.Count(&count).Error
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to check if permission exists by name", "method", "PermissionExistsByName", "error", err, "name", name, "excludeID", excludeID)
-// 	}
-// 	return count > 0, err
-// }
-
-// func (r *PermissionRepository) GetUserPermissions(userID uint) ([]string, error) {
-// 	var permissions []string
-
-// 	err := r.buildPermissionJoinQuery().
-// 		Select("DISTINCT p.name").
-// 		Where("u.id = ?", userID).
-// 		Pluck("p.name", &permissions).Error
-
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to fetch user permissions", "method", "GetUserPermissions", "error", err, "userID", userID)
-// 	}
-
-// 	return permissions, err
-// }
-
-// // **REQUIRED
-// func (r *PermissionRepository) GetUserPermissionsByRole(userID uint, roleType string) ([]string, error) {
-// 	var permissions []string
-
-// 	err := r.buildPermissionJoinQuery().
-// 		Select("DISTINCT p.name").
-// 		Where("u.id = ? AND r.role_type = ?", userID, roleType).
-// 		Pluck("p.name", &permissions).Error
-
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to fetch user permissions by role", "method", "GetUserPermissionsByRole", "error", err, "userID", userID, "roleType", roleType)
-// 	}
-
-// 	return permissions, err
-// }

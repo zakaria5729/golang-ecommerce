@@ -11,13 +11,5 @@ func RegisterFileRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 
 	r.POST("/files/upload", h.UploadFile).Use(
 		pm.RequireAuthUserStatus(),
-	)
+	).Register()
 }
-
-// func RegisterFileRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
-// 	fileHandler := handler.NewFileHandler()
-
-// 	mux.Handle(constants.POST+" /v1/files/upload", middleware.ChainMiddleware(
-// 		permissionMiddleware.RequireAuthUserId(),
-// 	)(http.HandlerFunc(fileHandler.UploadFile)))
-// }

@@ -62,13 +62,11 @@ func (r *Router) addRoute(method, path string, handler t.HandlerFunc) *Route {
 		router:           r,
 	}
 
-	route.register()
 	return route
 }
 
 func (route *Route) Version(version string) *Route {
 	route.version = &version
-	route.register()
 	return route
 }
 
@@ -78,11 +76,10 @@ func (r *Router) Use(middlewares ...t.MiddlewareHandler) {
 
 func (route *Route) Use(middlewares ...t.MiddlewareHandler) *Route {
 	route.routeMiddlewares = append(route.routeMiddlewares, middlewares...)
-	route.register()
 	return route
 }
 
-func (route *Route) register() {
+func (route *Route) Register() {
 	allMiddlewares := make([]t.MiddlewareHandler, 0, len(route.router.globalMiddlewares)+len(route.routeMiddlewares))
 	allMiddlewares = append(allMiddlewares, route.router.globalMiddlewares...)
 	allMiddlewares = append(allMiddlewares, route.routeMiddlewares...)

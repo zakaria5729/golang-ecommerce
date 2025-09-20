@@ -21,13 +21,16 @@ func NewReviewRepository() *ReviewRepository {
 	}
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetAllReviewsPaginated(include []string, productID *uint, userID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, include []string, productID *uint, userID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if productID != nil {
 		query = query.Where(constants.ReviewProductID+" = ?", *productID)
@@ -60,12 +63,15 @@ func (r *ReviewRepository) GetAllReviewsPaginated(include []string, productID *u
 	return reviews, total, nil
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetReviewByID(id uint, include []string) (*Review, error) {
+func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool, include []string) (*Review, error) {
 	var review Review
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	err := query.Where(constants.FieldID+" = ?", id).First(&review).Error
 	if err != nil {
@@ -76,7 +82,6 @@ func (r *ReviewRepository) GetReviewByID(id uint, include []string) (*Review, er
 	return &review, nil
 }
 
-// **REQUIRED
 func (r *ReviewRepository) CreateReview(review *Review) error {
 	review.Sanitize()
 
@@ -89,7 +94,6 @@ func (r *ReviewRepository) CreateReview(review *Review) error {
 	return nil
 }
 
-// *REQUIRED
 func (r *ReviewRepository) UpdateReview(id uint, userID uint, updates map[string]interface{}) error {
 	query := r.db.Model(&Review{}).Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID)
 
@@ -106,7 +110,20 @@ func (r *ReviewRepository) UpdateReview(id uint, userID uint, updates map[string
 	return nil
 }
 
-// **REQUIRED
+func (r *ReviewRepository) UndoDeletedReview(id uint, userID uint) error {
+	result := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID).Update(constants.FieldDeletedAt, nil)
+	if result.Error != nil {
+		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id, "userID", userID)
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("review not found or not owned by user and not deleted")
+	}
+
+	return nil
+}
+
 func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
 	result := r.db.Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID).Delete(&Review{})
 	if result.Error != nil {
@@ -121,13 +138,16 @@ func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
 	return nil
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetReviewsByProduct(productID uint, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", ")).Where(constants.ReviewProductID+" = ?", productID)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if rating != nil {
 		query = query.Where(constants.ReviewRating+" = ?", *rating)
@@ -135,7 +155,7 @@ func (r *ReviewRepository) GetReviewsByProduct(productID uint, include []string,
 
 	err := query.Model(&Review{}).Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "rating", rating)
+		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "rating", rating)
 		return nil, 0, err
 	}
 
@@ -145,20 +165,23 @@ func (r *ReviewRepository) GetReviewsByProduct(productID uint, include []string,
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "include", include, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "include", include, "productID", productID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	return reviews, total, nil
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetReviewsByUser(userID uint, productID *uint, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", ")).Where(constants.ReviewUserID+" = ?", userID)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if productID != nil {
 		query = query.Where(constants.ReviewProductID+" = ?", *productID)
@@ -191,11 +214,15 @@ func (r *ReviewRepository) GetReviewsByUser(userID uint, productID *uint, includ
 	return reviews, total, nil
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetAverageRating(productID uint) (float64, error) {
+func (r *ReviewRepository) GetAverageRating(productID uint, showDeleted *bool) (float64, error) {
 	var avgRating float64
+	query := r.db.Model(&Review{}).Where(constants.ReviewProductID+" = ?", productID)
 
-	err := r.db.Model(&Review{}).Where(constants.ReviewProductID+" = ?", productID).Select("AVG(rating)").Scan(&avgRating).Error
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	err := query.Select("AVG(rating)").Scan(&avgRating).Error
 	if err != nil {
 		logger.Logger.Error("Failed to get average rating", "method", "GetAverageRating", "error", err, "productID", productID)
 		return 0, err
@@ -204,14 +231,18 @@ func (r *ReviewRepository) GetAverageRating(productID uint) (float64, error) {
 	return avgRating, nil
 }
 
-// **REQUIRED
-func (r *ReviewRepository) GetRatingCounts(productID uint) (map[int]int, error) {
+func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (map[int]int, error) {
 	var results []struct {
 		Rating int
 		Count  int
 	}
 
-	err := r.db.Model(&Review{}).
+	query := r.db.Model(&Review{})
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	err := query.
 		Select(constants.ReviewRating+", COUNT(*) as count").
 		Where(constants.ReviewProductID+" = ?", productID).
 		Group(constants.ReviewRating).
@@ -231,7 +262,6 @@ func (r *ReviewRepository) GetRatingCounts(productID uint) (map[int]int, error) 
 	return ratingCounts, nil
 }
 
-// **REQUIRED
 func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
 	var count int64
 

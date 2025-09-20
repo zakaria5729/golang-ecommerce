@@ -8,18 +8,11 @@ import (
 	"github.com/easy-comerce/backend/pkg/timeutil"
 )
 
-// type MiddlewareHandler func(http.Handler) http.Handler
-
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := timeutil.NowUTC()
-
-		logger.Logger.Info("HTTP Request", "method", r.Method, "path", r.URL.Path, "remoteAddr", r.RemoteAddr, "userAgent", r.UserAgent())
-
 		next.ServeHTTP(w, r)
-
-		duration := time.Since(start)
-		logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", duration.String())
+		logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start).String())
 	})
 }
 
@@ -108,12 +101,3 @@ type ClientInfo struct {
 	RequestCount int
 	LastRequest  time.Time
 }
-
-// func ChainMiddleware(middlewares ...MiddlewareHandler) MiddlewareHandler {
-// 	return func(next http.Handler) http.Handler {
-// 		for i := len(middlewares) - 1; i >= 0; i-- {
-// 			next = middlewares[i](next)
-// 		}
-// 		return next
-// 	}
-// }

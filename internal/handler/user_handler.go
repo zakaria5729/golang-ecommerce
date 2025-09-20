@@ -22,7 +22,6 @@ func NewUserHandler() *UserHandler {
 	}
 }
 
-// **REQUIRED
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := middleware.GetUserFromContext(r)
 	if err != nil {
@@ -33,7 +32,6 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, currentUser.ToResponse())
 }
 
-// **REQUIRED
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
@@ -62,7 +60,6 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Profile updated successfully")
 }
 
-// **REQUIRED
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req user.CreateUserRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateUser") {
@@ -84,7 +81,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// **REQUIRED
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -112,7 +108,6 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Update user info successfully")
 }
 
-// **REQUIRED
 func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	includeStr := q.Get(constants.Include)
@@ -120,8 +115,9 @@ func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Reques
 	pageSizeStr := q.Get(constants.PageSize)
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
+	showDeleted := q.Get(constants.ShowDeleted)
 
-	userResponses, err := h.userUseCase.GetAllUsersPaginated(includeStr, pageStr, pageSizeStr, sortBy, sortOrder)
+	userResponses, err := h.userUseCase.GetAllUsersPaginated(includeStr, showDeleted, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Get all users failed", "method", "GetAllUsers", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
@@ -131,7 +127,6 @@ func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Reques
 	response.SendSuccessJSON(w, userResponses)
 }
 
-// **REQUIRED
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -140,7 +135,8 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	include := r.URL.Query().Get(constants.Include)
-	userResponse, err := h.userUseCase.GetUserByID(*id, include)
+	showDeleted := r.URL.Query().Get(constants.ShowDeleted)
+	userResponse, err := h.userUseCase.GetUserByID(*id, include, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Get user by ID failed", "method", "GetUserByID", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
@@ -150,7 +146,6 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessJSON(w, userResponse)
 }
 
-// **REQUIRED
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
 	if err != nil || id == nil || *id == 0 {
@@ -165,6 +160,22 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendDeleteJSON(w, "User deleted successfully")
+}
+
+func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.userUseCase.UndoDeletedUser(*id); err != nil {
+		logger.Logger.Error("Undo delete user failed", "method", "UndoDeletedUser", "error", err, "id", id)
+		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.SendDeleteJSON(w, "Undo user deleted successfully")
 }
 
 func (h *UserHandler) validateUpdateProfileRequest(req *user.UpdateProfileRequest) validator.ValidationErrors {
