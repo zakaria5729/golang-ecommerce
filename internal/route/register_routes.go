@@ -13,8 +13,8 @@ func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
 	r := router.New(mux)
 	r.Use(
 		m.RecoveryMiddleware,
-		m.CORSMiddleware,
 		m.LoggingMiddleware,
+		m.CORSMiddleware,
 	)
 
 	RegisterAuthRoute(r, pm)

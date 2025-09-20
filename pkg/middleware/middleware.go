@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 )
@@ -12,7 +13,11 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := timeutil.NowUTC()
 		next.ServeHTTP(w, r)
-		logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start).String())
+		duration := time.Since(start)
+
+		if duration >= time.Second {
+			logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", duration.String())
+		}
 	})
 }
 
@@ -23,7 +28,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
-		if r.Method == "OPTIONS" {
+		if r.Method == constants.OPTIONS {
 			w.WriteHeader(http.StatusOK)
 			return
 		}

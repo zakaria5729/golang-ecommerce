@@ -8,6 +8,7 @@ const (
 	EnvKeyDBPassword = "DB_PASSWORD"
 	EnvKeyDBName     = "DB_NAME"
 	EnvKeyDBSSLMode  = "DB_SSL_MODE"
+	EnvKeyDBShowLog  = "DB_SHOW_LOG"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/joho/godotenv"
 )
@@ -14,7 +14,7 @@ import (
 var cfg Config
 
 func GetActiveProfile() string {
-	return getEnv(constants.EnvActiveProfile, constants.EnvDev)
+	return getEnv(c.EnvActiveProfile, c.EnvDev)
 }
 
 type Config struct {
@@ -25,6 +25,7 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	DBSSLMode  string
+	DBShowLog  string
 	JWTSecret  string
 	ObjStore   ObjectStoreConfig
 }
@@ -41,20 +42,21 @@ type ObjectStoreConfig struct {
 func Load() Config {
 	// Clear existing environment variables to ensure fresh load
 	envVars := []string{
-		constants.EnvKeyPort,
-		constants.EnvKeyDBHost,
-		constants.EnvKeyDBPort,
-		constants.EnvKeyDBUser,
-		constants.EnvKeyDBPassword,
-		constants.EnvKeyDBName,
-		constants.EnvKeyDBSSLMode,
-		constants.EnvKeyJWTSecret,
-		constants.EnvKeyObjStoreRegion,
-		constants.EnvKeyObjStoreBucketName,
-		constants.EnvKeyObjStoreAccountID,
-		constants.EnvKeyObjStoreAccessKeyID,
-		constants.EnvKeyObjStoreAccessKeySecret,
-		constants.EnvKeyObjStorePublicDomain,
+		c.EnvKeyPort,
+		c.EnvKeyDBHost,
+		c.EnvKeyDBPort,
+		c.EnvKeyDBUser,
+		c.EnvKeyDBPassword,
+		c.EnvKeyDBName,
+		c.EnvKeyDBSSLMode,
+		c.EnvKeyDBShowLog,
+		c.EnvKeyJWTSecret,
+		c.EnvKeyObjStoreRegion,
+		c.EnvKeyObjStoreBucketName,
+		c.EnvKeyObjStoreAccountID,
+		c.EnvKeyObjStoreAccessKeyID,
+		c.EnvKeyObjStoreAccessKeySecret,
+		c.EnvKeyObjStorePublicDomain,
 	}
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
@@ -66,9 +68,9 @@ func Load() Config {
 
 	var envFileName string
 	switch GetActiveProfile() {
-	case constants.EnvStage:
+	case c.EnvStage:
 		envFileName = ".env.stage"
-	case constants.EnvProd:
+	case c.EnvProd:
 		envFileName = ".env.prod"
 	default:
 		envFileName = ".env.dev"
@@ -81,21 +83,22 @@ func Load() Config {
 	}
 
 	cfg = Config{
-		Port:       getEnvWithPanic(constants.EnvKeyPort),
-		DBHost:     getEnvWithPanic(constants.EnvKeyDBHost),
-		DBPort:     getEnvWithPanic(constants.EnvKeyDBPort),
-		DBUser:     getEnvWithPanic(constants.EnvKeyDBUser),
-		DBPassword: getEnvWithPanic(constants.EnvKeyDBPassword),
-		DBName:     getEnvWithPanic(constants.EnvKeyDBName),
-		DBSSLMode:  getEnvWithPanic(constants.EnvKeyDBSSLMode),
-		JWTSecret:  getEnvWithPanic(constants.EnvKeyJWTSecret),
+		Port:       getEnvWithPanic(c.EnvKeyPort),
+		DBHost:     getEnvWithPanic(c.EnvKeyDBHost),
+		DBPort:     getEnvWithPanic(c.EnvKeyDBPort),
+		DBUser:     getEnvWithPanic(c.EnvKeyDBUser),
+		DBPassword: getEnvWithPanic(c.EnvKeyDBPassword),
+		DBName:     getEnvWithPanic(c.EnvKeyDBName),
+		DBSSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
+		DBShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
+		JWTSecret:  getEnvWithPanic(c.EnvKeyJWTSecret),
 		ObjStore: ObjectStoreConfig{
-			Region:          getEnvWithPanic(constants.EnvKeyObjStoreRegion),
-			BucketName:      getEnvWithPanic(constants.EnvKeyObjStoreBucketName),
-			AccountID:       getEnvWithPanic(constants.EnvKeyObjStoreAccountID),
-			AccessKeyID:     getEnvWithPanic(constants.EnvKeyObjStoreAccessKeyID),
-			AccessKeySecret: getEnvWithPanic(constants.EnvKeyObjStoreAccessKeySecret),
-			PublicDomain:    getEnvWithPanic(constants.EnvKeyObjStorePublicDomain),
+			Region:          getEnvWithPanic(c.EnvKeyObjStoreRegion),
+			BucketName:      getEnvWithPanic(c.EnvKeyObjStoreBucketName),
+			AccountID:       getEnvWithPanic(c.EnvKeyObjStoreAccountID),
+			AccessKeyID:     getEnvWithPanic(c.EnvKeyObjStoreAccessKeyID),
+			AccessKeySecret: getEnvWithPanic(c.EnvKeyObjStoreAccessKeySecret),
+			PublicDomain:    getEnvWithPanic(c.EnvKeyObjStorePublicDomain),
 		},
 	}
 	return cfg
@@ -104,7 +107,7 @@ func Load() Config {
 func GetPublicDomain() string {
 	publicDomain := cfg.ObjStore.PublicDomain
 	if publicDomain == "" {
-		publicDomain = getEnv(constants.EnvKeyObjStorePublicDomain, "")
+		publicDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
 	}
 	return publicDomain
 }

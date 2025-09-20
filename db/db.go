@@ -14,26 +14,38 @@ import (
 
 var DB *gorm.DB
 
+func GetDB() *gorm.DB {
+	return DB
+}
+
 func InitDB(cfg config.Config) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
-		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode)
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
+		cfg.DBHost,
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBName,
+		cfg.DBPort,
+		cfg.DBSSLMode,
+	)
+
+	logMode := gormLogger.Error
+	if cfg.DBShowLog == "true" {
+		logMode = gormLogger.Info
+	}
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(gormLogger.Info),
+		Logger: gormLogger.Default.LogMode(logMode),
 		NowFunc: func() time.Time {
 			return timeutil.NowUTC()
 		},
 	})
 
 	if err != nil {
-		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile())
+		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 		panic(err)
 	}
 
-	logger.Logger.Info("Database connected successfully", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile())
-}
-
-func GetDB() *gorm.DB {
-	return DB
+	logger.Logger.Info("Database connected successfully", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 }
