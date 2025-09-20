@@ -23,7 +23,7 @@ func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
 	RegisterPermissionRoute(r, pm)
 	RegisterCategoryRoute(r, pm)
 	RegisterAddressRoute(r, pm)
-	RegisterBrowsingHistoryRoute(r, pm)
+	RegisterProductStatsRoute(r, pm)
 	RegisterReviewRoute(r, pm)
 	RegisterWishlistRoute(r, pm)
 	RegisterFileRoute(r, pm)

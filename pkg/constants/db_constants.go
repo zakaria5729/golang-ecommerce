@@ -11,17 +11,17 @@ const (
 )
 
 const (
-	TableUser            = "users"
-	TableUserRole        = "user_roles"
-	TableRole            = "roles"
-	TableRolePermission  = "role_permissions"
-	TablePermission      = "permissions"
-	TableUserStatus      = "user_status"
-	TableCategory        = "categories"
-	TableAddress         = "addresses"
-	TableReview          = "reviews"
-	TableWishlist        = "wishlists"
-	TableBrowsingHistory = "browsing_histories"
+	TableUser           = "users"
+	TableUserRole       = "user_roles"
+	TableRole           = "roles"
+	TableRolePermission = "role_permissions"
+	TablePermission     = "permissions"
+	TableUserStatus     = "user_status"
+	TableCategory       = "categories"
+	TableAddress        = "addresses"
+	TableReview         = "reviews"
+	TableWishlist       = "wishlists"
+	TableProductStats   = "product_stats"
 )
 
 const (
@@ -65,9 +65,13 @@ const (
 )
 
 const (
-	BrowsingHistoryUserID    = "user_id"
-	BrowsingHistoryProductID = "product_id"
-	BrowsingHistoryViewedAt  = "viewed_at"
+	ProductStatsProductID               = "product_id"
+	ProductStatsViewCount               = "view_count"
+	ProductStatsAddToCartCount          = "add_to_cart_count"
+	ProductStatsRemoveFromCartCount     = "remove_from_cart_count"
+	ProductStatsPurchaseCount           = "purchase_count"
+	ProductStatsWishlistCount           = "wishlist_count"
+	ProductStatsRemoveFromWishlistCount = "remove_from_wishlist_count"
 )
 
 const (

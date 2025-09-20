@@ -60,11 +60,11 @@ const (
 	PermissionWishlistUpdate = "wishlist.update"
 	PermissionWishlistDelete = "wishlist.delete"
 
-	// Browsing History permissions
-	PermissionBrowsingHistoryCreate = "browsing_history.create"
-	PermissionBrowsingHistoryRead   = "browsing_history.read"
-	PermissionBrowsingHistoryUpdate = "browsing_history.update"
-	PermissionBrowsingHistoryDelete = "browsing_history.delete"
+	// Product Stats permissions
+	PermissionProductStatsCreate = "product_stats.create"
+	PermissionProductStatsRead   = "product_stats.read"
+	PermissionProductStatsUpdate = "product_stats.update"
+	PermissionProductStatsDelete = "product_stats.delete"
 
 	// System permissions
 	PermissionSystemAdmin      = "system.admin"

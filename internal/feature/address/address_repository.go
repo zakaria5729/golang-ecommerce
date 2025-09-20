@@ -111,7 +111,7 @@ func (r *AddressRepository) CreateAddress(address *Address) error {
 
 // **REQUIRED
 func (r *AddressRepository) UpdateAddress(address *Address) error {
-	err := r.db.Save(address).Error
+	err := r.db.Model(&Address{}).Where(c.FieldID+" = ?", address.ID).Updates(address).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update address", "method", "UpdateAddress", "error", err, "address", address)
 	}
