@@ -202,6 +202,32 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 	return nil
 }
 
+// **REQUIRED
+func (uc *RoleUseCase) GetRoleByType(roleType string) (*Role, error) {
+	role, err := uc.roleRepo.GetRoleByType(roleType)
+	if err != nil {
+		logger.Logger.Error("Role not found", "method", "GetRoleByType", "error", err, "roleType", roleType)
+		return nil, errors.New("role not found")
+	}
+
+	return role, nil
+}
+
+// **REQUIRED
+func isValidRoleType(roleType string) bool {
+	switch roleType {
+	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeManager, constants.RoleTypeSeller, constants.RoleTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// **REQUIRED
+func canCreateRoles(roleType string) bool {
+	return roleType == constants.RoleTypeSuperAdmin || roleType == constants.RoleTypeAdmin
+}
+
 // func (uc *RoleUseCase) GetAllPermissions(includeStr string, sortBy, sortOrder string) ([]permission.Permission, error) {
 // 	include := utils.ParseCommaSeparatedString(includeStr)
 // 	permissions, err := uc.permissionRepo.GetAllPermissions(include, sortBy, sortOrder)
@@ -293,27 +319,3 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 
 // 	return nil
 // }
-
-func isValidRoleType(roleType string) bool {
-	switch roleType {
-	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeManager, constants.RoleTypeSeller, constants.RoleTypeUser:
-		return true
-	default:
-		return false
-	}
-}
-
-// **REQUIRED
-func (uc *RoleUseCase) GetRoleByType(roleType string) (*Role, error) {
-	role, err := uc.roleRepo.GetRoleByType(roleType)
-	if err != nil {
-		logger.Logger.Error("Role not found", "method", "GetRoleByType", "error", err, "roleType", roleType)
-		return nil, errors.New("role not found")
-	}
-
-	return role, nil
-}
-
-func canCreateRoles(roleType string) bool {
-	return roleType == constants.RoleTypeSuperAdmin || roleType == constants.RoleTypeAdmin
-}

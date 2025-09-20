@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -19,12 +20,13 @@ func NewAddressUseCase() *AddressUseCase {
 	}
 }
 
-func (uc *AddressUseCase) GetAllAddresses(userID uint, includeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) ([]Address, error) {
+// **REQUIRED
+func (uc *AddressUseCase) GetAllAddressesByUser(userID uint, includeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) ([]Address, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	addressType := utils.ParseStringPtr(addressTypeFilter)
 	isDefault := utils.ParseBoolPtr(isDefaultFilter)
 
-	addresses, err := uc.repo.GetAllAddresses(userID, include, addressType, isDefault, sortBy, sortOrder)
+	addresses, err := uc.repo.GetAllAddressesByUser(userID, include, addressType, isDefault, sortBy, sortOrder)
 	if err != nil {
 		logger.Logger.Error("Failed to fetch addresses", "method", "GetAllAddresses", "error", err, "userID", userID, "include", include, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch addresses: %w", err)
@@ -33,12 +35,14 @@ func (uc *AddressUseCase) GetAllAddresses(userID uint, includeStr string, addres
 	return addresses, nil
 }
 
-func (uc *AddressUseCase) GetAllAddressesPaginated(userID uint, includeStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+// **REQUIRED
+func (uc *AddressUseCase) GetAllAddressesPaginated(userIdStr string, includeStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	include := utils.ParseCommaSeparatedString(includeStr)
 	addressType := utils.ParseStringPtr(addressTypeFilter)
 	isDefault := utils.ParseBoolPtr(isDefaultFilter)
+	userID, _ := utils.ParseUint(userIdStr)
 
 	addresses, total, err := uc.repo.GetAllAddressesPaginated(userID, include, page, pageSize, addressType, isDefault, sortBy, sortOrder)
 	if err != nil {
@@ -54,43 +58,24 @@ func (uc *AddressUseCase) GetAllAddressesPaginated(userID uint, includeStr strin
 	return utils.BuildPaginatedResponse(addressPtrs, total, page, pageSize), nil
 }
 
-func (uc *AddressUseCase) GetAddressByID(id uint, userID uint, includeStr string) (*Address, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid address ID provided", "method", "GetAddressByID", "id", id)
-		return nil, errors.New("invalid address ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID provided", "method", "GetAddressByID", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
-	include := utils.ParseCommaSeparatedString(includeStr)
-	address, err := uc.repo.GetAddressByID(id, userID, include)
+// **REQUIRED
+func (uc *AddressUseCase) GetAddressByID(id uint) (*Address, error) {
+	address, err := uc.repo.GetAddressByID(id, nil)
 	if err != nil {
-		logger.Logger.Error("Address not found", "method", "GetAddressByID", "error", err, "id", id, "userID", userID, "include", include)
+		logger.Logger.Error("Address not found", "method", "GetAddressByID", "error", err, "id", id)
 		return nil, fmt.Errorf("address not found: %w", err)
 	}
 
 	return address, nil
 }
 
+// **REQUIRED
 func (uc *AddressUseCase) CreateAddress(userID uint, req *Address) (*Address, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID provided", "method", "CreateAddress", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
-	req.Sanitize()
 	req.UserID = userID
+	req.Sanitize()
 
 	if req.AddressType == "" {
-		req.AddressType = AddressTypeShipping
-	}
-
-	if req.AddressType != AddressTypeShipping && req.AddressType != AddressTypeBilling {
-		logger.Logger.Error("Invalid address type", "method", "CreateAddress", "addressType", req.AddressType)
-		return nil, errors.New("invalid address type. Must be 'shipping' or 'billing'")
+		req.AddressType = c.AddressTypeShipping
 	}
 
 	address := &Address{
@@ -112,28 +97,14 @@ func (uc *AddressUseCase) CreateAddress(userID uint, req *Address) (*Address, er
 	return address, nil
 }
 
+// **REQUIRED
 func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Address, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid address ID", "method", "UpdateAddress", "id", id)
-		return nil, errors.New("invalid address ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "UpdateAddress", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
 	req.Sanitize()
 
-	existingAddress, err := uc.repo.GetAddressByID(id, userID, nil)
+	existingAddress, err := uc.repo.GetAddressByID(id, &userID)
 	if err != nil {
 		logger.Logger.Error("Address not found", "method", "UpdateAddress", "error", err, "id", id, "userID", userID)
 		return nil, fmt.Errorf("address not found: %w", err)
-	}
-
-	if req.AddressType != "" && req.AddressType != AddressTypeShipping && req.AddressType != AddressTypeBilling {
-		logger.Logger.Error("Invalid address type", "method", "UpdateAddress", "addressType", req.AddressType)
-		return nil, errors.New("invalid address type. Must be 'shipping' or 'billing'")
 	}
 
 	if req.Street != "" {
@@ -166,19 +137,10 @@ func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Ad
 	return existingAddress, nil
 }
 
+// **REQUIRED
 func (uc *AddressUseCase) DeleteAddress(id uint, userID uint) error {
-	if id == 0 {
-		logger.Logger.Error("Invalid address ID", "method", "DeleteAddress", "id", id)
-		return errors.New("invalid address ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "DeleteAddress", "userID", userID)
-		return errors.New("invalid user ID")
-	}
-
-	_, err := uc.repo.GetAddressByID(id, userID, nil)
-	if err != nil {
+	exists, err := uc.repo.AddressExists(id, userID)
+	if err != nil || !exists {
 		logger.Logger.Error("Address not found", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
 		return fmt.Errorf("address not found: %w", err)
 	}
@@ -191,51 +153,32 @@ func (uc *AddressUseCase) DeleteAddress(id uint, userID uint) error {
 	return nil
 }
 
-func (uc *AddressUseCase) SetDefaultAddress(id uint, userID uint, addressType string) (*Address, error) {
-	if id == 0 {
-		logger.Logger.Error("Invalid address ID", "method", "SetDefaultAddress", "id", id)
-		return nil, errors.New("invalid address ID")
-	}
-
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "SetDefaultAddress", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
-	if addressType != AddressTypeShipping && addressType != AddressTypeBilling {
+// **REQUIRED
+func (uc *AddressUseCase) SetDefaultAddress(id uint, userID uint, addressType string) error {
+	if addressType != c.AddressTypeShipping && addressType != c.AddressTypeBilling {
 		logger.Logger.Error("Invalid address type", "method", "SetDefaultAddress", "addressType", addressType)
-		return nil, errors.New("invalid address type. Must be 'shipping' or 'billing'")
+		return errors.New("invalid address type. Must be " + c.AddressTypeShipping + " or " + c.AddressTypeBilling)
 	}
 
-	_, err := uc.repo.GetAddressByID(id, userID, nil)
-	if err != nil {
+	exists, err := uc.repo.AddressExists(id, userID)
+	if err != nil || !exists {
 		logger.Logger.Error("Address not found", "method", "SetDefaultAddress", "error", err, "id", id, "userID", userID)
-		return nil, fmt.Errorf("address not found: %w", err)
+		return fmt.Errorf("address not found: %w", err)
 	}
 
 	if err := uc.repo.SetDefaultAddress(id, userID, addressType); err != nil {
 		logger.Logger.Error("Failed to set default address", "method", "SetDefaultAddress", "error", err, "id", id, "userID", userID, "addressType", addressType)
-		return nil, fmt.Errorf("failed to set default address: %w", err)
+		return fmt.Errorf("failed to set default address: %w", err)
 	}
 
-	address, err := uc.repo.GetAddressByID(id, userID, nil)
-	if err != nil {
-		logger.Logger.Error("Failed to fetch updated address", "method", "SetDefaultAddress", "error", err, "id", id, "userID", userID)
-		return nil, fmt.Errorf("failed to fetch updated address: %w", err)
-	}
-
-	return address, nil
+	return nil
 }
 
+// **REQUIRED
 func (uc *AddressUseCase) GetDefaultAddress(userID uint, addressType string) (*Address, error) {
-	if userID == 0 {
-		logger.Logger.Error("Invalid user ID", "method", "GetDefaultAddress", "userID", userID)
-		return nil, errors.New("invalid user ID")
-	}
-
-	if addressType != AddressTypeShipping && addressType != AddressTypeBilling {
+	if addressType != c.AddressTypeShipping && addressType != c.AddressTypeBilling {
 		logger.Logger.Error("Invalid address type", "method", "GetDefaultAddress", "addressType", addressType)
-		return nil, errors.New("invalid address type. Must be 'shipping' or 'billing'")
+		return nil, errors.New("invalid address type. Must be " + c.AddressTypeShipping + " or " + c.AddressTypeBilling)
 	}
 
 	address, err := uc.repo.GetDefaultAddress(userID, addressType)

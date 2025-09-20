@@ -56,7 +56,7 @@ func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 	includeStr := r.URL.Query().Get(constants.Include)
 	review, err := h.useCase.GetReviewByID(*id, includeStr)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
+		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", includeStr)
 		response.SendErrorJSON(w, "Review not found", http.StatusInternalServerError)
 		return
 	}
@@ -214,12 +214,9 @@ func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Req
 func (h *ReviewHandler) validateReviewRequest(rating, comment string) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
-	if rating == "" {
-		errors.AddError("rating", "Rating is required")
-	} else {
-		if ratingInt, err := strconv.Atoi(rating); err != nil || ratingInt < 1 || ratingInt > 5 {
-			errors.AddError("rating", "Rating must be between 1 and 5")
-		}
+	ratingInt, err := utils.ParseInt(rating)
+	if err != nil || rating == "" || ratingInt == nil || *ratingInt < 1 || *ratingInt > 5 {
+		errors.AddError("rating", "Rating must be between 1 and 5")
 	}
 
 	if utils.Trim(comment) != "" {

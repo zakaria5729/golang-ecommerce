@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
@@ -11,6 +12,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
+	t "github.com/easy-comerce/backend/pkg/types"
 )
 
 type PermissionMiddleware struct {
@@ -30,27 +32,27 @@ func NewPermissionMiddleware(jwtSecret string) *PermissionMiddleware {
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAuthUserId() func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) RequireAuthUserStatus() t.MiddlewareHandler {
 	return pm.loadAuthUser(false, false, false)
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAuthUser() func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) RequireAuthUser() t.MiddlewareHandler {
 	return pm.loadAuthUser(true, false, false)
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAuthWithRolePermission() func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) RequireAuthWithRolePermission() t.MiddlewareHandler {
 	return pm.loadAuthUser(true, true, true)
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequirePermission(permission string) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) RequirePermission(permission string) t.MiddlewareHandler {
 	return pm.loadPermissionsStatus([]string{permission})
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) t.MiddlewareHandler {
 	return pm.loadPermissionsStatus(permissions)
 }
 
@@ -59,7 +61,7 @@ func (pm *PermissionMiddleware) GetJWTSecret() string {
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) t.MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -112,7 +114,7 @@ func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) func
 }
 
 // **REQUIRED
-func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles bool, includePermissions bool) func(http.Handler) http.Handler {
+func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles bool, includePermissions bool) t.MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -160,6 +162,22 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 			}
 		})
 	}
+}
+
+func GetUserFromContext(r *http.Request) (*user.User, error) {
+	user, ok := r.Context().Value(constants.UserContextKey).(*user.User)
+	if !ok || user == nil {
+		return nil, errors.New("user not found in context")
+	}
+	return user, nil
+}
+
+func GetUserIDFromContext(r *http.Request) (*uint, error) {
+	userID, ok := r.Context().Value(constants.UserIDContextKey).(uint)
+	if !ok {
+		return nil, errors.New("user ID not found or invalid type in context")
+	}
+	return &userID, nil
 }
 
 // func (pm *PermissionMiddleware) RequireRole(roleType string) func(http.Handler) http.Handler {

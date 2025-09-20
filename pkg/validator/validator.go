@@ -88,8 +88,8 @@ func ValidateRegex(value, fieldName, pattern, message string) ValidationErrors {
 
 func ValidatePositiveInteger(value uint, fieldName string) ValidationErrors {
 	var errors ValidationErrors
-	if value == 0 {
-		errors.AddError(fieldName, fmt.Sprintf("%s must be a positive integer", fieldName))
+	if value <= 0 {
+		errors.AddError(fieldName, fmt.Sprintf("%s must be a positive integer and greater than 0", fieldName))
 	}
 	return errors
 }

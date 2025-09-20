@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,17 +14,25 @@ import (
 	"github.com/google/uuid"
 )
 
-type FileStoreUseCase struct {
-	repo *FileStoreRepository
+type FileStorageUseCase struct {
+	repo *FileStorageRepository
 }
 
-func NewFileStoreUseCase() *FileStoreUseCase {
-	return &FileStoreUseCase{
-		repo: NewFileStoreRepository(),
+func NewFileStorageUseCase() *FileStorageUseCase {
+	return &FileStorageUseCase{
+		repo: NewFileStorageRepository(),
 	}
 }
 
-func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIRequest) (*FileUploadResponse, error) {
+func (uc *FileStorageUseCase) UploadFile(ctx context.Context, userID uint, req FileUploadAPIRequest) (*FileUploadResponse, error) {
+	if req.File == nil {
+		return nil, fmt.Errorf("file is required")
+	}
+
+	if req.Folder != "" || !uc.isValidFolder(req.Folder) {
+		return nil, fmt.Errorf("invalid folder given")
+	}
+
 	if req.File == nil {
 		return nil, fmt.Errorf("file is required")
 	}
@@ -54,7 +63,7 @@ func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIReq
 		Folder:      req.Folder,
 		Metadata: map[string]string{
 			"original_filename": req.File.Filename,
-			"user_id":           req.UserID,
+			"user_id":           fmt.Sprintf("%d", userID),
 			"uploaded_at":       timeutil.NowUTC().Format(time.RFC3339),
 		},
 	}
@@ -70,7 +79,7 @@ func (uc *FileStoreUseCase) UploadFile(ctx context.Context, req FileUploadAPIReq
 	}, nil
 }
 
-func (uc *FileStoreUseCase) DeleteFile(ctx context.Context, key string) error {
+func (uc *FileStorageUseCase) DeleteFile(ctx context.Context, key string) error {
 	if key == "" {
 		return fmt.Errorf("file key is required")
 	}
@@ -84,7 +93,7 @@ func (uc *FileStoreUseCase) DeleteFile(ctx context.Context, key string) error {
 	return nil
 }
 
-func (uc *FileStoreUseCase) GetFileURL(ctx context.Context, key string) (string, error) {
+func (uc *FileStorageUseCase) GetFileURL(ctx context.Context, key string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("file key is required")
 	}
@@ -98,7 +107,7 @@ func (uc *FileStoreUseCase) GetFileURL(ctx context.Context, key string) (string,
 	return url, nil
 }
 
-func (uc *FileStoreUseCase) isValidFileType(contentType string, allowedTypes string) bool {
+func (uc *FileStorageUseCase) isValidFileType(contentType string, allowedTypes string) bool {
 	types := strings.Split(allowedTypes, ",")
 	for _, allowedType := range types {
 		if strings.TrimSpace(allowedType) == contentType {
@@ -106,4 +115,17 @@ func (uc *FileStoreUseCase) isValidFileType(contentType string, allowedTypes str
 		}
 	}
 	return false
+}
+
+func (uc *FileStorageUseCase) isValidFolder(folder string) bool {
+	validFolders := []string{
+		constants.FolderCategory,
+		constants.FolderProduct,
+		constants.FolderUser,
+		constants.FolderReview,
+		constants.FolderAddress,
+		constants.FolderWishlist,
+	}
+
+	return slices.Contains(validFolders, folder)
 }

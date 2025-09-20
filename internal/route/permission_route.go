@@ -1,21 +1,32 @@
 package route
 
 import (
-	"net/http"
-
 	"github.com/easy-comerce/backend/internal/handler"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
+	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterPermissionRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
-	permissionHandler := handler.NewPermissionHandler()
+func RegisterPermissionRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+	h := handler.NewPermissionHandler()
 
-	mux.Handle(constants.GET+" /v1/permissions", middleware.ChainMiddleware(
-		permissionMiddleware.RequirePermission(constants.PermissionPermissionRead),
-	)(http.HandlerFunc(permissionHandler.GetAllPermissions)))
+	r.GET("/permissions", h.GetAllPermissions).Use(
+		pm.RequirePermission(c.PermissionPermissionRead),
+	)
 
-	mux.Handle(constants.GET+" /v1/permissions/{id}", middleware.ChainMiddleware(
-		permissionMiddleware.RequirePermission(constants.PermissionPermissionRead),
-	)(http.HandlerFunc(permissionHandler.GetPermissionByID)))
+	r.GET("/permissions/{id}", h.GetPermissionByID).Use(
+		pm.RequirePermission(c.PermissionPermissionRead),
+	)
 }
+
+// func RegisterPermissionRoute(mux *http.ServeMux, permissionMiddleware *middleware.PermissionMiddleware) {
+// 	permissionHandler := handler.NewPermissionHandler()
+
+// 	mux.Handle(constants.GET+" /v1/permissions", middleware.ChainMiddleware(
+// 		permissionMiddleware.RequirePermission(constants.PermissionPermissionRead),
+// 	)(http.HandlerFunc(permissionHandler.GetAllPermissions)))
+
+// 	mux.Handle(constants.GET+" /v1/permissions/{id}", middleware.ChainMiddleware(
+// 		permissionMiddleware.RequirePermission(constants.PermissionPermissionRead),
+// 	)(http.HandlerFunc(permissionHandler.GetPermissionByID)))
+// }

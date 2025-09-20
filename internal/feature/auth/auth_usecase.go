@@ -195,6 +195,56 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 	return nil
 }
 
+// **REQUIRED
+func (uc *AuthUseCase) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, error) {
+	user, err := uc.userRepo.GetUserByRefreshToken(req.RefreshToken)
+	if err != nil {
+		logger.Logger.Error("Invalid or expired refresh token", "method", "RefreshToken", "error", err, "token", req.RefreshToken)
+		return nil, errors.New("invalid or expired refresh token")
+	}
+
+	if !user.Verified {
+		logger.Logger.Error("User is not verified", "method", "RefreshToken", "userID", user.ID, "email", user.Email)
+		return nil, errors.New("account is not verified yet")
+	}
+
+	if user.Banned {
+		logger.Logger.Error("User is banned", "method", "RefreshToken", "userID", user.ID, "email", user.Email)
+		return nil, errors.New("account is banned")
+	}
+
+	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, uc.jwtSecret)
+	if err != nil {
+		logger.Logger.Error("Failed to generate JWT", "method", "RefreshToken", "error", err, "userID", user.ID)
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewRefreshToken()
+	if err != nil {
+		logger.Logger.Error("Failed to generate refresh token", "method", "RefreshToken", "error", err, "userID", user.ID)
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	if err := uc.userRepo.SetRefreshToken(user.ID, &refreshToken, &refreshExpiresAt); err != nil {
+		logger.Logger.Error("Failed to set refresh token", "method", "RefreshToken", "error", err, "userID", user.ID)
+	}
+
+	return &LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// **REQUIRED
+func (uc *AuthUseCase) Logout(userID uint) error {
+	if err := uc.userRepo.SetRefreshToken(userID, nil, nil); err != nil {
+		logger.Logger.Error("Failed to clear refresh token", "method", "Logout", "error", err, "userID", userID)
+		return err
+	}
+	return nil
+}
+
 // func (uc *AuthUseCase) VerifyToken(tokenString string) (*JwtClaims, error) {
 // 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (any, error) {
 // 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -247,56 +297,6 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 // 		return len(permissions) > 0, nil
 // 	}
 // }
-
-// **REQUIRED
-func (uc *AuthUseCase) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, error) {
-	user, err := uc.userRepo.GetUserByRefreshToken(req.RefreshToken)
-	if err != nil {
-		logger.Logger.Error("Invalid or expired refresh token", "method", "RefreshToken", "error", err, "token", req.RefreshToken)
-		return nil, errors.New("invalid or expired refresh token")
-	}
-
-	if !user.Verified {
-		logger.Logger.Error("User is not verified", "method", "RefreshToken", "userID", user.ID, "email", user.Email)
-		return nil, errors.New("account is not verified yet")
-	}
-
-	if user.Banned {
-		logger.Logger.Error("User is banned", "method", "RefreshToken", "userID", user.ID, "email", user.Email)
-		return nil, errors.New("account is banned")
-	}
-
-	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, uc.jwtSecret)
-	if err != nil {
-		logger.Logger.Error("Failed to generate JWT", "method", "RefreshToken", "error", err, "userID", user.ID)
-		return nil, fmt.Errorf("failed to generate token: %w", err)
-	}
-
-	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewRefreshToken()
-	if err != nil {
-		logger.Logger.Error("Failed to generate refresh token", "method", "RefreshToken", "error", err, "userID", user.ID)
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
-	}
-
-	if err := uc.userRepo.SetRefreshToken(user.ID, &refreshToken, &refreshExpiresAt); err != nil {
-		logger.Logger.Error("Failed to set refresh token", "method", "RefreshToken", "error", err, "userID", user.ID)
-	}
-
-	return &LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt,
-	}, nil
-}
-
-// **REQUIRED
-func (uc *AuthUseCase) Logout(userID uint) error {
-	if err := uc.userRepo.SetRefreshToken(userID, nil, nil); err != nil {
-		logger.Logger.Error("Failed to clear refresh token", "method", "Logout", "error", err, "userID", userID)
-		return err
-	}
-	return nil
-}
 
 // // **REQUIRED
 // func (uc *AuthUseCase) generateRefreshToken() (string, time.Time, error) {

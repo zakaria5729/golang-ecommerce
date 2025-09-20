@@ -8,7 +8,6 @@ import (
 	"github.com/easy-comerce/backend/internal/route"
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/middleware"
 )
 
 func main() {
@@ -39,16 +38,16 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	route.RegisterRoutes(mux, cfg)
+	route.RegisterAllRoutes(mux, cfg)
 
-	handler := middleware.ChainMiddleware(
-		middleware.RecoveryMiddleware,
-		middleware.CORSMiddleware,
-	)(mux)
+	// handler := middleware.ChainMiddleware(
+	// 	middleware.RecoveryMiddleware,
+	// 	middleware.CORSMiddleware,
+	// )(mux)
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: handler,
+		Handler: mux,
 	}
 
 	logger.Logger.Info("Server starting", "port", cfg.Port)

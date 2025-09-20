@@ -2,10 +2,8 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os/user"
 	"regexp"
 	"slices"
 	"strconv"
@@ -38,6 +36,10 @@ func CapitalizeFirst(input string) string {
 		return input
 	}
 	return strings.ToUpper(input[:1]) + strings.ToLower(input[1:])
+}
+
+func UintToString(s uint) string {
+	return strconv.FormatUint(uint64(s), 10)
 }
 
 func ParseUint(s string) (*uint, error) {
@@ -277,10 +279,8 @@ func ExtractPathParam(path, prefix string) string {
 		return ""
 	}
 
-	// Remove leading slash if present
 	param = strings.TrimPrefix(param, "/")
 
-	// Split by slash and take the first part (the key)
 	parts := strings.Split(param, "/")
 	if len(parts) > 0 {
 		return parts[0]
@@ -312,12 +312,4 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, target any, method strin
 		return false
 	}
 	return true
-}
-
-func GetUserFromContext(r *http.Request) (*user.User, error) {
-	user, ok := r.Context().Value(constants.UserContextKey).(*user.User)
-	if !ok || user == nil {
-		return nil, errors.New("user not found in context")
-	}
-	return user, nil
 }

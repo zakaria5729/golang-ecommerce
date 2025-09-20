@@ -1,7 +1,6 @@
 package review
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -70,9 +69,6 @@ func (r *ReviewRepository) GetReviewByID(id uint, include []string) (*Review, er
 
 	err := query.Where(constants.FieldID+" = ?", id).First(&review).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("review not found")
-		}
 		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
 		return nil, err
 	}

@@ -66,21 +66,6 @@ func (r *RoleRepository) GetRoleByID(id uint, include []string) (*Role, error) {
 	return &role, nil
 }
 
-// func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, error) {
-// 	var role Role
-// 	selectFields := r.getSelectableFields(include)
-// 	query := r.db.Select(strings.Join(selectFields, ", "))
-
-// 	if err := query.Preload(RolePermissionsCapitalized).
-// 		Where(RoleRoleName+" = ?", name).
-// 		First(&role).Error; err != nil {
-// 		logger.Logger.Error("Failed to fetch role by name", "method", "GetRoleByName", "error", err, "name", name, "include", include)
-// 		return nil, err
-// 	}
-
-// 	return &role, nil
-// }
-
 // **REQUIRED
 func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, error) {
 	var role Role
@@ -232,6 +217,27 @@ func (r *RoleRepository) RoleExistsByType(roleType string) (bool, error) {
 	return count > 0, err
 }
 
+func (r *RoleRepository) getSelectableFields(include []string) []string {
+	defaultFields := []string{constants.FieldID, constants.RoleRoleName, constants.RoleRoleType, constants.FieldCreatedAt, constants.FieldUpdatedAt}
+	optionalFields := []string{constants.RoleDescription}
+	return utils.BuildSelectFields(defaultFields, optionalFields, include)
+}
+
+// func (r *RoleRepository) GetRoleByName(name string, include []string) (*Role, error) {
+// 	var role Role
+// 	selectFields := r.getSelectableFields(include)
+// 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+// 	if err := query.Preload(RolePermissionsCapitalized).
+// 		Where(RoleRoleName+" = ?", name).
+// 		First(&role).Error; err != nil {
+// 		logger.Logger.Error("Failed to fetch role by name", "method", "GetRoleByName", "error", err, "name", name, "include", include)
+// 		return nil, err
+// 	}
+
+// 	return &role, nil
+// }
+
 // func (r *RoleRepository) AssignPermissionsToRole(roleID uint, permissionIDs []uint) error {
 // 	err := r.db.Transaction(func(tx *gorm.DB) error {
 // 		var permissions []permission.Permission
@@ -251,9 +257,3 @@ func (r *RoleRepository) RoleExistsByType(roleType string) (bool, error) {
 // 	}
 // 	return err
 // }
-
-func (r *RoleRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{constants.FieldID, constants.RoleRoleName, constants.RoleRoleType, constants.FieldCreatedAt, constants.FieldUpdatedAt}
-	optionalFields := []string{constants.RoleDescription}
-	return utils.BuildSelectFields(defaultFields, optionalFields, include)
-}

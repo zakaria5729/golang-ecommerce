@@ -1,15 +1,14 @@
 package middleware
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
-	"github.com/easy-comerce/backend/internal/feature/user"
-	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 )
+
+// type MiddlewareHandler func(http.Handler) http.Handler
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,53 +109,11 @@ type ClientInfo struct {
 	LastRequest  time.Time
 }
 
-func ChainMiddleware(middlewares ...func(http.Handler) http.Handler) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			next = middlewares[i](next)
-		}
-		return next
-	}
-}
-
-func ChainAuthMiddleware(middlewares ...func(http.HandlerFunc) http.HandlerFunc) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			next = middlewares[i](next)
-		}
-		return next
-	}
-}
-
-// **REQUIRED
-func GetUserFromContext(r *http.Request) (*user.User, error) {
-	userInterface := r.Context().Value(constants.UserContextKey)
-	if userInterface == nil {
-		logger.Logger.Error("User not found in context", "method", "GetUserFromContext")
-		return nil, errors.New("user not found in context")
-	}
-
-	user, ok := userInterface.(*user.User)
-	if !ok {
-		logger.Logger.Error("Invalid user type in context", "method", "GetUserFromContext")
-		return nil, errors.New("invalid user type in context")
-	}
-
-	return user, nil
-}
-
-func GetUserIDFromContext(r *http.Request) (*uint, error) {
-	userIDInterface := r.Context().Value(constants.UserIDContextKey)
-	if userIDInterface == nil {
-		logger.Logger.Error("User ID not found in context", "method", "GetUserIDFromContext")
-		return nil, errors.New("user ID not found in context")
-	}
-
-	userID, ok := userIDInterface.(uint)
-	if !ok {
-		logger.Logger.Error("Invalid user ID type in context", "method", "GetUserIDFromContext")
-		return nil, errors.New("invalid user ID type in context")
-	}
-
-	return &userID, nil
-}
+// func ChainMiddleware(middlewares ...MiddlewareHandler) MiddlewareHandler {
+// 	return func(next http.Handler) http.Handler {
+// 		for i := len(middlewares) - 1; i >= 0; i-- {
+// 			next = middlewares[i](next)
+// 		}
+// 		return next
+// 	}
+// }

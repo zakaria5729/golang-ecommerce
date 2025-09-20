@@ -129,6 +129,10 @@ const (
 )
 
 const (
+	VersionPrefix = "/v"
+)
+
+const (
 	MinReviewRating        = 1
 	MaxReviewRating        = 5
 	MaxReviewCommentLength = 1000

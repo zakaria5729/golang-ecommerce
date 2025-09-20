@@ -5,19 +5,26 @@ import (
 
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/middleware"
+	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
-	permissionMiddleware := middleware.NewPermissionMiddleware(cfg.JWTSecret)
+func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
+	pm := middleware.NewPermissionMiddleware(cfg.JWTSecret)
 
-	RegisterAuthRoute(mux, permissionMiddleware)
-	RegisterUserRoute(mux, permissionMiddleware)
-	RegisterRoleRoute(mux, permissionMiddleware)
-	RegisterPermissionRoute(mux, permissionMiddleware)
-	RegisterCategoryRoute(mux, permissionMiddleware)
-	RegisterAddressRoute(mux, permissionMiddleware)
-	RegisterBrowsingHistoryRoute(mux, permissionMiddleware)
-	RegisterReviewRoute(mux, permissionMiddleware)
-	RegisterWishlistRoute(mux, permissionMiddleware)
-	RegisterFileRoute(mux, permissionMiddleware)
+	r := router.New(mux)
+	r.Use(
+		middleware.RecoveryMiddleware,
+		middleware.CORSMiddleware,
+	)
+
+	RegisterAuthRoute(r, pm)
+	RegisterUserRoute(r, pm)
+	RegisterRoleRoute(r, pm)
+	RegisterPermissionRoute(r, pm)
+	RegisterCategoryRoute(r, pm)
+	RegisterAddressRoute(r, pm)
+	RegisterBrowsingHistoryRoute(r, pm)
+	RegisterReviewRoute(r, pm)
+	RegisterWishlistRoute(r, pm)
+	RegisterFileRoute(r, pm)
 }

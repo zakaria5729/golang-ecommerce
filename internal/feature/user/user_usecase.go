@@ -24,30 +24,14 @@ func NewUserUseCase() *UserUseCase {
 	}
 }
 
-// func (uc *UserUseCase) GetUserProfile(userID uint, includeStr string) (*UserResponse, error) {
-// 	include := utils.ParseCommaSeparatedString(includeStr)
-// 	user, err := uc.userRepo.GetUserByID(userID, include)
-// 	if err != nil {
-// 		logger.Logger.Error("User not found", "method", "GetUserProfile", "error", err, "userID", userID)
-// 		return nil, errors.New("user not found")
-// 	}
-
-// 	return user.ToResponse(), nil
-// }
-
-// // IsUserBanned checks if a user is banned (lightweight query - only checks banned status)
-// func (uc *UserUseCase) IsUserBanned(userID uint) (bool, error) {
-// 	return uc.userRepo.IsUserBanned(userID)
-// }
-
 // **REQUIRED
 func (uc *UserUseCase) UpdateProfile(userID uint, req *UpdateProfileRequest) error {
 	user := &User{
 		Name:    req.Name,
 		PathKey: req.PathKey,
 	}
-	user.Sanitize()
 
+	user.Sanitize()
 	err := uc.userRepo.UpdateNameAndPathKey(userID, user.Name, user.PathKey)
 	if err != nil {
 		logger.Logger.Error("Failed to update user profile", "method", "UpdateUserProfile", "error", err, "userID", user.ID)
@@ -127,92 +111,6 @@ func (uc *UserUseCase) DeleteUser(userID uint) error {
 	logger.Logger.Info("User deleted successfully", "method", "DeleteUser", "userID", userID)
 	return nil
 }
-
-// // BanUser bans a user account
-// func (uc *UserUseCase) BanUser(userID uint) error {
-// 	user, err := uc.userRepo.GetUserByID(userID, nil)
-// 	if err != nil {
-// 		logger.Logger.Error("User not found", "method", "BanUser", "error", err, "userID", userID)
-// 		return errors.New("user not found")
-// 	}
-
-// 	user.Banned = true
-// 	_, err = uc.userRepo.UpdateUser(user)
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to ban user", "method", "BanUser", "error", err, "userID", userID)
-// 		return fmt.Errorf("failed to ban user: %w", err)
-// 	}
-
-// 	logger.Logger.Info("User banned successfully", "method", "BanUser", "userID", userID)
-// 	return nil
-// }
-
-// // UnbanUser unbans a user account
-// func (uc *UserUseCase) UnbanUser(userID uint) error {
-// 	user, err := uc.userRepo.GetUserByID(userID, nil)
-// 	if err != nil {
-// 		logger.Logger.Error("User not found", "method", "UnbanUser", "error", err, "userID", userID)
-// 		return errors.New("user not found")
-// 	}
-
-// 	user.Banned = false
-// 	_, err = uc.userRepo.UpdateUser(user)
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to unban user", "method", "UnbanUser", "error", err, "userID", userID)
-// 		return fmt.Errorf("failed to unban user: %w", err)
-// 	}
-
-// 	logger.Logger.Info("User unbanned successfully", "method", "UnbanUser", "userID", userID)
-// 	return nil
-// }
-
-// func (uc *UserUseCase) VerifyUser(userID uint) error {
-// 	user, err := uc.userRepo.GetUserByID(userID, nil)
-// 	if err != nil {
-// 		logger.Logger.Error("User not found", "method", "VerifyUser", "error", err, "userID", userID)
-// 		return errors.New("user not found")
-// 	}
-
-// 	user.Verified = true
-// 	_, err = uc.userRepo.UpdateUser(user)
-// 	if err != nil {
-// 		logger.Logger.Error("Failed to verify user", "method", "VerifyUser", "error", err, "userID", userID)
-// 		return fmt.Errorf("failed to verify user: %w", err)
-// 	}
-
-// 	logger.Logger.Info("User verified successfully", "method", "VerifyUser", "userID", userID)
-// 	return nil
-// }
-
-// func (uc *UserUseCase) AssignRoleToUser(userID uint, roleID uint) error {
-// 	_, err := uc.userRepo.GetUserByID(userID, nil)
-// 	if err != nil {
-// 		logger.Logger.Error("User not found", "method", "AssignRoleToUser", "error", err, "userID", userID)
-// 		return errors.New("user not found")
-// 	}
-
-// 	_, err = uc.roleRepo.GetRoleByID(roleID, nil)
-// 	if err != nil {
-// 		logger.Logger.Error("Role not found", "method", "AssignRoleToUser", "error", err, "roleID", roleID)
-// 		return errors.New("role not found")
-// 	}
-
-// 	if err := uc.userRepo.AssignRolesToUser(userID, []uint{roleID}); err != nil {
-// 		logger.Logger.Error("Failed to assign role to user", "method", "AssignRoleToUser", "error", err, "userID", userID, "roleID", roleID)
-// 		return fmt.Errorf("failed to assign role: %w", err)
-// 	}
-
-// 	logger.Logger.Info("Role assigned to user successfully", "method", "AssignRoleToUser", "userID", userID, "roleID", roleID)
-// 	return nil
-// }
-
-// func (uc *UserUseCase) GetUserStatus(userID uint) (banned bool, verified bool, err error) {
-// 	if userID == 0 {
-// 		return false, false, errors.New("invalid user ID")
-// 	}
-
-// 	return uc.userRepo.GetUserStatus(userID)
-// }
 
 // **REQUIRED
 func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error) {
@@ -308,4 +206,106 @@ func (uc *UserUseCase) getUserResponses(users []User) []UserResponse {
 // 		return false, err
 // 	}
 // 	return exists, nil
+// }
+
+// // BanUser bans a user account
+// func (uc *UserUseCase) BanUser(userID uint) error {
+// 	user, err := uc.userRepo.GetUserByID(userID, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("User not found", "method", "BanUser", "error", err, "userID", userID)
+// 		return errors.New("user not found")
+// 	}
+
+// 	user.Banned = true
+// 	_, err = uc.userRepo.UpdateUser(user)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to ban user", "method", "BanUser", "error", err, "userID", userID)
+// 		return fmt.Errorf("failed to ban user: %w", err)
+// 	}
+
+// 	logger.Logger.Info("User banned successfully", "method", "BanUser", "userID", userID)
+// 	return nil
+// }
+
+// // UnbanUser unbans a user account
+// func (uc *UserUseCase) UnbanUser(userID uint) error {
+// 	user, err := uc.userRepo.GetUserByID(userID, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("User not found", "method", "UnbanUser", "error", err, "userID", userID)
+// 		return errors.New("user not found")
+// 	}
+
+// 	user.Banned = false
+// 	_, err = uc.userRepo.UpdateUser(user)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to unban user", "method", "UnbanUser", "error", err, "userID", userID)
+// 		return fmt.Errorf("failed to unban user: %w", err)
+// 	}
+
+// 	logger.Logger.Info("User unbanned successfully", "method", "UnbanUser", "userID", userID)
+// 	return nil
+// }
+
+// func (uc *UserUseCase) VerifyUser(userID uint) error {
+// 	user, err := uc.userRepo.GetUserByID(userID, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("User not found", "method", "VerifyUser", "error", err, "userID", userID)
+// 		return errors.New("user not found")
+// 	}
+
+// 	user.Verified = true
+// 	_, err = uc.userRepo.UpdateUser(user)
+// 	if err != nil {
+// 		logger.Logger.Error("Failed to verify user", "method", "VerifyUser", "error", err, "userID", userID)
+// 		return fmt.Errorf("failed to verify user: %w", err)
+// 	}
+
+// 	logger.Logger.Info("User verified successfully", "method", "VerifyUser", "userID", userID)
+// 	return nil
+// }
+
+// func (uc *UserUseCase) AssignRoleToUser(userID uint, roleID uint) error {
+// 	_, err := uc.userRepo.GetUserByID(userID, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("User not found", "method", "AssignRoleToUser", "error", err, "userID", userID)
+// 		return errors.New("user not found")
+// 	}
+
+// 	_, err = uc.roleRepo.GetRoleByID(roleID, nil)
+// 	if err != nil {
+// 		logger.Logger.Error("Role not found", "method", "AssignRoleToUser", "error", err, "roleID", roleID)
+// 		return errors.New("role not found")
+// 	}
+
+// 	if err := uc.userRepo.AssignRolesToUser(userID, []uint{roleID}); err != nil {
+// 		logger.Logger.Error("Failed to assign role to user", "method", "AssignRoleToUser", "error", err, "userID", userID, "roleID", roleID)
+// 		return fmt.Errorf("failed to assign role: %w", err)
+// 	}
+
+// 	logger.Logger.Info("Role assigned to user successfully", "method", "AssignRoleToUser", "userID", userID, "roleID", roleID)
+// 	return nil
+// }
+
+// func (uc *UserUseCase) GetUserStatus(userID uint) (banned bool, verified bool, err error) {
+// 	if userID == 0 {
+// 		return false, false, errors.New("invalid user ID")
+// 	}
+
+// 	return uc.userRepo.GetUserStatus(userID)
+// }
+
+// func (uc *UserUseCase) GetUserProfile(userID uint, includeStr string) (*UserResponse, error) {
+// 	include := utils.ParseCommaSeparatedString(includeStr)
+// 	user, err := uc.userRepo.GetUserByID(userID, include)
+// 	if err != nil {
+// 		logger.Logger.Error("User not found", "method", "GetUserProfile", "error", err, "userID", userID)
+// 		return nil, errors.New("user not found")
+// 	}
+
+// 	return user.ToResponse(), nil
+// }
+
+// // IsUserBanned checks if a user is banned (lightweight query - only checks banned status)
+// func (uc *UserUseCase) IsUserBanned(userID uint) (bool, error) {
+// 	return uc.userRepo.IsUserBanned(userID)
 // }

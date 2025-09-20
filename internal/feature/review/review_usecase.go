@@ -7,7 +7,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type ReviewUseCase struct {
@@ -148,7 +147,7 @@ func (uc *ReviewUseCase) GetReviewsByProduct(productID uint, includeStr string, 
 
 	reviews, total, err := uc.repo.GetReviewsByProduct(productID, include, rating, page, pageSize, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by product", "method", "GetReviewsByProduct", "error", err, "productID", productID, "include", include, "rating", ratingPtr, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews by product", "method", "GetReviewsByProduct", "error", err, "productID", productID, "include", include, "rating", rating, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
@@ -194,37 +193,4 @@ func (uc *ReviewUseCase) GetProductRatingStats(productID uint) (*ProductRatingSt
 		AverageRating: avgRating,
 		RatingCounts:  ratingCounts,
 	}, nil
-}
-
-func (uc *ReviewUseCase) ValidateReviewInput(ratingStr string, comment string) []validator.ValidationError {
-	var errors []validator.ValidationError
-
-	if ratingStr == "" {
-		errors = append(errors, validator.ValidationError{
-			Field:   "rating",
-			Message: "rating is required",
-		})
-	} else {
-		rating, err := utils.ParseInt(ratingStr)
-		if err != nil {
-			errors = append(errors, validator.ValidationError{
-				Field:   "rating",
-				Message: "rating must be a valid number",
-			})
-		} else if *rating < constants.MinReviewRating || *rating > constants.MaxReviewRating {
-			errors = append(errors, validator.ValidationError{
-				Field:   "rating",
-				Message: fmt.Sprintf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating),
-			})
-		}
-	}
-
-	if comment != "" || len(comment) > 1000 {
-		errors = append(errors, validator.ValidationError{
-			Field:   "comment",
-			Message: "comment must be less than 1000 characters",
-		})
-	}
-
-	return errors
 }

@@ -59,7 +59,7 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // **REQUIRED
-func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
+func (h *RoleHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Request) {
 	var req role.CreateRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateRole") {
 		return
@@ -164,12 +164,8 @@ func (h *RoleHandler) validateUpdateRoleRequest(req *role.UpdateRoleRequest) val
 }
 
 func (h *RoleHandler) validateAssignRoleRequest(req *role.AssignRoleRequest) validator.ValidationErrors {
-	var errors validator.ValidationErrors
-	if req.UserID == 0 {
-		errors.AddError("user_id", "user_id is required")
-	}
-	if req.RoleId == 0 {
-		errors.AddError("roles", "role_id is required")
-	}
-	return errors
+	return validator.MergeValidationErrors(
+		validator.ValidatePositiveInteger(req.UserID, "user_id"),
+		validator.ValidatePositiveInteger(req.RoleId, "role_id"),
+	)
 }
