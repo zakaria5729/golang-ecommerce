@@ -203,6 +203,15 @@ func (uc *UserUseCase) UpdateUser(id uint, req *UpdateUserRequest) error {
 	return nil
 }
 
+func (uc *UserUseCase) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
+	err := uc.userRepo.UpdateUserPurchaseCountAndTotalSpent(userID, purchaseCount, totalSpent)
+	if err != nil {
+		logger.Logger.Error("Failed to update user purchase count and total spent", "method", "UpdateUserPurchaseCountAndTotalSpent", "error", err, "userID", userID, "purchaseCount", purchaseCount, "totalSpent", totalSpent)
+		return fmt.Errorf("failed to update user purchase count and total spent: %w", err)
+	}
+	return nil
+}
+
 func (uc *UserUseCase) getUserResponses(users []User) []UserResponse {
 	responses := make([]UserResponse, len(users))
 	for i, user := range users {

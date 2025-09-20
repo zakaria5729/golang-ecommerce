@@ -51,6 +51,8 @@ const (
 	UserRolesCapitalized            = "Roles"
 	UserRolesPermissionsCapitalized = "Roles.Permissions"
 	UsersCapitalized                = "Users"
+	UserPurchaseCount               = "purchase_count"
+	UserTotalSpent                  = "total_spent"
 )
 
 const (

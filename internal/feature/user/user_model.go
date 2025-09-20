@@ -26,6 +26,8 @@ type User struct {
 	Name                 string      `gorm:"not null;column:name"`
 	Verified             bool        `gorm:"default:false;column:verified"`
 	Banned               bool        `gorm:"default:false;column:banned"`
+	PurchaseCount        uint        `gorm:"default:0;column:purchase_count"`
+	TotalSpent           uint        `gorm:"default:0;column:total_spent"`
 }
 
 func (User) TableName() string {
@@ -57,13 +59,15 @@ func (u *User) CheckPassword(password string) bool {
 
 func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
-		BaseModel:   u.BaseModel,
-		LastLoginAt: u.LastLoginAt,
-		ImageURL:    utils.BuildFullImageURL(u.PathKey),
-		Roles:       u.Roles,
-		Email:       u.Email,
-		Name:        u.Name,
-		Verified:    u.Verified,
-		Banned:      u.Banned,
+		BaseModel:     u.BaseModel,
+		LastLoginAt:   u.LastLoginAt,
+		ImageURL:      utils.BuildFullImageURL(u.PathKey),
+		Roles:         u.Roles,
+		Email:         u.Email,
+		Name:          u.Name,
+		Verified:      u.Verified,
+		Banned:        u.Banned,
+		PurchaseCount: u.PurchaseCount,
+		TotalSpent:    float64(u.TotalSpent / 100),
 	}
 }

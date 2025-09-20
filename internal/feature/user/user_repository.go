@@ -305,6 +305,25 @@ func (r *UserRepository) GetUserByRefreshToken(token string) (*User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
+	var user User
+	err := r.db.Select(constants.UserPurchaseCount, constants.UserTotalSpent).Where(constants.FieldID+" = ?", userID).First(&user).Error
+	if err != nil {
+		logger.Logger.Error("Failed to fetch user by ID", "method", "UpdateUserPurchaseCountAndTotalSpent", "error", err, "id", userID)
+		return err
+	}
+
+	err = r.db.Model(&User{}).Where(constants.FieldID+" = ?", userID).Updates(map[string]any{
+		constants.UserPurchaseCount: user.PurchaseCount + purchaseCount,
+		constants.UserTotalSpent:    user.TotalSpent + totalSpent,
+	}).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to update user purchase count and total spent", "method", "UpdateUserPurchaseCountAndTotalSpent", "error", err, "userID", userID, "purchaseCount", purchaseCount, "totalSpent", totalSpent)
+	}
+	return err
+}
+
 func (r *UserRepository) getSelectableFields(include []string) []string {
 	defaultFields := []string{constants.FieldID, constants.UserEmail, constants.UserName, constants.UserVerified, constants.UserBanned, constants.FieldCreatedAt, constants.FieldUpdatedAt}
 	optionalFields := []string{constants.UserLastLoginAt, constants.UserPassword}
