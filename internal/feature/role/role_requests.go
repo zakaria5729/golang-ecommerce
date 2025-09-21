@@ -23,6 +23,11 @@ type AssignRoleRequest struct {
 	UserID uint `json:"user_id"`
 }
 
+type AddPermissionsToRoleRequest struct {
+	RoleID          uint     `json:"role_id"`
+	PermissionNames []string `json:"permission_names"`
+}
+
 func (r *CreateRoleRequest) Sanitize() {
 	if r.RoleName != "" {
 		r.RoleName = utils.Trim(r.RoleName)

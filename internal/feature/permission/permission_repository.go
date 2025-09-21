@@ -21,9 +21,65 @@ func NewPermissionRepository() *PermissionRepository {
 	}
 }
 
-func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
+func (r *PermissionRepository) CreatePermissionsIfNotExists(permissionNames []string, showDeleted *bool) error {
+	var existingPermissions []Permission
+	query := r.db.Model(&Permission{})
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	if err := query.Where(constants.PermissionName+" IN ?", permissionNames).Find(&existingPermissions).Error; err != nil {
+		logger.Logger.Error("Failed to fetch existing permissions", "method", "CreatePermissionsIfNotExists", "error", err)
+		return err
+	}
+
+	existingNamesMap := make(map[string]bool, len(existingPermissions))
+	for _, perm := range existingPermissions {
+		existingNamesMap[perm.Name] = true
+	}
+
+	var toCreatePermissions []Permission
+	for _, name := range permissionNames {
+		if !existingNamesMap[name] {
+			desc := constants.PermissionMap[name]
+
+			toCreatePermissions = append(
+				toCreatePermissions,
+				Permission{
+					Name:        name,
+					Description: &desc,
+				},
+			)
+		}
+	}
+
+	if len(toCreatePermissions) > 0 {
+		if err := r.db.Create(&toCreatePermissions).Error; err != nil {
+			logger.Logger.Error("Failed to create permissions", "method", "CreatePermissionsIfNotExists", "error", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *PermissionRepository) ExistsByName(permissionName string) (exists bool, err error) {
+	var count int64
+	if err := r.db.Model(&Permission{}).Where(constants.PermissionName+" = ?", permissionName).Count(&count).Error; err != nil {
+		logger.Logger.Error("Failed to check if permission exists", "method", "ExistsByName", "error", err, "permissionName", permissionName)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string, showDeleted *bool) ([]Permission, error) {
 	var permissions []Permission
 	query := r.db.Model(&Permission{})
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)

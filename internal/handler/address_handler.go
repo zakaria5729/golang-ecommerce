@@ -141,6 +141,21 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
+	if err != nil || id == nil || *id == 0 {
+		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.useCase.DeleteAddress(*id); err != nil {
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendDeleteJSON(w, "Address deleted successfully")
+}
+
+func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := middleware.GetUserIDFromContext(r)
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -153,12 +168,12 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.useCase.DeleteAddress(*id, *userID); err != nil {
+	if err := h.useCase.RemoveAddress(*id, *userID); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response.SendDeleteJSON(w, "Address deleted successfully")
+	response.SendDeleteJSON(w, "Address removed successfully")
 }
 
 func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Request) {

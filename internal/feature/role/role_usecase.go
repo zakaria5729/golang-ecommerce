@@ -104,7 +104,7 @@ func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
 	}
 	role.Permissions = permissions
 
-	if err := uc.roleRepo.CreateRole(role); err != nil {
+	if role, err := uc.roleRepo.CreateRole(role); err != nil {
 		logger.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
 		return nil, fmt.Errorf("failed to create role: %w", err)
 	}
@@ -214,8 +214,17 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 	return nil
 }
 
+func (uc *RoleUseCase) AddPermissionsToRole(roleID uint, req *AddPermissionsToRoleRequest) error {
+	if err := uc.roleRepo.AddPermissionsToRole(roleID, req.PermissionNames, nil); err != nil {
+		logger.Logger.Error("Failed to add permissions to role", "method", "AddPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", req.PermissionNames)
+		return fmt.Errorf("failed to add permissions to role: %w", err)
+	}
+
+	return nil
+}
+
 func (uc *RoleUseCase) GetRoleByType(roleType string) (*Role, error) {
-	role, err := uc.roleRepo.GetRoleByType(roleType)
+	role, err := uc.roleRepo.GetRoleByType(roleType, nil)
 	if err != nil {
 		logger.Logger.Error("Role not found", "method", "GetRoleByType", "error", err, "roleType", roleType)
 		return nil, errors.New("role not found")
@@ -226,7 +235,7 @@ func (uc *RoleUseCase) GetRoleByType(roleType string) (*Role, error) {
 
 func isValidRoleType(roleType string) bool {
 	switch roleType {
-	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeManager, constants.RoleTypeSeller, constants.RoleTypeUser:
+	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeMaintainer, constants.RoleTypeSeller, constants.RoleTypeUser:
 		return true
 	default:
 		return false

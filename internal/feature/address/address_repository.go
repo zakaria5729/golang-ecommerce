@@ -122,10 +122,18 @@ func (r *AddressRepository) UpdateAddress(address *Address) error {
 	return err
 }
 
-func (r *AddressRepository) DeleteAddress(id uint, userID uint) error {
+func (r *AddressRepository) DeleteAddress(id uint) error {
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Address{}).Error
+	if err != nil {
+		logger.Logger.Error("Failed to delete address", "method", "DeleteAddress", "error", err, "id", id)
+	}
+	return err
+}
+
+func (r *AddressRepository) RemoveAddress(id uint, userID uint) error {
 	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Delete(&Address{}).Error
 	if err != nil {
-		logger.Logger.Error("Failed to delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to remove address", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }

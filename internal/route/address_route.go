@@ -30,7 +30,7 @@ func RegisterAddressRoute(r *router.Router, pm *middleware.PermissionMiddleware)
 		pm.RequireAuthUserStatus(),
 	).Register()
 
-	r.DELETE("/addresses/id/{id}", h.DeleteAddress).Use(
+	r.POST("/addresses/id/{id}/remove", h.RemoveAddress).Use(
 		pm.RequireAuthUser(),
 	).Register()
 
@@ -40,6 +40,10 @@ func RegisterAddressRoute(r *router.Router, pm *middleware.PermissionMiddleware)
 
 	r.GET("/addresses/default", h.GetDefaultAddress).Use(
 		pm.RequireAuthUserStatus(),
+	).Register()
+
+	r.DELETE("/addresses/id/{id}", h.DeleteAddress).Use(
+		pm.RequirePermission(c.PermissionAddressDelete),
 	).Register()
 
 	r.POST("/addresses/id/{id}/undo", h.UndoDeleteAddress).Use(

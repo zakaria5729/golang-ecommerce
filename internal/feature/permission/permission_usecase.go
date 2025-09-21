@@ -17,7 +17,7 @@ func NewPermissionUseCase() *PermissionUseCase {
 }
 
 func (uc *PermissionUseCase) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
-	permissions, err := uc.permissionRepo.GetAllPermissions(sortBy, sortOrder)
+	permissions, err := uc.permissionRepo.GetAllPermissions(sortBy, sortOrder, nil)
 	if err != nil {
 		logger.Logger.Error("Failed to get all permissions", "method", "GetAllPermissions", "error", err)
 		return nil, err

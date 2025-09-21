@@ -160,6 +160,26 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Roles assigned successfully")
 }
 
+func (h *RoleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Request) {
+	var req role.AddPermissionsToRoleRequest
+	if !utils.DecodeJSON(w, r, &req, "AddPermissionsToRole") {
+		return
+	}
+
+	if validationErrors := h.validateAddPermissionsToRoleRequest(&req); len(validationErrors) > 0 {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	if err := h.roleUseCase.AddPermissionsToRole(req.RoleID, &req); err != nil {
+		logger.Logger.Error("Add permissions to role failed", "method", "AddPermissionsToRole", "error", err, "roleID", req.RoleID)
+		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.SendCommonResponseJSON(w, "Permissions added to role successfully")
+}
+
 func (h *RoleHandler) validateCreateRoleRequest(req *role.CreateRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.RoleName, "role_name"),
@@ -181,5 +201,12 @@ func (h *RoleHandler) validateAssignRoleRequest(req *role.AssignRoleRequest) val
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.UserID, "user_id"),
 		validator.ValidatePositiveInteger(req.RoleId, "role_id"),
+	)
+}
+
+func (h *RoleHandler) validateAddPermissionsToRoleRequest(req *role.AddPermissionsToRoleRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
+		validator.ValidateRequiredBool(len(req.PermissionNames) > 0, "permission_names"),
 	)
 }

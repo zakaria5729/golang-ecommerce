@@ -132,16 +132,31 @@ func (uc *AddressUseCase) UpdateAddress(id uint, userID uint, req *Address) (*Ad
 	return existingAddress, nil
 }
 
-func (uc *AddressUseCase) DeleteAddress(id uint, userID uint) error {
-	exists, err := uc.repo.AddressExists(id, &userID, nil)
+func (uc *AddressUseCase) DeleteAddress(id uint) error {
+	exists, err := uc.repo.AddressExists(id, nil, nil)
 	if err != nil || !exists {
-		logger.Logger.Error("Address not found", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+		logger.Logger.Error("Address not found", "method", "DeleteAddress", "error", err, "id", id)
 		return fmt.Errorf("address not found: %w", err)
 	}
 
-	if err := uc.repo.DeleteAddress(id, userID); err != nil {
-		logger.Logger.Error("Failed to delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+	if err := uc.repo.DeleteAddress(id); err != nil {
+		logger.Logger.Error("Failed to delete address", "method", "DeleteAddress", "error", err, "id", id)
 		return fmt.Errorf("failed to delete address: %w", err)
+	}
+
+	return nil
+}
+
+func (uc *AddressUseCase) RemoveAddress(id uint, userID uint) error {
+	exists, err := uc.repo.AddressExists(id, &userID, nil)
+	if err != nil || !exists {
+		logger.Logger.Error("Address not found", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
+		return fmt.Errorf("address not found: %w", err)
+	}
+
+	if err := uc.repo.RemoveAddress(id, userID); err != nil {
+		logger.Logger.Error("Failed to remove address", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
+		return fmt.Errorf("failed to remove address: %w", err)
 	}
 
 	return nil

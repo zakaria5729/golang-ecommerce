@@ -30,8 +30,12 @@ func RegisterRoleRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 		pm.RequirePermission(c.PermissionRoleDelete),
 	).Register()
 
-	r.POST("/roles/assign", h.AssignRoleToUser).Use(
+	r.POST("/roles/assign-to-user", h.AssignRoleToUser).Use(
 		pm.RequirePermission(c.PermissionRoleAssign),
+	).Register()
+
+	r.POST("/roles/add-permissions", h.AddPermissionsToRole).Use(
+		pm.RequirePermission(c.PermissionRoleToAddPermissions),
 	).Register()
 
 	r.POST("/roles/{id}/undo", h.UndoDeletedRole).Use(

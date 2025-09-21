@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -86,11 +87,15 @@ func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*Role, e
 	return &role, nil
 }
 
-func (r *RoleRepository) GetRoleByType(roleType string) (*Role, error) {
+func (r *RoleRepository) GetRoleByType(roleType string, showDeleted *bool) (*Role, error) {
 	var role Role
 
-	if err := r.db.Model(&Role{}).Preload(constants.RolePermissionsCapitalized).
-		Where(constants.RoleRoleType+" = ?", roleType).
+	query := r.db.Model(&Role{}).Where(constants.RoleRoleType+" = ?", roleType)
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	if err := query.Preload(constants.RolePermissionsCapitalized).
 		First(&role).Error; err != nil {
 		logger.Logger.Error("Failed to fetch role by type", "method", "GetRoleByType", "error", err, "roleType", roleType)
 		return nil, err
@@ -99,12 +104,13 @@ func (r *RoleRepository) GetRoleByType(roleType string) (*Role, error) {
 	return &role, nil
 }
 
-func (r *RoleRepository) CreateRole(role *Role) error {
+func (r *RoleRepository) CreateRole(role *Role) (*Role, error) {
 	err := r.db.Create(role).Error
 	if err != nil {
 		logger.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
+		return nil, err
 	}
-	return err
+	return role, nil
 }
 
 func (r *RoleRepository) UpdateRole(role *Role) error {
@@ -174,6 +180,57 @@ func (r *RoleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 
 	if err != nil {
 		logger.Logger.Error("Failed to assign roles to user", "method", "AssignRolesToUser", "error", err, "userID", userID, "roleID", roleID)
+	}
+	return err
+}
+
+func (r *RoleRepository) AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var role Role
+		query := tx.Where(constants.FieldID+" = ?", roleID)
+
+		if showDeleted != nil && *showDeleted {
+			query = query.Unscoped()
+		}
+		if err := query.Preload(constants.RolePermissionsCapitalized).First(&role).Error; err != nil {
+			return err
+		}
+
+		var permissions []permission.Permission
+		query = tx.Where(constants.PermissionName+" IN ?", permissionNames)
+
+		if showDeleted != nil && *showDeleted {
+			query = query.Unscoped()
+		}
+		if err := query.Find(&permissions).Error; err != nil {
+			return err
+		}
+
+		existingPermissionNames := make(map[string]bool)
+		for _, perm := range role.Permissions {
+			existingPermissionNames[perm.Name] = true
+		}
+
+		var newPermissions []permission.Permission
+		for _, perm := range permissions {
+			if !existingPermissionNames[perm.Name] {
+				newPermissions = append(newPermissions, perm)
+			}
+		}
+
+		if len(newPermissions) > 0 {
+			query = tx.Model(&role)
+			if showDeleted != nil && *showDeleted {
+				query = query.Unscoped()
+			}
+			return query.Association(constants.RolePermissionsCapitalized).Append(newPermissions)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		logger.Logger.Error("Failed to add permissions to role", "method", "AddPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", permissionNames)
 	}
 	return err
 }
