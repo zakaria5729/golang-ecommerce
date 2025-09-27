@@ -6,9 +6,11 @@ CREATE TABLE IF NOT EXISTS product_stats (
     remove_from_cart_count INT NOT NULL DEFAULT 0,
     wishlist_count INT NOT NULL DEFAULT 0,
     remove_from_wishlist_count INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 -- add foreign key to product table

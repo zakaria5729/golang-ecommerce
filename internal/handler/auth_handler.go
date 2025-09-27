@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -152,19 +152,24 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil || *id == 0 {
+	userID, err := utils.ParseUint(r.PathValue(c.FieldUserID))
+	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.authUseCase.Logout(*id); err != nil {
-		logger.Logger.Error("Logout failed", "method", "Logout", "error", err, "userID", id)
+	if err := h.authUseCase.Logout(*userID); err != nil {
+		logger.Logger.Error("Logout failed", "method", "Logout", "error", err, "userID", userID)
 		response.SendErrorJSON(w, "Logout failed", http.StatusInternalServerError)
 		return
 	}
 
 	response.SendCommonResponseJSON(w, "Logged out successfully")
+}
+
+func (h *AuthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	healthResponse := h.authUseCase.HealthCheck(r.Context())
+	response.SendSuccessJSON(w, healthResponse)
 }
 
 func (h *AuthHandler) validateRefreshTokenRequest(req *auth.RefreshTokenRequest) validator.ValidationErrors {

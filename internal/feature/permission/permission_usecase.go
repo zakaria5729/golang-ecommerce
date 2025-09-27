@@ -34,25 +34,25 @@ func (uc *PermissionUseCase) GetPermissionByID(id uint) (*Permission, error) {
 	return permission, nil
 }
 
-func (uc *PermissionUseCase) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
+func (uc *PermissionUseCase) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	if userID <= 0 {
-		return false, false, false, errors.New("invalid user ID")
+		return false, false, nil, false, errors.New("invalid user ID")
 	}
 
 	if permission == "" {
-		return false, false, false, errors.New("permission cannot be empty")
+		return false, false, nil, false, errors.New("permission cannot be empty")
 	}
 
 	return uc.permissionRepo.GetUserStatusAndPermission(userID, permission)
 }
 
-func (uc *PermissionUseCase) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
+func (uc *PermissionUseCase) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	if userID == 0 {
-		return false, false, false, errors.New("invalid user ID")
+		return false, false, nil, false, errors.New("invalid user ID")
 	}
 
 	if len(permissions) == 0 {
-		return false, false, false, errors.New("permissions cannot be empty")
+		return false, false, nil, false, errors.New("permissions cannot be empty")
 	}
 
 	return uc.permissionRepo.GetUserStatusAndAnyPermission(userID, permissions)

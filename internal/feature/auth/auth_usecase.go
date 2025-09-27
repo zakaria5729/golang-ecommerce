@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
@@ -236,4 +239,28 @@ func (uc *AuthUseCase) Logout(userID uint) error {
 		return err
 	}
 	return nil
+}
+
+func (uc *AuthUseCase) HealthCheck(ctx context.Context) *HealthResponse {
+	dbStatus := "healthy"
+
+	sqlDB, err := db.GetDB().DB()
+	if err != nil {
+		dbStatus = "unhealthy"
+		logger.Logger.Error("Failed to get database instance", "error", err)
+	} else {
+		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+
+		if err := sqlDB.PingContext(pingCtx); err != nil {
+			dbStatus = "unhealthy"
+			logger.Logger.Error("Database ping failed", "error", err)
+		}
+	}
+
+	return &HealthResponse{
+		ServerStatus: "healthy",
+		DBStatus:     dbStatus,
+		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+	}
 }

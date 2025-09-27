@@ -155,8 +155,7 @@ func (r *AddressRepository) SetDefaultAddress(id uint, userID uint, addressType 
 }
 
 func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bool) (bool, error) {
-	var count int64
-	query := r.db.Where(c.FieldID+" = ?", id)
+	query := r.db.Model(&Address{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -165,11 +164,14 @@ func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bo
 		query = query.Where(c.AddressUserID+" = ?", *userID)
 	}
 
-	err := r.db.Model(&Address{}).Where(query).Count(&count).Error
-	if err != nil {
+	var address Address
+	err := query.Select(c.FieldID).Take(&address).Error
+	if err != nil || address.ID == 0 {
 		logger.Logger.Error("Failed to check if address exists", "method", "AddressExists", "error", err, "id", id, "userID", userID)
+		return false, err
 	}
-	return count > 0, err
+
+	return true, nil
 }
 
 func (r *AddressRepository) GetDefaultAddress(userID uint, addressType string) (*Address, error) {

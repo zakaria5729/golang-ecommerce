@@ -12,25 +12,34 @@ const (
 )
 
 const (
-	TableUser           = "users"
-	TableUserRole       = "user_roles"
-	TableRole           = "roles"
-	TableRolePermission = "role_permissions"
-	TablePermission     = "permissions"
-	TableUserStatus     = "user_status"
-	TableCategory       = "categories"
-	TableAddress        = "addresses"
-	TableReview         = "reviews"
-	TableWishlist       = "wishlists"
-	TableProductStats   = "product_stats"
+	TableUser            = "users"
+	TableUserRole        = "user_roles"
+	TableRole            = "roles"
+	TableRolePermission  = "role_permissions"
+	TablePermission      = "permissions"
+	TableUserStatus      = "user_status"
+	TableCategory        = "categories"
+	TableAddress         = "addresses"
+	TableReview          = "reviews"
+	TableWishlist        = "wishlists"
+	TableProductStats    = "product_stats"
+	TableBrand           = "brands"
+	TableColor           = "colors"
+	TableAttributeType   = "attribute_types"
+	TableAttributeOption = "attribute_options"
+	TableSizeCategory    = "size_categories"
+	TableSizeOption      = "size_options"
 )
 
 const (
 	FieldID        = "id"
 	FieldCreatedAt = "created_at"
 	FieldUpdatedAt = "updated_at"
+	FieldUpdatedBy = "updated_by"
 	FieldDeletedBy = "deleted_by"
 	FieldDeletedAt = "deleted_at"
+	FieldUserID    = "user_id"
+	FieldRoleID    = "role_id"
 )
 
 const (
@@ -110,4 +119,26 @@ const (
 const (
 	WishlistUserID    = "user_id"
 	WishlistProductID = "product_id"
+)
+
+const (
+	BrandName        = "name"
+	BrandDescription = "description"
+)
+
+const (
+	ColorName = "name"
+)
+
+const (
+	AttributeTypeName                  = "name"
+	AttributeOptionAttributeTypeID     = "attribute_type_id"
+	AttributeOptionAttributeOptionName = "attribute_option_name"
+)
+
+const (
+	SizeOptionName           = "name"
+	SizeOptionSortOrder      = "sort_order"
+	SizeOptionSizeCategoryID = "size_category_id"
+	SizeCategoryName         = "name"
 )

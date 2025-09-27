@@ -2,7 +2,6 @@ package tokenutil
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,28 +16,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// import (
-// 	"crypto/rand"
-// 	"encoding/hex"
-// 	"errors"
-// 	"fmt"
-// 	"net/http"
-// 	"strings"
-
-// 	"github.com/easy-comerce/backend/internal/feature/user"
-// 	"github.com/easy-comerce/backend/pkg/constants"
-// 	"github.com/easy-comerce/backend/pkg/logger"
-// 	"github.com/easy-comerce/backend/pkg/models"
-// 	"github.com/easy-comerce/backend/pkg/timeutil"
-// 	"github.com/golang-jwt/jwt/v5"
-// )
-
 func GenerateNewToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
+	ts := time.Now().UnixNano()
+	randBytes := make([]byte, 6)
+	if _, err := rand.Read(randBytes); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(bytes), nil
+	return fmt.Sprintf("%x%x", ts, randBytes), nil
 }
 
 func GenerateNewRefreshToken() (string, time.Time, error) {

@@ -32,11 +32,11 @@ func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 	}
 
 	if dateFrom != nil {
-		query = query.Where(c.ProductStatsViewCount+" >= ?", *dateFrom)
+		query = query.Where(c.FieldCreatedAt+" >= ?", *dateFrom)
 	}
 
 	if dateTo != nil {
-		query = query.Where(c.ProductStatsViewCount+" <= ?", *dateTo)
+		query = query.Where(c.FieldCreatedAt+" <= ?", *dateTo)
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &[]string{c.ProductStatsViewCount}); orderClause != "" {

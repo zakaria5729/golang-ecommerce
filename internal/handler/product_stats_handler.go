@@ -26,7 +26,7 @@ func (h *ProductStatsHandler) GetAllProductStatsPaginated(w http.ResponseWriter,
 	pageSizeStr := q.Get(c.PageSize)
 	productIDFilter := q.Get(c.SortOrder)
 	dateFromFilter := q.Get("date_from")
-	dateToFilter := q.Get(c.SortOrder)
+	dateToFilter := q.Get("date_to")
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 

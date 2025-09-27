@@ -26,8 +26,11 @@ func NewUserUseCase() *UserUseCase {
 
 func (uc *UserUseCase) UpdateProfile(userID uint, req *UpdateProfileRequest) error {
 	user := &User{
-		Name:    req.Name,
-		PathKey: req.PathKey,
+		Name: req.Name,
+	}
+
+	if req.PathKey != nil && *req.PathKey != "" {
+		user.PathKey = req.PathKey
 	}
 
 	user.Sanitize()
@@ -54,7 +57,6 @@ func (uc *UserUseCase) GetAllUsersPaginated(includeStr string, showDeletedStr st
 	return utils.BuildPaginatedResponse(uc.getUserResponses(users), total, page, pageSize), nil
 }
 
-// **REQUIRED
 func (uc *UserUseCase) GetUserByID(userID uint, includeStr string, showDeletedStr string) (*UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
@@ -80,17 +82,18 @@ func (uc *UserUseCase) GetAuthUserByID(userID uint, includeRoles bool, includePe
 	return user, nil
 }
 
-func (uc *UserUseCase) GetAuthUserStatusByID(userID uint) (bool, bool, error) {
+func (uc *UserUseCase) GetAuthUserStatusByID(userID uint) (bool, bool, *string, error) {
 	if userID <= 0 {
-		return false, false, errors.New("invalid user ID")
+		return false, false, nil, errors.New("invalid user ID")
 	}
 
-	banned, verified, err := uc.userRepo.GetAuthUserStatusByID(userID)
+	banned, verified, refreshToken, err := uc.userRepo.GetAuthUserStatusByID(userID)
 	if err != nil {
 		logger.Logger.Error("User not found", "method", "GetAuthUserStatusByID", "error", err, "userID", userID)
-		return false, false, errors.New("user not found")
+		return false, false, nil, errors.New("user not found")
 	}
-	return banned, verified, nil
+
+	return banned, verified, refreshToken, nil
 }
 
 func (uc *UserUseCase) DeleteUser(userID uint) error {

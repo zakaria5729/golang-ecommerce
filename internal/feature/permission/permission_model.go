@@ -8,8 +8,8 @@ import (
 
 type Permission struct {
 	models.BaseModel
-	Description *string `gorm:"column:description"`
-	Name        string  `gorm:"uniqueIndex;not null;column:name"`
+	Description *string `json:"description,omitempty" gorm:"column:description"`
+	Name        string  `json:"name" gorm:"uniqueIndex;not null;column:name"`
 }
 
 func (Permission) TableName() string {

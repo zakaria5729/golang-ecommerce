@@ -5,42 +5,37 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/joho/godotenv"
 )
 
-var cfg Config
+var (
+	cfg  *Config
+	once sync.Once
+)
+
+func GetConfig() *Config {
+	if cfg == nil {
+		panic("config not initialized. Call InitConfig() first")
+	}
+	return cfg
+}
+
+func InitConfig() *Config {
+	once.Do(func() {
+		cfg = loadConfig()
+	})
+	return cfg
+}
 
 func GetActiveProfile() string {
 	return getEnv(c.EnvActiveProfile, c.EnvDev)
 }
 
-type Config struct {
-	Port       string
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
-	DBShowLog  string
-	JWTSecret  string
-	ObjStore   ObjectStoreConfig
-}
-
-type ObjectStoreConfig struct {
-	Region          string
-	BucketName      string
-	AccountID       string
-	AccessKeyID     string
-	AccessKeySecret string
-	PublicDomain    string
-}
-
-func Load() Config {
-	// Clear existing environment variables to ensure fresh load
+func loadConfig() *Config {
 	envVars := []string{
 		c.EnvKeyPort,
 		c.EnvKeyDBHost,
@@ -82,7 +77,7 @@ func Load() Config {
 		logger.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
 	}
 
-	cfg = Config{
+	config := &Config{
 		Port:       getEnvWithPanic(c.EnvKeyPort),
 		DBHost:     getEnvWithPanic(c.EnvKeyDBHost),
 		DBPort:     getEnvWithPanic(c.EnvKeyDBPort),
@@ -101,11 +96,14 @@ func Load() Config {
 			PublicDomain:    getEnvWithPanic(c.EnvKeyObjStorePublicDomain),
 		},
 	}
-	return cfg
+
+	logger.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
+	return config
 }
 
 func GetPublicDomain() string {
-	publicDomain := cfg.ObjStore.PublicDomain
+	config := GetConfig()
+	publicDomain := config.ObjStore.PublicDomain
 	if publicDomain == "" {
 		publicDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
 	}

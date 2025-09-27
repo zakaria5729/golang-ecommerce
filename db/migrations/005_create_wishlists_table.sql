@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS wishlists (
     product_id INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     UNIQUE(user_id, product_id)
 );
 

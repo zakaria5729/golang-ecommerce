@@ -9,11 +9,13 @@ import (
 func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	h := handler.NewAuthHandler(pm.GetJWTSecret())
 
+	r.GET("/health", h.HealthCheck).Register()
+
 	r.POST("/auth/login", h.Login).Register()
 
 	r.POST("/auth/register", h.Register).Register()
 
-	r.POST("/auth/logout/id/{id}", h.Logout).Register()
+	r.POST("/auth/logout/user/{user_id}", h.Logout).Register()
 
 	r.POST("/auth/refresh-token", h.RefreshToken).Register()
 

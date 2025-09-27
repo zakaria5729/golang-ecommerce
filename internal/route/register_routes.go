@@ -3,18 +3,18 @@ package route
 import (
 	"net/http"
 
-	"github.com/easy-comerce/backend/pkg/config"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
-	pm := m.NewPermissionMiddleware(cfg.JWTSecret)
+func RegisterAllRoutes(mux *http.ServeMux) {
+	pm := m.NewPermissionMiddleware()
 	r := router.New(mux)
 	r.Use(
 		m.RecoveryMiddleware,
 		m.LoggingMiddleware,
 		m.CORSMiddleware,
+		// m.AnalyticsMiddleware(),
 	)
 
 	RegisterAuthRoute(r, pm)
@@ -27,4 +27,11 @@ func RegisterAllRoutes(mux *http.ServeMux, cfg config.Config) {
 	RegisterReviewRoute(r, pm)
 	RegisterWishlistRoute(r, pm)
 	RegisterFileRoute(r, pm)
+	RegisterBrandRoute(r, pm)
+	RegisterColorRoute(r, pm)
+	RegisterAttributeTypeRoute(r, pm)
+	RegisterAttributeOptionRoute(r, pm)
+	RegisterSizeCategoryRoute(r, pm)
+	RegisterSizeOptionRoute(r, pm)
+	RegisterAnalyticsRoute(r, pm)
 }

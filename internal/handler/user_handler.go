@@ -179,10 +179,11 @@ func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) validateUpdateProfileRequest(req *user.UpdateProfileRequest) validator.ValidationErrors {
-	return validator.MergeValidationErrors(
+	errors := validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
-		validator.ValidateRequired(*req.PathKey, "path_key"),
 	)
+
+	return errors
 }
 
 func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) validator.ValidationErrors {

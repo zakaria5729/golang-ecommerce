@@ -7,17 +7,20 @@ import (
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
+	"github.com/easy-comerce/backend/pkg/tokenutil"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := timeutil.NowUTC()
-		next.ServeHTTP(w, r)
-		duration := time.Since(start)
-
-		if duration >= time.Second {
-			logger.Logger.Info("HTTP Response", "method", r.Method, "path", r.URL.Path, "duration", duration.String())
+		requestID, err := tokenutil.GenerateNewToken()
+		if err != nil {
+			requestID = timeutil.NowUTC().Format("20060102150405")
 		}
+		start := timeutil.NowUTC()
+		logger.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path)
+
+		next.ServeHTTP(w, r)
+		logger.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "path", "request_id", requestID, r.URL.Path, "duration", time.Since(start).String())
 	})
 }
 

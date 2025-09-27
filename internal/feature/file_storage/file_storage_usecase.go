@@ -29,7 +29,8 @@ func (uc *FileStorageUseCase) UploadFile(ctx context.Context, userID uint, req F
 		return nil, fmt.Errorf("file is required")
 	}
 
-	if req.Folder != "" || !uc.isValidFolder(req.Folder) {
+	if req.Folder == "" || !uc.isValidFolder(req.Folder) {
+		logger.Logger.Error("Invalid folder given", "method", "UploadFile", "folder", req.Folder)
 		return nil, fmt.Errorf("invalid folder given")
 	}
 

@@ -102,6 +102,7 @@ func (uc *ProductStatsUseCase) parseTimeFilter(timeStr string) *time.Time {
 	formats := []string{
 		"2006-01-02T15:04:05Z07:00", // RFC3339
 		"2006-01-02 15:04:05",       // Standard format
+		"2006-01-02",                // Date format
 	}
 
 	for _, format := range formats {

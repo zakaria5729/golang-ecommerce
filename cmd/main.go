@@ -4,29 +4,26 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/db"
-	"github.com/easy-comerce/backend/internal/feature/auth"
 	"github.com/easy-comerce/backend/internal/route"
-	"github.com/easy-comerce/backend/pkg/config"
+	c "github.com/easy-comerce/backend/pkg/config"
+	dl "github.com/easy-comerce/backend/pkg/data_loader"
 	"github.com/easy-comerce/backend/pkg/logger"
 )
 
 func main() {
-	cfg := config.Load()
-	db.InitDB(cfg)
-	// if err := migrations.RunMigrations(); err != nil {
-	// 	log.Printf("Warning: Failed to run migrations: %v", err)
-	// }
+	cfg := c.InitConfig()
+	db.InitializeDB()
 
-	if err := auth.InitializeDefaultSuperAdmin(); err != nil {
-		logger.Logger.Error("Failed to initialize super admin", "error", err)
+	if err := dl.InitRoleAndSuperAdmin(); err != nil {
+		panic("Failed to create initial role and user: " + err.Error())
 	}
 
 	mux := http.NewServeMux()
-	route.RegisterAllRoutes(mux, cfg)
+	route.RegisterAllRoutes(mux)
 
 	server := &http.Server{
-		Addr:    ":" + cfg.Port,
 		Handler: mux,
+		Addr:    ":" + cfg.Port,
 	}
 
 	logger.Logger.Info("Server starting", "port", cfg.Port)

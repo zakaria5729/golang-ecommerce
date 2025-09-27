@@ -24,8 +24,8 @@ type AssignRoleRequest struct {
 }
 
 type AddPermissionsToRoleRequest struct {
-	RoleID          uint     `json:"role_id"`
-	PermissionNames []string `json:"permission_names"`
+	RoleID        uint   `json:"role_id"`
+	PermissionIds []uint `json:"permission_ids"`
 }
 
 func (r *CreateRoleRequest) Sanitize() {

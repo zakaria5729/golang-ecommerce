@@ -1,0 +1,66 @@
+-- Add updated_by and deleted_by columns to all existing tables
+
+-- Categories table
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- Addresses table
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- Browsing histories table
+ALTER TABLE browsing_histories ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE browsing_histories ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+ALTER TABLE browsing_histories ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- Reviews table
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- Wishlists table
+ALTER TABLE wishlists ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE wishlists ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+ALTER TABLE wishlists ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- Permissions table
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Roles table
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Brands table
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Colors table
+ALTER TABLE colors ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE colors ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Product stats table
+ALTER TABLE product_stats ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE product_stats ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Attribute types table
+ALTER TABLE attribute_types ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE attribute_types ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Attribute options table
+ALTER TABLE attribute_options ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE attribute_options ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Size categories table
+ALTER TABLE size_categories ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE size_categories ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
+
+-- Size options table
+ALTER TABLE size_options ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
+ALTER TABLE size_options ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;

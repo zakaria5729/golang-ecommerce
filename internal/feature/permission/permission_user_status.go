@@ -6,10 +6,11 @@ import (
 )
 
 type PermissionUserStatus struct {
-	ID        uint            `gorm:"primarykey"`
-	DeletedAt *gorm.DeletedAt `gorm:"index; column:deleted_at"`
-	Banned    bool            `gorm:"column:banned"`
-	Verified  bool            `gorm:"column:verified"`
+	ID           uint            `gorm:"primarykey"`
+	DeletedAt    *gorm.DeletedAt `gorm:"index; column:deleted_at"`
+	Banned       bool            `gorm:"column:banned"`
+	Verified     bool            `gorm:"column:verified"`
+	RefreshToken *string         `gorm:"column:refresh_token"`
 }
 
 func (PermissionUserStatus) TableName() string {

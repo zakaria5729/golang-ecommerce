@@ -87,7 +87,7 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productIDStr string, ratingSt
 }
 
 func (uc *ReviewUseCase) UpdateReview(id uint, userID uint, ratingStr string, comment string) error {
-	updates := make(map[string]any)
+	review := &Review{}
 
 	if ratingStr != "" {
 		rating, err := utils.ParseInt(ratingStr)
@@ -99,20 +99,20 @@ func (uc *ReviewUseCase) UpdateReview(id uint, userID uint, ratingStr string, co
 			return fmt.Errorf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating)
 		}
 
-		updates[constants.ReviewRating] = *rating
+		review.Rating = *rating
 	}
 
 	if comment != "" {
-		updates[constants.ReviewComment] = utils.Trim(comment)
+		review.Comment = &comment
 	}
 
-	if len(updates) == 0 {
+	if review.Rating == 0 && review.Comment == nil {
 		return fmt.Errorf("no fields to update")
 	}
 
-	err := uc.repo.UpdateReview(id, userID, updates)
+	err := uc.repo.UpdateReview(id, userID, review)
 	if err != nil {
-		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", err, "id", id, "userID", userID, "updates", updates)
+		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", err, "id", id, "userID", userID, "review", review)
 		return fmt.Errorf("failed to update review: %w", err)
 	}
 

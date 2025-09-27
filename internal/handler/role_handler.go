@@ -207,6 +207,6 @@ func (h *RoleHandler) validateAssignRoleRequest(req *role.AssignRoleRequest) val
 func (h *RoleHandler) validateAddPermissionsToRoleRequest(req *role.AddPermissionsToRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
-		validator.ValidateRequiredBool(len(req.PermissionNames) > 0, "permission_names"),
+		validator.ValidateRequiredBool(len(req.PermissionIds) > 0, "permission_ids"),
 	)
 }

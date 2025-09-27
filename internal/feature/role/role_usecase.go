@@ -62,29 +62,15 @@ func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
 		return nil, errors.New("invalid role type")
 	}
 
-	if !canCreateRoles(req.RoleType) {
+	if req.RoleType == constants.RoleTypeSuperAdmin {
 		logger.Logger.Error("Role type cannot create roles", "method", "CreateRole", "roleType", req.RoleType)
-		return nil, errors.New("this role type cannot create roles")
+		return nil, errors.New("Super admin role already exists, you can't create role with this role type")
 	}
 
 	exists, err := uc.roleRepo.RoleExistsByName(req.RoleName)
-	if err != nil {
-		logger.Logger.Error("Failed to check if role exists", "method", "CreateRole", "error", err, "roleName", req.RoleName)
-		return nil, fmt.Errorf("failed to check role existence: %w", err)
-	}
 	if exists {
 		logger.Logger.Error("Role already exists", "method", "CreateRole", "roleName", req.RoleName)
 		return nil, errors.New("role with this name already exists")
-	}
-
-	exists, err = uc.roleRepo.RoleExistsByType(req.RoleType)
-	if err != nil {
-		logger.Logger.Error("Failed to check if role type exists", "method", "CreateRole", "error", err, "roleType", req.RoleType)
-		return nil, fmt.Errorf("failed to check role type existence: %w", err)
-	}
-	if exists {
-		logger.Logger.Error("Role type already exists", "method", "CreateRole", "roleType", req.RoleType)
-		return nil, errors.New("role with this type already exists")
 	}
 
 	role := &Role{
@@ -215,8 +201,8 @@ func (uc *RoleUseCase) AssignRoleToUser(userID uint, req *AssignRoleRequest) err
 }
 
 func (uc *RoleUseCase) AddPermissionsToRole(roleID uint, req *AddPermissionsToRoleRequest) error {
-	if err := uc.roleRepo.AddPermissionsToRole(roleID, req.PermissionNames, nil); err != nil {
-		logger.Logger.Error("Failed to add permissions to role", "method", "AddPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", req.PermissionNames)
+	if err := uc.roleRepo.AddPermissionsToRoleByIds(roleID, req.PermissionIds, nil); err != nil {
+		logger.Logger.Error("Failed to add permissions to role", "method", "AddPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", req.PermissionIds)
 		return fmt.Errorf("failed to add permissions to role: %w", err)
 	}
 
@@ -240,8 +226,4 @@ func isValidRoleType(roleType string) bool {
 	default:
 		return false
 	}
-}
-
-func canCreateRoles(roleType string) bool {
-	return roleType == constants.RoleTypeSuperAdmin || roleType == constants.RoleTypeAdmin
 }

@@ -3,7 +3,6 @@ package file_storage
 import (
 	"context"
 
-	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 )
 
@@ -12,9 +11,7 @@ type FileStorageRepository struct {
 }
 
 func NewFileStorageRepository() *FileStorageRepository {
-	cfg := config.Load()
-
-	client, err := NewObjectStorage(constants.ObjStoreProviderR2, cfg.ObjStore)
+	client, err := NewObjectStorage(constants.ObjStoreProviderR2)
 	if err != nil {
 		panic("Failed to initialize object storage: " + err.Error())
 	}

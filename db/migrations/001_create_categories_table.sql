@@ -6,9 +6,12 @@ CREATE TABLE IF NOT EXISTS categories (
     priority INTEGER DEFAULT 0,
     title VARCHAR(120) NOT NULL,
     sub_title VARCHAR(255),
-    image_url TEXT,
+    path_key VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Indexes for better performance (commented out - uncomment when needed)

@@ -8,6 +8,7 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/auth"
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -22,12 +23,13 @@ type PermissionMiddleware struct {
 	jwtSecret         string
 }
 
-func NewPermissionMiddleware(jwtSecret string) *PermissionMiddleware {
+func NewPermissionMiddleware() *PermissionMiddleware {
+	cfg := config.GetConfig()
 	return &PermissionMiddleware{
 		permissionUseCase: permission.NewPermissionUseCase(),
-		authUseCase:       auth.NewAuthUseCase(jwtSecret),
+		authUseCase:       auth.NewAuthUseCase(cfg.JWTSecret),
 		userUseCase:       user.NewUserUseCase(),
-		jwtSecret:         jwtSecret,
+		jwtSecret:         cfg.JWTSecret,
 	}
 }
 
@@ -70,16 +72,23 @@ func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) t.Mi
 			banned := false
 			verified := true
 			hasPermission := false
+			var refreshToken *string
 
 			if len(permissions) == 1 {
-				banned, verified, hasPermission, err = pm.permissionUseCase.GetUserStatusAndPermission(claims.UserID, permissions[0])
+				banned, verified, refreshToken, hasPermission, err = pm.permissionUseCase.GetUserStatusAndPermission(claims.UserID, permissions[0])
 			} else {
-				banned, verified, hasPermission, err = pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
+				banned, verified, refreshToken, hasPermission, err = pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
 			}
 
 			if err != nil {
 				logger.Logger.Error("Failed to get user status and permissions", "method", "RequireAnyPermission", "error", err, "userID", claims.UserID, "permissions", permissions)
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			if refreshToken == nil {
+				logger.Logger.Error("Invalid refresh token", "method", "RequireAuth", "userID", claims.UserID)
+				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
 				return
 			}
 
@@ -120,12 +129,18 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 
 			banned := false
 			verified := false
-			user := &user.User{}
+			var refreshToken *string
+			var user *user.User
 
 			if !loadFullUser {
-				banned, verified, err = pm.userUseCase.GetAuthUserStatusByID(claims.UserID)
+				banned, verified, refreshToken, err = pm.userUseCase.GetAuthUserStatusByID(claims.UserID)
 			} else {
 				user, err = pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
+				if user != nil {
+					banned = user.Banned
+					verified = user.Verified
+					refreshToken = user.RefreshToken
+				}
 			}
 
 			if err != nil {
@@ -134,8 +149,14 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 				return
 			}
 
+			if refreshToken == nil {
+				logger.Logger.Error("Invalid refresh token", "method", "RequireAuth", "userID", claims.UserID)
+				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
+				return
+			}
+
 			if !verified {
-				logger.Logger.Error("User is not verified", "method", "RequireAuth", "userID", claims.UserID)
+				logger.Logger.Error("Account is not verified", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
 				return
 			}

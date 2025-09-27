@@ -18,22 +18,62 @@ func InitializeDefaultSuperAdmin() error {
 	roleRepo := role.NewRoleRepository()
 	permissionRepo := p.NewPermissionRepository()
 
+	if err := createSuperAdminUserIfNotExists(permissionRepo, roleRepo, userRepo, &showDeleted); err != nil {
+		return err
+	}
+
+	// superAdminEmail, superAdminPassword, err := getSuperAdminCredentials()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// allPermissionNames := getAllPermissionNames()
+	// if err := createAllPermissionsIfNotExists(permissionRepo, allPermissionNames, &showDeleted); err != nil {
+	// 	return err
+	// }
+
+	// superAdminRole, err := createSuperAdminRoleIfNotExists(roleRepo, permissionRepo, allPermissionNames, &showDeleted)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// exists, err := userRepo.UserExistsByEmailAndRoleId(superAdminEmail, superAdminRole.ID, &showDeleted)
+	// if err != nil {
+	// 	logger.Logger.Error("Failed to check if super admin exists", "method", "InitializeDefaultSuperAdmin", "error", err, "email", superAdminEmail)
+	// 	return err
+	// }
+
+	// if exists {
+	// 	logger.Logger.Info("Super admin ALREADY EXISTS", "method", "InitializeDefaultSuperAdmin", "email", superAdminEmail)
+	// 	return nil
+	// }
+
+	// if err := createSuperAdminUser(userRepo, superAdminEmail, superAdminPassword, superAdminRole); err != nil {
+	// 	return err
+	// }
+
+	// logger.Logger.Info("Super admin CREATED SUCCESSFULLY", "method", "InitializeDefaultSuperAdmin", "email", superAdminEmail, "name", c.RoleNameSuperAdmin)
+	// return nil
+	return nil
+}
+
+func createSuperAdminUserIfNotExists(pr *p.PermissionRepository, rr *role.RoleRepository, ur *user.UserRepository, showDeleted *bool) error {
 	superAdminEmail, superAdminPassword, err := getSuperAdminCredentials()
 	if err != nil {
 		return err
 	}
 
 	allPermissionNames := getAllPermissionNames()
-	if err := createAllPermissionsIfNotExists(permissionRepo, allPermissionNames, &showDeleted); err != nil {
+	if err := createAllPermissionsIfNotExists(pr, allPermissionNames, showDeleted); err != nil {
 		return err
 	}
 
-	superAdminRole, err := createSuperAdminRoleIfNotExists(roleRepo, permissionRepo, allPermissionNames, &showDeleted)
+	superAdminRole, err := createSuperAdminRoleIfNotExists(rr, pr, allPermissionNames, showDeleted)
 	if err != nil {
 		return err
 	}
 
-	exists, err := userRepo.UserExistsByEmailAndRoleId(superAdminEmail, superAdminRole.ID, &showDeleted)
+	exists, err := ur.UserExistsByEmailAndRoleId(superAdminEmail, superAdminRole.ID, showDeleted)
 	if err != nil {
 		logger.Logger.Error("Failed to check if super admin exists", "method", "InitializeDefaultSuperAdmin", "error", err, "email", superAdminEmail)
 		return err
@@ -44,7 +84,57 @@ func InitializeDefaultSuperAdmin() error {
 		return nil
 	}
 
-	if err := createSuperAdminUser(userRepo, superAdminEmail, superAdminPassword, superAdminRole); err != nil {
+	if err := createSuperAdminUser(ur, superAdminEmail, superAdminPassword, superAdminRole); err != nil {
+		return err
+	}
+
+	logger.Logger.Info("Super admin CREATED SUCCESSFULLY", "method", "InitializeDefaultSuperAdmin", "email", superAdminEmail, "name", c.RoleNameSuperAdmin)
+	return nil
+}
+
+func createUserRoleIfNotExists(pr *p.PermissionRepository, rr *role.RoleRepository, ur *user.UserRepository, showDeleted *bool) error {
+
+	userRole, err := rr.GetRoleByType(c.RoleTypeUser, showDeleted)
+	if err != nil {
+		logger.Logger.Error("Failed to get user role", "method", "InitializeDefaultSuperAdmin", "error", err)
+		return err
+	}
+
+	if userRole == nil {
+		allPermissionNames := getAllPermissionNames()
+		if err := createAllPermissionsIfNotExists(pr, allPermissionNames, showDeleted); err != nil {
+			return err
+		}
+
+	}
+
+	superAdminEmail, superAdminPassword, err := getSuperAdminCredentials()
+	if err != nil {
+		return err
+	}
+
+	allPermissionNames := getAllPermissionNames()
+	if err := createAllPermissionsIfNotExists(pr, allPermissionNames, showDeleted); err != nil {
+		return err
+	}
+
+	superAdminRole, err := createSuperAdminRoleIfNotExists(rr, pr, allPermissionNames, showDeleted)
+	if err != nil {
+		return err
+	}
+
+	exists, err := ur.UserExistsByEmailAndRoleId(superAdminEmail, superAdminRole.ID, showDeleted)
+	if err != nil {
+		logger.Logger.Error("Failed to check if super admin exists", "method", "InitializeDefaultSuperAdmin", "error", err, "email", superAdminEmail)
+		return err
+	}
+
+	if exists {
+		logger.Logger.Info("Super admin ALREADY EXISTS", "method", "InitializeDefaultSuperAdmin", "email", superAdminEmail)
+		return nil
+	}
+
+	if err := createSuperAdminUser(ur, superAdminEmail, superAdminPassword, superAdminRole); err != nil {
 		return err
 	}
 

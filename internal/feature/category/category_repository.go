@@ -211,42 +211,49 @@ func (r *CategoryRepository) updateSubCategoriesIsActiveRecursively(tx *gorm.DB,
 }
 
 func (r *CategoryRepository) CategoryExists(id uint, showDeleted *bool) (bool, error) {
-	var count int64
+	var category Category
 	query := r.db.Model(&Category{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
 
-	err := query.Count(&count).Error
+	err := query.Select(c.FieldID).Take(&category).Error
 	if err != nil {
 		logger.Logger.Error("Failed to check if category exists", "method", "CategoryExists", "error", err, "id", id)
+		return false, err
 	}
-	return count > 0, err
+
+	return category.ID != 0, nil
 }
 
 func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint) (bool, error) {
-	var count int64
+	var category Category
 	query := r.db.Model(&Category{}).Where(c.CategoryTitle+" = ?", title)
 
 	if excludeID != nil {
 		query = query.Where(c.FieldID+" != ?", *excludeID)
 	}
 
-	err := query.Count(&count).Error
-	if err != nil {
+	err := query.Select(c.FieldID).Take(&category).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("Failed to check if category exists by title", "method", "CategoryExistsByTitle", "error", err, "title", title, "excludeID", excludeID)
+		return false, err
 	}
-	return count > 0, err
+
+	return category.ID != 0, nil
 }
 
 func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
-	var count int64
-	err := r.db.Model(&Category{}).Where(c.CategoryParentID+" = ?", parentID).Count(&count).Error
+	var category Category
+	err := r.db.Model(&Category{}).Where(c.CategoryParentID+" = ?", parentID).Select(c.FieldID).Take(&category).Error
+
 	if err != nil {
 		logger.Logger.Error("Failed to check if category has children", "method", "HasChildren", "error", err, "parentID", parentID)
+		return false, err
 	}
-	return count > 0, err
+
+	return category.ID != 0, nil
 }
 
 func (r *CategoryRepository) IncrementPriority(categoryID uint) error {

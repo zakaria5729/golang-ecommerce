@@ -2,10 +2,9 @@ package permission
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/easy-comerce/backend/db"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
@@ -29,7 +28,7 @@ func (r *PermissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 		query = query.Unscoped()
 	}
 
-	if err := query.Where(constants.PermissionName+" IN ?", permissionNames).Find(&existingPermissions).Error; err != nil {
+	if err := query.Where(c.PermissionName+" IN ?", permissionNames).Find(&existingPermissions).Error; err != nil {
 		logger.Logger.Error("Failed to fetch existing permissions", "method", "CreatePermissionsIfNotExists", "error", err)
 		return err
 	}
@@ -42,7 +41,7 @@ func (r *PermissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 	var toCreatePermissions []Permission
 	for _, name := range permissionNames {
 		if !existingNamesMap[name] {
-			desc := constants.PermissionMap[name]
+			desc := c.PermissionMap[name]
 
 			toCreatePermissions = append(
 				toCreatePermissions,
@@ -65,12 +64,13 @@ func (r *PermissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 }
 
 func (r *PermissionRepository) ExistsByName(permissionName string) (exists bool, err error) {
-	var count int64
-	if err := r.db.Model(&Permission{}).Where(constants.PermissionName+" = ?", permissionName).Count(&count).Error; err != nil {
+	var permission Permission
+	err = r.db.Model(&Permission{}).Where(c.PermissionName+" = ?", permissionName).Select(c.FieldID).Take(&permission).Error
+	if err != nil {
 		logger.Logger.Error("Failed to check if permission exists", "method", "ExistsByName", "error", err, "permissionName", permissionName)
 		return false, err
 	}
-	return count > 0, nil
+	return permission.ID != 0, nil
 }
 
 func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string, showDeleted *bool) ([]Permission, error) {
@@ -81,7 +81,8 @@ func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string
 		query = query.Unscoped()
 	}
 
-	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
+	filters := []string{c.PermissionName, c.PermissionDescription}
+	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &filters); orderClause != "" {
 		query = query.Order(orderClause)
 	}
 
@@ -95,7 +96,7 @@ func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string
 func (r *PermissionRepository) GetPermissionByID(id uint) (*Permission, error) {
 	var permission Permission
 
-	if err := r.db.Model(&Permission{}).Where(constants.FieldID+" = ?", id).First(&permission).Error; err != nil {
+	if err := r.db.Model(&Permission{}).Where(c.FieldID+" = ?", id).First(&permission).Error; err != nil {
 		logger.Logger.Error("Failed to fetch permission by ID", "method", "GetPermissionByID", "error", err, "id", id)
 		return nil, err
 	}
@@ -103,14 +104,11 @@ func (r *PermissionRepository) GetPermissionByID(id uint) (*Permission, error) {
 	return &permission, nil
 }
 
-func (r *PermissionRepository) GetPermissionByName(name string, include []string) (*Permission, error) {
+func (r *PermissionRepository) GetPermissionByName(name string) (*Permission, error) {
 	var permission Permission
 
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
-	if err := query.Where(constants.PermissionName+" = ?", name).First(&permission).Error; err != nil {
-		logger.Logger.Error("Failed to fetch permission by name", "method", "GetPermissionByName", "error", err, "name", name, "include", include)
+	if err := r.db.Model(&Permission{}).Where(c.PermissionName+" = ?", name).First(&permission).Error; err != nil {
+		logger.Logger.Error("Failed to fetch permission by name", "method", "GetPermissionByName", "error", err, "name", name)
 		return nil, err
 	}
 
@@ -120,7 +118,7 @@ func (r *PermissionRepository) GetPermissionByName(name string, include []string
 func (r *PermissionRepository) GetPermissionsByIDs(ids []uint) ([]Permission, error) {
 	var permissions []Permission
 
-	if err := r.db.Model(&Permission{}).Where(constants.FieldID+" IN ?", ids).Find(&permissions).Error; err != nil {
+	if err := r.db.Model(&Permission{}).Where(c.FieldID+" IN ?", ids).Find(&permissions).Error; err != nil {
 		logger.Logger.Error("Failed to fetch permissions by IDs", "method", "GetPermissionsByIDs", "error", err, "ids", ids)
 		return nil, err
 	}
@@ -132,7 +130,7 @@ func (r *PermissionRepository) HasPermission(userID uint, permission string) (bo
 	var count int64
 
 	err := r.buildPermissionJoinQuery().
-		Where(constants.FieldID+" = ? AND "+constants.PermissionName+" = ?", userID, permission).
+		Where("u."+c.FieldID+" = ? AND "+"p."+c.PermissionName+" = ?", userID, permission).
 		Count(&count).Error
 
 	if err != nil {
@@ -148,9 +146,8 @@ func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []strin
 	}
 
 	var count int64
-
 	err := r.buildPermissionJoinQuery().
-		Where(constants.FieldID+" = ? AND "+constants.PermissionName+" IN ?", userID, permissions).
+		Where("u."+c.FieldID+" = ? AND "+"p."+c.PermissionName+" IN ?", userID, permissions).
 		Count(&count).Error
 
 	if err != nil {
@@ -160,67 +157,71 @@ func (r *PermissionRepository) HasAnyPermission(userID uint, permissions []strin
 	return count > 0, err
 }
 
-func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, hasPermission bool, err error) {
+func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permission string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	var userStatus PermissionUserStatus
 
-	err = r.db.Select(constants.UserBanned, constants.UserVerified).
+	err = r.db.Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).
 		Where("id = ?", userID).
 		First(&userStatus).Error
 
 	if err != nil {
 		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
-		return false, false, false, err
+		return false, false, nil, false, err
 	}
 
 	if !userStatus.Verified {
-		return false, false, false, errors.New("account is not verified yet")
+		return false, false, nil, false, errors.New("account is not verified yet")
 	}
 
 	if userStatus.Banned {
-		return false, false, false, errors.New("account is banned")
+		return false, false, nil, false, errors.New("account is banned")
+	}
+
+	if userStatus.RefreshToken == nil {
+		return false, false, nil, false, errors.New("invalid access/refresh token (logged out)")
 	}
 
 	hasPermission, err = r.HasPermission(userID, permission)
 	if err != nil {
 		logger.Logger.Error("Failed to check user permission", "method", "GetUserStatusAndPermission", "error", err, "userID", userID, "permission", permission)
-		return false, false, false, err
+		return false, false, nil, false, err
 	}
 
-	return userStatus.Banned, userStatus.Verified, hasPermission, nil
+	return userStatus.Banned, userStatus.Verified, userStatus.RefreshToken, hasPermission, nil
 }
 
-func (r *PermissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, hasPermission bool, err error) {
+func (r *PermissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	var userStatus PermissionUserStatus
 
-	err = r.db.Select(constants.UserBanned, constants.UserVerified).
+	err = r.db.Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).
 		Where("id = ?", userID).
 		First(&userStatus).Error
 
 	if err != nil {
 		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID)
-		return false, false, false, err
+		return false, false, nil, false, err
 	}
 
 	hasPermission, err = r.HasAnyPermission(userID, permissions)
 	if err != nil {
 		logger.Logger.Error("Failed to check user permissions", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID, "permissions", permissions)
-		return false, false, false, err
+		return false, false, nil, false, err
 	}
 
-	return userStatus.Banned, userStatus.Verified, hasPermission, nil
+	return userStatus.Banned, userStatus.Verified, userStatus.RefreshToken, hasPermission, nil
 }
 
 func (r *PermissionRepository) buildPermissionJoinQuery() *gorm.DB {
-	return r.db.Table(constants.TableUser + " u").
-		Joins("JOIN " + constants.TableUserRole + " ur ON u.id = ur.user_id").
-		Joins("JOIN " + constants.TableRole + " r ON ur.role_id = r.id").
-		Joins("JOIN " + constants.TableRolePermission + " rp ON r.id = rp.role_id").
-		Joins("JOIN " + constants.TablePermission + " p ON rp.permission_id = p.id").
+	return r.db.Table(c.TableUser + " u").
+		Joins("JOIN " + c.TableUserRole + " ur ON u.id = ur.user_id").
+		Joins("JOIN " + c.TableRole + " r ON ur.role_id = r.id").
+		Joins("JOIN " + c.TableRolePermission + " rp ON r.id = rp.role_id").
+		Joins("JOIN " + c.TablePermission + " p ON rp.permission_id = p.id").
 		Where("u.deleted_at IS NULL AND r.deleted_at IS NULL AND p.deleted_at IS NULL")
 }
 
 func (r *PermissionRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{constants.FieldID, constants.PermissionName, constants.FieldCreatedAt, constants.FieldUpdatedAt}
-	optionalFields := []string{constants.PermissionDescription}
+	defaultFields := []string{c.FieldID, c.PermissionName, c.FieldCreatedAt, c.FieldUpdatedAt}
+	optionalFields := []string{c.PermissionDescription}
 	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }

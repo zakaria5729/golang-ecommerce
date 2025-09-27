@@ -1,11 +1,13 @@
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,
-    role_type VARCHAR(50) NOT NULL CHECK (role_type IN ('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SELLER', 'USER')),
+    role_type VARCHAR(50) NOT NULL,
     role_name VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 INSERT INTO roles (role_name, role_type, description) VALUES

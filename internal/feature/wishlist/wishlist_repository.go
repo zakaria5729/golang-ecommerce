@@ -114,12 +114,18 @@ func (r *WishlistRepository) UndoDeleteWishlistById(id uint) error {
 }
 
 func (r *WishlistRepository) WishlistExists(userID uint, productID uint) (bool, error) {
-	var count int64
-	err := r.db.Model(&Wishlist{}).Where(c.WishlistUserID+" = ? AND "+c.WishlistProductID+" = ?", userID, productID).Count(&count).Error
+	var wishlist Wishlist
+	err := r.db.Model(&Wishlist{}).
+		Where(c.WishlistUserID+" = ? AND "+c.WishlistProductID+" = ?", userID, productID).
+		Select(c.FieldID).
+		Take(&wishlist).Error
+
 	if err != nil {
 		logger.Logger.Error("Failed to check if wishlist exists", "method", "WishlistExists", "error", err, "userID", userID, "productID", productID)
+		return false, err
 	}
-	return count > 0, err
+
+	return wishlist.ID != 0, nil
 }
 
 func (r *WishlistRepository) GetWishlistCount(userID uint) (int64, error) {

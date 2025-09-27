@@ -94,12 +94,11 @@ func (r *ReviewRepository) CreateReview(review *Review) error {
 	return nil
 }
 
-func (r *ReviewRepository) UpdateReview(id uint, userID uint, updates map[string]interface{}) error {
+func (r *ReviewRepository) UpdateReview(id uint, userID uint, review *Review) error {
 	query := r.db.Model(&Review{}).Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID)
-
-	result := query.Updates(updates)
+	result := query.Updates(review)
 	if result.Error != nil {
-		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", result.Error, "id", id, "userID", userID, "updates", updates)
+		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", result.Error, "id", id, "userID", userID, "review", review)
 		return result.Error
 	}
 
@@ -263,15 +262,18 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 }
 
 func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
-	var count int64
+	var review Review
+	err := r.db.Model(&Review{}).
+		Where(constants.ReviewProductID+" = ? AND "+constants.ReviewUserID+" = ?", productID, userID).
+		Select(constants.FieldID).
+		Take(&review).Error
 
-	err := r.db.Model(&Review{}).Where(constants.ReviewProductID+" = ? AND "+constants.ReviewUserID+" = ?", productID, userID).Count(&count).Error
 	if err != nil {
 		logger.Logger.Error("Failed to check user review exists", "method", "CheckUserReviewExists", "error", err, "productID", productID, "userID", userID)
 		return false, err
 	}
 
-	return count > 0, nil
+	return review.ID != 0, nil
 }
 
 func (r *ReviewRepository) getSelectableFields(include []string) []string {

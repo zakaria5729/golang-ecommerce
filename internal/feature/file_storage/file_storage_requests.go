@@ -18,6 +18,6 @@ type StorageDeleteRequest struct {
 }
 
 type FileUploadAPIRequest struct {
-	File   *multipart.FileHeader `json:"file"`
-	Folder string                `json:"folder"`
+	File   *multipart.FileHeader
+	Folder string
 }

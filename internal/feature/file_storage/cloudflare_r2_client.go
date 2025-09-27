@@ -22,7 +22,8 @@ type CloudflareR2Client struct {
 	publicDomain string
 }
 
-func NewCloudflareR2Client(cfg config.ObjectStoreConfig) (*CloudflareR2Client, error) {
+func NewCloudflareR2Client() (*CloudflareR2Client, error) {
+	cfg := config.GetConfig().ObjStore
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(

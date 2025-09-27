@@ -1,94 +1,82 @@
 package constants
 
-type userContextKey string
+type stringKey string
 
 const (
-	UserContextKey     userContextKey = "user"
-	UserIDContextKey   userContextKey = "user_id"
-	ObjStoreProviderR2 string         = "r2"
-	ProjectName        string         = "easy-comerce"
+	UserContextKey     stringKey = "user"
+	UserIDContextKey   stringKey = "user_id"
+	ObjStoreProviderR2 string    = "r2"
+	ProjectName        string    = "easy-comerce"
 )
 
 const (
-	StatusMessageOK               = "Success"
-	StatusMessageCreated          = "Resource created successfully"
-	StatusMessageUpdated          = "Resource updated successfully"
-	StatusMessageDeleted          = "Resource deleted successfully"
-	StatusMessageValidationFailed = "Validation failed"
-	StatusMessageNotFound         = "Resource not found"
-	StatusMessageConflict         = "Resource conflict"
-	StatusMessageInternalError    = "Internal server error"
-	StatusMessageBadRequest       = "Bad request"
-	StatusMessageUnauthorized     = "Unauthorized"
-	StatusMessageForbidden        = "Forbidden"
-	StatusMessageTooManyRequests  = "Too many requests"
+	StatusMessageOK               string = "Success"
+	StatusMessageCreated          string = "Resource created successfully"
+	StatusMessageUpdated          string = "Resource updated successfully"
+	StatusMessageDeleted          string = "Resource deleted successfully"
+	StatusMessageValidationFailed string = "Validation failed"
+	StatusMessageNotFound         string = "Resource not found"
+	StatusMessageConflict         string = "Resource conflict"
+	StatusMessageInternalError    string = "Internal server error"
+	StatusMessageBadRequest       string = "Bad request"
+	StatusMessageUnauthorized     string = "Unauthorized"
+	StatusMessageForbidden        string = "Forbidden"
+	StatusMessageTooManyRequests  string = "Too many requests"
 )
 
 const (
-	ValidationMessageRequired        = "Field is required"
-	ValidationMessageMinLength       = "Field must be at least %d characters long"
-	ValidationMessageMaxLength       = "Field must not exceed %d characters"
-	ValidationMessageInvalidFormat   = "Field has invalid format"
-	ValidationMessageInvalidURL      = "Field must be a valid URL"
-	ValidationMessageInvalidEmail    = "Field must be a valid email address"
-	ValidationMessageInvalidPhone    = "Field must be a valid phone number"
-	ValidationMessageInvalidUUID     = "Field must be a valid UUID"
-	ValidationMessagePositiveInteger = "Field must be a positive integer"
+	ValidationMessageRequired        string = "Field is required"
+	ValidationMessageMinLength       string = "Field must be at least %d characters long"
+	ValidationMessageMaxLength       string = "Field must not exceed %d characters"
+	ValidationMessageInvalidFormat   string = "Field has invalid format"
+	ValidationMessageInvalidURL      string = "Field must be a valid URL"
+	ValidationMessageInvalidEmail    string = "Field must be a valid email address"
+	ValidationMessageInvalidPhone    string = "Field must be a valid phone number"
+	ValidationMessageInvalidUUID     string = "Field must be a valid UUID"
+	ValidationMessagePositiveInteger string = "Field must be a positive integer"
 )
 
 const (
-	DefaultPageSize = 20
-	MaxPageSize     = 100
-	Include         = "include"
-	All             = "all"
-	Page            = "page"
-	PageSize        = "page_size"
-	SortBy          = "sort_by"
-	SortOrder       = "sort_order"
-	SortOrderDesc   = "DESC"
-	SortOrderAsc    = "ASC"
-	ShowDeleted     = "show_deleted"
+	DefaultPageSize int    = 20
+	MaxPageSize     int    = 100
+	Include         string = "include"
+	All             string = "all"
+	Page            string = "page"
+	PageSize        string = "page_size"
+	SortBy          string = "sort_by"
+	SortOrder       string = "sort_order"
+	SortOrderDesc   string = "DESC"
+	SortOrderAsc    string = "ASC"
+	ShowDeleted     string = "show_deleted"
+	Folder          string = "folder"
+	File            string = "file"
 )
 
 const (
-	EnvKeyJWTSecret  string = "JWT_SECRET"
-	EnvActiveProfile string = "ACTIVE_PROFILE"
-)
-
-// const (
-// 	DefaultRateLimit       = 100
-// 	DefaultRateLimitWindow = 60
-// )
-
-// const (
-// 	DefaultCacheTTL = 300
-// 	MaxCacheSize    = 1000
-// )
-
-const (
-	AccessTokenExpiryHours        = 12
-	RefreshTokenExpiryHours       = 48
-	PasswordResetTokenExpiryHours = 5
+	EnvKeyJWTSecret       string = "JWT_SECRET"
+	EnvActiveProfile      string = "ACTIVE_PROFILE"
+	EnvSuperAdminEmail    string = "SUPER_ADMIN_EMAIL"
+	EnvSuperAdminPassword string = "SUPER_ADMIN_PASSWORD"
 )
 
 const (
-	DefaultDBTimeout = 30
-	MaxDBConnections = 100
+	AccessTokenExpiryHours        int = 12
+	RefreshTokenExpiryHours       int = 48
+	PasswordResetTokenExpiryHours int = 5
 )
 
 const (
-	MaxFileSizeMB     = 5 * 1024 * 1024 // 5MB
-	AllowedImageTypes = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
-	AllowedDocTypes   = "application/pdf"
+	DefaultDBTimeout       int = 30
+	MaxDBConnections       int = 100
+	DefaultRateLimit       int = 100
+	DefaultRateLimitWindow int = 60
 )
 
-// const (
-// 	LogLevelDebug = "debug"
-// 	LogLevelInfo  = "info"
-// 	LogLevelWarn  = "warn"
-// 	LogLevelError = "error"
-// 	LogLevelFatal = "fatal"
-// )
+const (
+	MaxFileSizeMB     int64  = 5 * 1024 * 1024 // 5MB
+	AllowedImageTypes string = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
+	AllowedDocTypes   string = "application/pdf"
+)
 
 const (
 	EnvDev   string = "dev"
@@ -97,42 +85,37 @@ const (
 )
 
 const (
-	EnvKeyObjStoreRegion          = "OBJ_STORE_REGION"
-	EnvKeyObjStoreBucketName      = "OBJ_STORE_BUCKET_NAME"
-	EnvKeyObjStoreAccountID       = "OBJ_STORE_ACCOUNT_ID"
-	EnvKeyObjStoreAccessKeyID     = "OBJ_STORE_ACCESS_KEY_ID"
-	EnvKeyObjStoreAccessKeySecret = "OBJ_STORE_ACCESS_KEY_SECRET"
-	EnvKeyObjStorePublicDomain    = "OBJ_STORE_PUBLIC_DOMAIN"
+	EnvKeyObjStoreRegion          string = "OBJ_STORE_REGION"
+	EnvKeyObjStoreBucketName      string = "OBJ_STORE_BUCKET_NAME"
+	EnvKeyObjStoreAccountID       string = "OBJ_STORE_ACCOUNT_ID"
+	EnvKeyObjStoreAccessKeyID     string = "OBJ_STORE_ACCESS_KEY_ID"
+	EnvKeyObjStoreAccessKeySecret string = "OBJ_STORE_ACCESS_KEY_SECRET"
+	EnvKeyObjStorePublicDomain    string = "OBJ_STORE_PUBLIC_DOMAIN"
 )
 
 const (
-	EnvSuperAdminEmail    = "SUPER_ADMIN_EMAIL"
-	EnvSuperAdminPassword = "SUPER_ADMIN_PASSWORD"
+	FolderCategory string = "category"
+	FolderProduct  string = "product"
+	FolderUser     string = "user"
 )
 
 const (
-	FolderCategory = "category"
-	FolderProduct  = "product"
-	FolderUser     = "user"
+	GET     string = "GET"
+	POST    string = "POST"
+	PUT     string = "PUT"
+	DELETE  string = "DELETE"
+	PATCH   string = "PATCH"
+	OPTIONS string = "OPTIONS"
 )
 
 const (
-	GET     = "GET"
-	POST    = "POST"
-	PUT     = "PUT"
-	DELETE  = "DELETE"
-	PATCH   = "PATCH"
-	OPTIONS = "OPTIONS"
+	VersionPrefix string = "/v"
+	V1            string = "v1"
 )
 
 const (
-	VersionPrefix = "/v"
-	V1            = "v1"
-)
-
-const (
-	MinReviewRating        = 1
-	MaxReviewRating        = 5
-	MaxReviewCommentLength = 1000
-	PriorityLimit          = 10
+	MinReviewRating        int = 1
+	MaxReviewRating        int = 5
+	MaxReviewCommentLength int = 1000
+	PriorityLimit          int = 10
 )

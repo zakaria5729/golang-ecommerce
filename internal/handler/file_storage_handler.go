@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/file_storage"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
-	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type FileStorageHandler struct {
@@ -27,15 +27,23 @@ func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var uploadReq file_storage.FileUploadAPIRequest
-	if !utils.DecodeJSON(w, r, &uploadReq, "UploadFile") {
+	file, fileHeader, err := r.FormFile(c.File)
+	if err != nil {
+		logger.Logger.Error("Failed to get file from form", "error", err)
+		response.SendErrorJSON(w, "No file provided", http.StatusBadRequest)
 		return
+	}
+	defer file.Close()
+
+	uploadReq := file_storage.FileUploadAPIRequest{
+		File:   fileHeader,
+		Folder: r.FormValue(c.Folder),
 	}
 
 	result, err := h.usecase.UploadFile(r.Context(), *userID, uploadReq)
 	if err != nil {
 		logger.Logger.Error("Failed to upload file", "error", err, "user_id", *userID)
-		response.SendErrorJSON(w, "Failed to upload file", http.StatusInternalServerError)
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
