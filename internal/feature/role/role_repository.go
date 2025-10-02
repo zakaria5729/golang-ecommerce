@@ -91,8 +91,7 @@ func (r *RoleRepository) GetRoleByType(roleType string, showDeleted *bool) (*Rol
 		query = query.Unscoped()
 	}
 
-	if err := query.Preload(c.RolePermissionsCapitalized).
-		First(&role).Error; err != nil {
+	if err := query.Preload(c.RolePermissionsCapitalized).First(&role).Error; err != nil {
 		logger.Logger.Error("Failed to fetch role by type", "method", "GetRoleByType", "error", err, "roleType", roleType)
 		return nil, err
 	}

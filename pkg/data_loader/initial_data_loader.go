@@ -10,6 +10,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/constants"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"gorm.io/gorm"
 )
 
 func InitRoleAndSuperAdmin() error {
@@ -104,7 +105,7 @@ func createSuperAdminUser(userRepo *user.UserRepository, email, password string,
 
 func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, allPermissionNames []string, showDeleted *bool) (*role.Role, error) {
 	superAdminRole, err := roleRepo.GetRoleByType(c.RoleTypeSuperAdmin, showDeleted)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("Failed to get super admin role", "method", "createSuperAdminRoleIfNotExists", "error", err)
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRe
 
 func createUserRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, showDeleted *bool) error {
 	userRole, err := roleRepo.GetRoleByType(c.RoleTypeUser, showDeleted)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("Failed to get user role", "method", "createUserRoleIfNotExists", "error", err)
 		return err
 	}
