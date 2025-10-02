@@ -60,6 +60,32 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	response.SendCommonResponseJSON(w, "Profile updated successfully")
 }
 
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	currentUser, err := middleware.GetUserFromContext(r)
+	if err != nil {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	var req user.ChangePasswordRequest
+	if !utils.DecodeJSON(w, r, &req, "ChangePassword") {
+		return
+	}
+
+	if validationErrors := h.validateChangePasswordRequest(&req); len(validationErrors) > 0 {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	if err := h.userUseCase.ChangePassword(currentUser.ID, currentUser.Password, &req); err != nil {
+		logger.Logger.Error("Change password failed", "method", "ChangePassword", "error", err, "userID", currentUser.ID)
+		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.SendCommonResponseJSON(w, "Password changed successfully")
+}
+
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req user.CreateUserRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateUser") {
@@ -82,8 +108,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
-	if err != nil || id == nil || *id == 0 {
+	authUserID, err := middleware.GetUserIDFromContext(r)
+	if err != nil || authUserID == nil || *authUserID == 0 {
+		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+
+	updateUserID, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	if err != nil || updateUserID == nil || *updateUserID == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
@@ -98,7 +130,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userUseCase.UpdateUser(*id, &req)
+	err = h.userUseCase.UpdateUser(*authUserID, *updateUserID, &req)
 	if err != nil {
 		logger.Logger.Error("Update user failed", "method", "UpdateUser", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
@@ -190,8 +222,6 @@ func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) val
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateRequired(req.Email, "email"),
-		validator.ValidateRequiredBool(req.Banned, "banned"),
-		validator.ValidateRequiredBool(req.Verified, "verified"),
 		validator.ValidateRequired(req.Password, "password"),
 		validator.ValidateMinLength(req.Password, "password", 8),
 		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
@@ -201,9 +231,12 @@ func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) val
 func (h *UserHandler) validateUpdateUserRequest(req *user.UpdateUserRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
-		validator.ValidateRequiredBool(req.Banned, "banned"),
-		validator.ValidateRequiredBool(req.Verified, "verified"),
-		validator.ValidateRequired(req.Password, "password"),
-		validator.ValidateMinLength(req.Password, "password", 8),
+	)
+}
+
+func (h *UserHandler) validateChangePasswordRequest(req *user.ChangePasswordRequest) validator.ValidationErrors {
+	return validator.MergeValidationErrors(
+		validator.ValidateRequired(req.CurrentPassword, "current_password"),
+		validator.ValidatePassword(req.NewPassword, "new_password"),
 	)
 }

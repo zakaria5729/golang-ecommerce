@@ -22,8 +22,4 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	r.POST("/auth/reset-password", h.ResetPassword).Register()
 
 	r.POST("/auth/forgot-password", h.ForgotPassword).Register()
-
-	r.POST("/auth/change-password", h.ChangePassword).Use(
-		pm.RequireAuthUser(),
-	).Register()
 }

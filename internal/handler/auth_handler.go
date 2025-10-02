@@ -6,7 +6,6 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/auth"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -62,32 +61,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccessJSON(w, user, http.StatusCreated)
-}
-
-func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	user, err := middleware.GetUserFromContext(r)
-	if err != nil {
-		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	var req auth.ChangePasswordRequest
-	if !utils.DecodeJSON(w, r, &req, "ChangePassword") {
-		return
-	}
-
-	if validationErrors := h.validateChangePasswordRequest(&req); len(validationErrors) > 0 {
-		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
-		return
-	}
-
-	if err := h.authUseCase.ChangePassword(*user, &req); err != nil {
-		logger.Logger.Error("Change password failed", "method", "ChangePassword", "error", err, "userID", user.ID)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Password changed successfully")
 }
 
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -188,13 +161,6 @@ func (h *AuthHandler) validateRegisterRequest(req *auth.RegisterRequest) validat
 		validator.ValidateRequired(req.Email, "email"),
 		validator.ValidatePassword(req.Password, "password"),
 		validator.ValidateMinLength(req.Name, "name", 2),
-	)
-}
-
-func (h *AuthHandler) validateChangePasswordRequest(req *auth.ChangePasswordRequest) validator.ValidationErrors {
-	return validator.MergeValidationErrors(
-		validator.ValidateRequired(req.CurrentPassword, "current_password"),
-		validator.ValidatePassword(req.NewPassword, "new_password"),
 	)
 }
 

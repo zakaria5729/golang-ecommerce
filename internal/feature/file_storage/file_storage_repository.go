@@ -2,6 +2,7 @@ package file_storage
 
 import (
 	"context"
+	"time"
 
 	"github.com/easy-comerce/backend/pkg/constants"
 )
@@ -35,4 +36,12 @@ func (r *FileStorageRepository) GetURL(ctx context.Context, key string) (string,
 
 func (r *FileStorageRepository) Exists(ctx context.Context, key string) (bool, error) {
 	return r.client.Exists(ctx, key)
+}
+
+func (r *FileStorageRepository) GeneratePresignedUploadURL(ctx context.Context, key, contentType string, expiresIn time.Duration) (string, error) {
+	return r.client.GeneratePresignedUploadURL(ctx, key, contentType, expiresIn)
+}
+
+func (r *FileStorageRepository) GeneratePresignedDownloadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
+	return r.client.GeneratePresignedDownloadURL(ctx, key, expiresIn)
 }

@@ -17,10 +17,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			requestID = timeutil.NowUTC().Format("20060102150405")
 		}
 		start := timeutil.NowUTC()
-		logger.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path)
+		logger.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path, "method", r.Method)
 
 		next.ServeHTTP(w, r)
-		logger.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "path", "request_id", requestID, r.URL.Path, "duration", time.Since(start).String())
+		logger.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "path", "request_id", requestID, r.URL.Path, "method", r.Method, "duration", time.Since(start).String())
 	})
 }
 

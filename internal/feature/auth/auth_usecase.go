@@ -127,26 +127,6 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error
 	return createdUser.ToResponse(), nil
 }
 
-func (uc *AuthUseCase) ChangePassword(user user.User, req *ChangePasswordRequest) error {
-	if !user.CheckPassword(req.CurrentPassword) {
-		logger.Logger.Error("Invalid current password", "method", "ChangePassword", "userID", user.ID)
-		return errors.New("invalid current password")
-	}
-
-	user.Password = req.NewPassword
-	if err := user.HashPassword(); err != nil {
-		logger.Logger.Error("Failed to hash new password", "method", "ChangePassword", "error", err, "userID", user.ID)
-		return fmt.Errorf("failed to process new password: %w", err)
-	}
-
-	if err := uc.userRepo.UpdateUserPassword(user.ID, user.Password); err != nil {
-		logger.Logger.Error("Failed to update password", "method", "ChangePassword", "error", err, "userID", user.ID)
-		return fmt.Errorf("failed to update password: %w", err)
-	}
-
-	return nil
-}
-
 func (uc *AuthUseCase) ForgotPassword(req *ForgotPasswordRequest) error {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 

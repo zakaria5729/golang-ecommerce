@@ -12,4 +12,8 @@ func RegisterFileRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	r.POST("/files/upload", h.UploadFile).Use(
 		pm.RequireAuthUserStatus(),
 	).Register()
+
+	r.GET("/files/presigned-upload-url", h.GeneratePresignedUploadURL).Use(
+		pm.RequireAuthUserStatus(),
+	).Register()
 }

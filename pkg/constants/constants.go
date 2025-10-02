@@ -38,7 +38,7 @@ const (
 
 const (
 	DefaultPageSize int    = 20
-	MaxPageSize     int    = 100
+	MaxPageSize     int    = 200
 	Include         string = "include"
 	All             string = "all"
 	Page            string = "page"
@@ -50,6 +50,8 @@ const (
 	ShowDeleted     string = "show_deleted"
 	Folder          string = "folder"
 	File            string = "file"
+	From            string = "from"
+	To              string = "to"
 )
 
 const (

@@ -166,7 +166,7 @@ func (r *PermissionRepository) GetUserStatusAndPermission(userID uint, permissio
 
 	if err != nil {
 		logger.Logger.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
-		return false, false, nil, false, err
+		return false, false, nil, false, errors.New("failed to get user status")
 	}
 
 	if !userStatus.Verified {

@@ -14,7 +14,7 @@ func RegisterProductStatsRoute(r *router.Router, pm *middleware.PermissionMiddle
 		pm.RequirePermission(c.PermissionProductStatsRead),
 	).Register()
 
-	r.GET("/product-stats/id/{id}", h.GetProductStatsByID).Use(
+	r.GET("/product-stats/{id}", h.GetProductStatsByID).Use(
 		pm.RequirePermission(c.PermissionProductStatsRead),
 	).Register()
 

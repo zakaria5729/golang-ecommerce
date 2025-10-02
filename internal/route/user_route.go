@@ -18,6 +18,10 @@ func RegisterUserRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 		pm.RequireAuthUserStatus(),
 	).Register()
 
+	r.POST("/user/change-password", h.ChangePassword).Use(
+		pm.RequireAuthUser(),
+	).Register()
+
 	r.POST("/users", h.CreateUser).Use(
 		pm.RequirePermission(c.PermissionUserCreate),
 	).Register()

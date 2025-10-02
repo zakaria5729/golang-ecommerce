@@ -108,6 +108,31 @@ func (uc *FileStorageUseCase) GetFileURL(ctx context.Context, key string) (strin
 	return url, nil
 }
 
+// GeneratePresignedUploadURL generates a presigned URL for file upload
+func (uc *FileStorageUseCase) GeneratePresignedUploadURL(ctx context.Context, userID uint, folder, fileName, contentType string, expiresIn time.Duration) (string, error) {
+	if folder == "" || !uc.isValidFolder(folder) {
+		return "", fmt.Errorf("invalid folder: %s", folder)
+	}
+
+	if fileName == "" {
+		return "", fmt.Errorf("file name is required")
+	}
+
+	// Generate unique filename
+	ext := filepath.Ext(fileName)
+	uniqueFileName := fmt.Sprintf("%s_%d%s", uuid.New().String(), timeutil.NowUTC().Unix(), ext)
+	key := folder + "/" + uniqueFileName
+
+	// Generate presigned URL
+	presignedURL, err := uc.repo.GeneratePresignedUploadURL(ctx, key, contentType, expiresIn)
+	if err != nil {
+		logger.Logger.Error("Failed to generate presigned URL", "error", err, "user_id", userID, "key", key)
+		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	return presignedURL, nil
+}
+
 func (uc *FileStorageUseCase) isValidFileType(contentType string, allowedTypes string) bool {
 	types := strings.Split(allowedTypes, ",")
 	for _, allowedType := range types {

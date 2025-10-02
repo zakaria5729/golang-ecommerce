@@ -46,24 +46,24 @@ func (pm *PermissionMiddleware) RequireAuthWithRolePermission() t.MiddlewareHand
 }
 
 func (pm *PermissionMiddleware) RequirePermission(permission string) t.MiddlewareHandler {
-	return pm.loadPermissionsStatus([]string{permission})
+	return pm.loadPermissionsStatus([]string{permission}, "RequirePermission")
 }
 
 func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) t.MiddlewareHandler {
-	return pm.loadPermissionsStatus(permissions)
+	return pm.loadPermissionsStatus(permissions, "RequireAnyPermission")
 }
 
 func (pm *PermissionMiddleware) GetJWTSecret() string {
 	return pm.jwtSecret
 }
 
-func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) t.MiddlewareHandler {
+func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string, methodName string) t.MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
-				logger.Logger.Error("Token validation failed", "method", "RequireAnyPermission", "error", err)
+				logger.Logger.Error("Token validation failed", "method", methodName, "error", err)
 				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -81,31 +81,31 @@ func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string) t.Mi
 			}
 
 			if err != nil {
-				logger.Logger.Error("Failed to get user status and permissions", "method", "RequireAnyPermission", "error", err, "userID", claims.UserID, "permissions", permissions)
-				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
+				logger.Logger.Error("Failed to get user status and permissions", "method", methodName, "error", err, "userID", claims.UserID, "permissions", permissions)
+				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
 			if refreshToken == nil {
-				logger.Logger.Error("Invalid refresh token", "method", "RequireAuth", "userID", claims.UserID)
+				logger.Logger.Error("Invalid refresh token", "method", methodName, "userID", claims.UserID)
 				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
 				return
 			}
 
 			if banned {
-				logger.Logger.Warn("Banned user attempted to access protected resource", "method", "RequireAnyPermission", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
+				logger.Logger.Warn("Banned user attempted to access protected resource", "method", methodName, "userID", claims.UserID)
+				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
 				return
 			}
 
 			if !verified {
-				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", "RequireAnyPermission", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account not verified", http.StatusForbidden)
+				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", methodName, "userID", claims.UserID)
+				response.SendErrorJSON(w, "Account not verified", http.StatusUnauthorized)
 				return
 			}
 
 			if !hasPermission {
-				logger.Logger.Warn("User lacks any of the required permissions", "method", "RequireAnyPermission", "userID", claims.UserID, "permissions", permissions)
+				logger.Logger.Warn("User lacks any of the required permissions", "method", methodName, "userID", claims.UserID, "permissions", permissions)
 				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
 				return
 			}
@@ -157,13 +157,13 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 
 			if !verified {
 				logger.Logger.Error("Account is not verified", "method", "RequireAuth", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account not verified yet", http.StatusForbidden)
+				response.SendErrorJSON(w, "Account not verified yet", http.StatusUnauthorized)
 				return
 			}
 
 			if banned {
 				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", claims.UserID)
-				response.SendErrorJSON(w, "Account is banned", http.StatusForbidden)
+				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
 				return
 			}
 

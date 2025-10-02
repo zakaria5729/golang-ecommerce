@@ -109,6 +109,9 @@ func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 		if l, err := strconv.Atoi(pageSizeStr); err == nil && l > 0 && l <= constants.MaxPageSize {
 			pageSize = l
 		}
+		if pageSize > constants.MaxPageSize {
+			pageSize = constants.MaxPageSize
+		}
 	}
 
 	return page, pageSize

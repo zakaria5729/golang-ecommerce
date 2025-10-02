@@ -1,6 +1,8 @@
 package user
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,6 +30,14 @@ func (r *UserRepository) GetAllUsersPaginated(include []string, showDeleted *boo
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
+
+	if utils.ContainsString(include, c.UserRoles) {
+		query = query.Preload(c.UserRolesCapitalized)
+	}
+
+	if utils.ContainsString(include, c.UserPermissions) {
+		query = query.Preload(c.UserRolesPermissionsCapitalized)
+	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
@@ -57,11 +67,10 @@ func (r *UserRepository) GetUserByID(id uint, include []string, showDeleted *boo
 	query := r.db.Select(strings.Join(selectFields, ", "))
 
 	if utils.ContainsString(include, c.UserRoles) {
-		logger.Logger.Info("Preloading user roles", "method", "GetUserByID", "include", include)
 		query = query.Preload(c.UserRolesCapitalized)
 	}
+
 	if utils.ContainsString(include, c.UserPermissions) {
-		logger.Logger.Info("Preloading user roles permissions", "method", "GetUserByID", "include", include)
 		query = query.Preload(c.UserRolesPermissionsCapitalized)
 	}
 
@@ -164,13 +173,14 @@ func (r *UserRepository) ResetPassword(userID uint, password string) error {
 
 func (r *UserRepository) UpdateUserInfo(userID uint, user *User) error {
 	updatedUser := &User{
-		Password: user.Password,
 		Name:     user.Name,
 		Banned:   user.Banned,
 		Verified: user.Verified,
 	}
 
-	err := r.db.Model(&User{}).Where(c.FieldID+" = ?", userID).Updates(updatedUser).Error
+	err := r.db.Model(&User{}).
+		Select(c.UserName, c.UserBanned, c.UserVerified).
+		Where(c.FieldID+" = ?", userID).Updates(updatedUser).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update user password and clear reset password token", "method", "UpdatePasswordAndClearResetPasswordToken", "error", err, "userID", userID)
 	}
@@ -190,8 +200,27 @@ func (r *UserRepository) UpdateNameAndPathKey(userID uint, name string, pathKey 
 	return err
 }
 
-func (r *UserRepository) UpdateUserPassword(userID uint, password string) error {
-	err := r.db.Model(&User{}).Where(c.FieldID+" = ?", userID).Update(c.UserPassword, password).Error
+func (r *UserRepository) UpdateUserPassword(userID uint, password string, req *ChangePasswordRequest) error {
+	user := &User{
+		Password:             password,
+		PasswordResetToken:   nil,
+		PasswordResetExpires: nil,
+	}
+
+	if !user.CheckPassword(req.CurrentPassword) {
+		logger.Logger.Error("Invalid current password", "method", "ChangePassword", "userID", user.ID)
+		return errors.New("invalid current password")
+	}
+
+	user.Password = req.NewPassword
+	if err := user.HashPassword(); err != nil {
+		logger.Logger.Error("Failed to hash new password", "method", "ChangePassword", "error", err, "userID", user.ID)
+		return fmt.Errorf("failed to process new password: %w", err)
+	}
+
+	err := r.db.Model(&User{}).
+		Select(c.UserPassword, c.UserPasswordResetToken, c.UserPasswordResetExpires).
+		Where(c.FieldID+" = ?", userID).Updates(&user).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update user password", "method", "UpdateUserPassword", "error", err, "userID", userID)
 	}
@@ -207,7 +236,7 @@ func (r *UserRepository) DeleteUser(id uint) error {
 }
 
 func (r *UserRepository) UndoDeletedUser(id uint) error {
-	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
+	err := r.db.Unscoped().Model(&User{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
 		logger.Logger.Error("Failed to undo deleted user", "method", "UndoDeletedUser", "error", err, "id", id)
 	}
@@ -229,6 +258,23 @@ func (r *UserRepository) UserExists(id uint, showDeleted *bool) (bool, error) {
 	}
 
 	return user.ID != 0, nil
+}
+
+func (r *UserRepository) GetUserEmail(id uint, showDeleted *bool) (*string, error) {
+	var user User
+	query := r.db.Model(&User{}).Where(c.FieldID+" = ?", id)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	err := query.Select(c.UserEmail).Take(&user).Error
+	if err != nil {
+		logger.Logger.Error("Failed to get user email", "method", "GetUserEmail", "error", err, "id", id)
+		return nil, err
+	}
+
+	return &user.Email, nil
 }
 
 func (r *UserRepository) IsUserExists(email string) (bool, error) {

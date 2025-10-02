@@ -3,10 +3,11 @@ package user
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/easy-comerce/backend/internal/feature/role"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -38,6 +39,15 @@ func (uc *UserUseCase) UpdateProfile(userID uint, req *UpdateProfileRequest) err
 	if err != nil {
 		logger.Logger.Error("Failed to update user profile", "method", "UpdateUserProfile", "error", err, "userID", user.ID)
 		return fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return nil
+}
+
+func (uc *UserUseCase) ChangePassword(userID uint, password string, req *ChangePasswordRequest) error {
+	if err := uc.userRepo.UpdateUserPassword(userID, password, req); err != nil {
+		logger.Logger.Error("Failed to update password", "method", "ChangePassword", "error", err, "userID", userID)
+		return err
 	}
 
 	return nil
@@ -134,10 +144,6 @@ func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error)
 	req.Name = utils.Trim(req.Name)
 
 	exists, err := uc.userRepo.IsUserExists(req.Email)
-	if err != nil {
-		logger.Logger.Error("Failed to check if user exists", "method", "CreateUser", "error", err, "email", req.Email)
-		return nil, fmt.Errorf("failed to check user existence: %w", err)
-	}
 	if exists {
 		logger.Logger.Error("User already exists", "method", "CreateUser", "email", req.Email)
 		return nil, errors.New("user with this email already exists")
@@ -156,7 +162,7 @@ func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error)
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
 
-	fetchedRole, err := uc.roleRepo.GetRoleByID(req.RoleID, []string{constants.RolePermissions}, nil)
+	fetchedRole, err := uc.roleRepo.GetRoleByID(req.RoleID, []string{c.RolePermissions}, nil)
 	if err != nil {
 		logger.Logger.Error("Failed to get default role", "method", "CreateUser", "error", err, "email", req.Email)
 		return nil, fmt.Errorf("no role found with this roleID: %w", err)
@@ -172,34 +178,39 @@ func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error)
 	return createdUser.ToResponse(), nil
 }
 
-func (uc *UserUseCase) UpdateUser(id uint, req *UpdateUserRequest) error {
+func (uc *UserUseCase) UpdateUser(authUserID uint, updateUserID uint, req *UpdateUserRequest) error {
 	req.Name = utils.Trim(req.Name)
+	superAdminEmail := os.Getenv(c.EnvSuperAdminEmail)
 
-	exists, err := uc.userRepo.UserExists(id, nil)
+	email, err := uc.userRepo.GetUserEmail(updateUserID, nil)
 	if err != nil {
-		logger.Logger.Error("Failed to check if user exists", "method", "UpdateUser", "error", err, "id", id)
+		logger.Logger.Error("Failed to check if user exists", "method", "UpdateUser", "error", err, "id", updateUserID)
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
-	if exists {
-		logger.Logger.Error("User already exists", "method", "UpdateUser", "id", id)
-		return errors.New("user with this email already exists")
+	if email == nil {
+		logger.Logger.Error("User not found", "method", "UpdateUser", "id", updateUserID)
+		return errors.New("user not found with this id")
+	}
+
+	if (authUserID == updateUserID && !req.Verified) || (authUserID == updateUserID && req.Banned) {
+		logger.Logger.Error("Cannot update self", "method", "UpdateUser", "id", updateUserID)
+		return errors.New("cannot update self banned or unverified status")
+	}
+
+	if superAdminEmail != "" && *email == superAdminEmail {
+		logger.Logger.Error("Cannot update super admin user", "method", "UpdateUser", "id", updateUserID)
+		return errors.New("cannot update super admin user")
 	}
 
 	user := &User{
-		Password: req.Password,
 		Name:     req.Name,
 		Verified: req.Verified,
 		Banned:   req.Banned,
 	}
 
-	if err := user.HashPassword(); err != nil {
-		logger.Logger.Error("Failed to hash password", "method", "Register", "error", err, "id", id)
-		return fmt.Errorf("failed to process password: %w", err)
-	}
-
-	err = uc.userRepo.UpdateUserInfo(id, user)
+	err = uc.userRepo.UpdateUserInfo(updateUserID, user)
 	if err != nil {
-		logger.Logger.Error("Failed to update user", "method", "Register", "error", err, "id", id)
+		logger.Logger.Error("Failed to update user", "method", "Register", "error", err, "id", updateUserID)
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 

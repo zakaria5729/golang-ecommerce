@@ -2,10 +2,9 @@ package review
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/easy-comerce/backend/db"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
@@ -21,32 +20,34 @@ func NewReviewRepository() *ReviewRepository {
 	}
 }
 
-func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, include []string, productID *uint, userID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
+	query := r.db.Model(&Review{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
 
 	if productID != nil {
-		query = query.Where(constants.ReviewProductID+" = ?", *productID)
+		query = query.Where(c.ReviewProductID+" = ?", *productID)
 	}
 
 	if userID != nil {
-		query = query.Where(constants.ReviewUserID+" = ?", *userID)
+		query = query.Where(c.ReviewUserID+" = ?", *userID)
 	}
 
-	if rating != nil {
-		query = query.Where(constants.ReviewRating+" = ?", *rating)
+	if ratingFrom != nil {
+		query = query.Where(c.ReviewRating+" >= ?", *ratingFrom)
 	}
 
-	err := query.Model(&Review{}).Count(&total).Error
+	if ratingTo != nil {
+		query = query.Where(c.ReviewRating+" <= ?", *ratingTo)
+	}
+
+	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "rating", rating)
+		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo)
 		return nil, 0, err
 	}
 
@@ -56,26 +57,24 @@ func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, include []s
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "include", include, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool, include []string) (*Review, error) {
+func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*Review, error) {
 	var review Review
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
+	query := r.db.Model(&Review{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
 
-	err := query.Where(constants.FieldID+" = ?", id).First(&review).Error
+	err := query.Where(c.FieldID+" = ?", id).Take(&review).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id, "include", include)
+		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -94,8 +93,15 @@ func (r *ReviewRepository) CreateReview(review *Review) error {
 	return nil
 }
 
-func (r *ReviewRepository) UpdateReview(id uint, userID uint, review *Review) error {
-	query := r.db.Model(&Review{}).Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID)
+func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *Review) error {
+	query := r.db.Model(&Review{})
+
+	if userID != nil {
+		query = query.Where(c.FieldID+" = ? AND "+c.ReviewUserID+" = ?", id, userID)
+	} else {
+		query = query.Where(c.FieldID + " = ?")
+	}
+
 	result := query.Updates(review)
 	if result.Error != nil {
 		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", result.Error, "id", id, "userID", userID, "review", review)
@@ -109,22 +115,30 @@ func (r *ReviewRepository) UpdateReview(id uint, userID uint, review *Review) er
 	return nil
 }
 
-func (r *ReviewRepository) UndoDeletedReview(id uint, userID uint) error {
-	result := r.db.Unscoped().Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID).Update(constants.FieldDeletedAt, nil)
+func (r *ReviewRepository) UndoDeletedReview(id uint) error {
+	result := r.db.Unscoped().Model(&Review{}).Select(c.FieldCreatedAt).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil)
 	if result.Error != nil {
-		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id, "userID", userID)
+		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id)
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("review not found or not owned by user and not deleted")
+		return fmt.Errorf("review not found")
 	}
 
 	return nil
 }
 
-func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
-	result := r.db.Where(constants.FieldID+" = ? AND "+constants.ReviewUserID+" = ?", id, userID).Delete(&Review{})
+func (r *ReviewRepository) DeleteReview(id uint, userID *uint) error {
+	query := r.db
+
+	if userID != nil {
+		query = query.Where(c.FieldID+" = ? AND "+c.ReviewUserID+" = ?", id, userID)
+	} else {
+		query = query.Where(c.FieldID+" = ?", id)
+	}
+
+	result := query.Delete(&Review{})
 	if result.Error != nil {
 		logger.Logger.Error("Failed to delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
 		return result.Error
@@ -137,24 +151,22 @@ func (r *ReviewRepository) DeleteReview(id uint, userID uint) error {
 	return nil
 }
 
-func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", ")).Where(constants.ReviewProductID+" = ?", productID)
+	query := r.db.Model(&Review{}).Where(c.ReviewProductID+" = ?", productID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
 
 	if rating != nil {
-		query = query.Where(constants.ReviewRating+" = ?", *rating)
+		query = query.Where(c.ReviewRating+" = ?", *rating)
 	}
 
-	err := query.Model(&Review{}).Count(&total).Error
+	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "rating", rating)
+		logger.Logger.Error("Failed to count reviews", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating)
 		return nil, 0, err
 	}
 
@@ -164,39 +176,37 @@ func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "include", include, "productID", productID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews by product paginated", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, include []string, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
+func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
 	var reviews []Review
 	var total int64
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", ")).Where(constants.ReviewUserID+" = ?", userID)
+	query := r.db.Model(&Review{}).Where(c.ReviewUserID+" = ?", userID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
 
 	if productID != nil {
-		query = query.Where(constants.ReviewProductID+" = ?", *productID)
+		query = query.Where(c.ReviewProductID+" = ?", *productID)
 	}
 
 	if rating != nil {
-		query = query.Where(constants.ReviewRating+" = ?", *rating)
+		query = query.Where(c.ReviewRating+" = ?", *rating)
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
 	}
 
-	err := query.Model(&Review{}).Count(&total).Error
+	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "rating", rating)
+		logger.Logger.Error("Failed to count reviews", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating)
 		return nil, 0, err
 	}
 
@@ -206,7 +216,7 @@ func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "include", include, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
@@ -215,7 +225,7 @@ func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 
 func (r *ReviewRepository) GetAverageRating(productID uint, showDeleted *bool) (float64, error) {
 	var avgRating float64
-	query := r.db.Model(&Review{}).Where(constants.ReviewProductID+" = ?", productID)
+	query := r.db.Model(&Review{}).Where(c.ReviewProductID+" = ?", productID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -242,10 +252,10 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 	}
 
 	err := query.
-		Select(constants.ReviewRating+", COUNT(*) as count").
-		Where(constants.ReviewProductID+" = ?", productID).
-		Group(constants.ReviewRating).
-		Order(constants.ReviewRating).
+		Select(c.ReviewRating+", COUNT(*) as count").
+		Where(c.ReviewProductID+" = ?", productID).
+		Group(c.ReviewRating).
+		Order(c.ReviewRating).
 		Scan(&results).Error
 
 	if err != nil {
@@ -264,8 +274,8 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
 	var review Review
 	err := r.db.Model(&Review{}).
-		Where(constants.ReviewProductID+" = ? AND "+constants.ReviewUserID+" = ?", productID, userID).
-		Select(constants.FieldID).
+		Where(c.ReviewProductID+" = ? AND "+c.ReviewUserID+" = ?", productID, userID).
+		Select(c.FieldID).
 		Take(&review).Error
 
 	if err != nil {
@@ -274,10 +284,4 @@ func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, 
 	}
 
 	return review.ID != 0, nil
-}
-
-func (r *ReviewRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{constants.FieldID, constants.ReviewProductID, constants.ReviewUserID, constants.ReviewRating, constants.FieldCreatedAt, constants.FieldUpdatedAt}
-	optionalFields := []string{constants.ReviewComment}
-	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }
