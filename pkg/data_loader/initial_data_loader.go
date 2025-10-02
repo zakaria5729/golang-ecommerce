@@ -47,7 +47,7 @@ func createSuperAdminRoleAndUserIfNotExists(pr *p.PermissionRepository, rr *role
 	}
 
 	exists, err := ur.UserExistsByEmailAndRoleId(superAdminEmail, superAdminRole.ID, showDeleted)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("Failed to check if super admin exists", "method", "createSuperAdminRoleAndUserIfNotExists", "error", err, "email", superAdminEmail)
 		return err
 	}
