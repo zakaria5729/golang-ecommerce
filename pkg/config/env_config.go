@@ -32,7 +32,7 @@ func InitConfig() *Config {
 }
 
 func GetActiveProfile() string {
-	return getEnv(c.EnvActiveProfile, c.EnvDev)
+	return getEnv(c.EnvActiveProfile, c.EnvStage)
 }
 
 func loadConfig() *Config {
