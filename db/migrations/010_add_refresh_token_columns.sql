@@ -5,6 +5,11 @@ ALTER TABLE users
 ADD COLUMN IF NOT EXISTS refresh_token VARCHAR(255),
 ADD COLUMN IF NOT EXISTS refresh_token_expires TIMESTAMP;
 
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS purchase_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total_spent INTEGER DEFAULT 0;
+
+
 -- Create index for refresh token lookup
 CREATE INDEX IF NOT EXISTS idx_users_refresh_token ON users(refresh_token);
 
