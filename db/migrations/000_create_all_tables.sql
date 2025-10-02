@@ -1,0 +1,307 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    verified BOOLEAN DEFAULT FALSE,
+    banned BOOLEAN DEFAULT FALSE,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    password_reset_token VARCHAR(255),
+    password_reset_expires TIMESTAMP,
+    last_login_at TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    role_type VARCHAR(50) NOT NULL,
+    role_name VARCHAR(255) UNIQUE NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER NOT NULL,
+    role_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id INTEGER NOT NULL,
+    permission_id INTEGER NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    is_active BOOLEAN DEFAULT true,
+    parent_id INTEGER,
+    priority INTEGER DEFAULT 0,
+    title VARCHAR(120) NOT NULL,
+    sub_title VARCHAR(255),
+    path_key VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS addresses (
+    id SERIAL PRIMARY KEY,
+    is_default BOOLEAN DEFAULT FALSE,
+    user_id INTEGER NOT NULL,
+    address_type VARCHAR(20),
+    zip_code VARCHAR(20),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100),
+    country VARCHAR(100) NOT NULL,
+    street TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS brands (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description VARCHAR(2000),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS colors (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(2000),
+    price DECIMAL(10,2) NOT NULL,
+    stock_quantity INTEGER DEFAULT 0,
+    sku VARCHAR(100) UNIQUE,
+    is_active BOOLEAN DEFAULT true,
+    category_id INTEGER NOT NULL,
+    brand_id INTEGER,
+    color_id INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+    FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE SET NULL,
+    FOREIGN KEY (color_id) REFERENCES colors(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_stats (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    add_to_cart_count INTEGER NOT NULL DEFAULT 0,
+    remove_from_cart_count INTEGER NOT NULL DEFAULT 0,
+    wishlist_count INTEGER NOT NULL DEFAULT 0,
+    remove_from_wishlist_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS browsing_histories (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+    id SERIAL PRIMARY KEY,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    product_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS wishlists (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS attribute_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS attribute_options (
+    id SERIAL PRIMARY KEY,
+    attribute_type_id INTEGER NOT NULL,
+    attribute_option_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (attribute_type_id) REFERENCES attribute_types(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS size_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS size_options (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    sort_order INTEGER DEFAULT NULL,
+    size_category_id INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (size_category_id) REFERENCES size_categories(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS analytics_visitors (
+    id SERIAL PRIMARY KEY,
+    visitor_id VARCHAR(255) UNIQUE NOT NULL,
+    first_visit TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_visit TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    total_visits INTEGER DEFAULT 1,
+    total_page_views INTEGER DEFAULT 0,
+    unique_pages INTEGER DEFAULT 0,
+    country VARCHAR(100),
+    city VARCHAR(100),
+    region VARCHAR(100),
+    timezone VARCHAR(50),
+    is_bot BOOLEAN DEFAULT FALSE,
+    bot_name VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS analytics_page_views (
+    id SERIAL PRIMARY KEY,
+    visitor_id VARCHAR(255) NOT NULL,
+    session_id VARCHAR(255) NOT NULL,
+    user_id INTEGER DEFAULT NULL,
+    path VARCHAR(500) NOT NULL,
+    page_title VARCHAR(500),
+    http_method VARCHAR(10) DEFAULT 'GET',
+    status_code INTEGER DEFAULT 200,
+    response_time INTEGER DEFAULT 0,
+    ip_address INET,
+    user_agent TEXT,
+    referrer TEXT,
+    country VARCHAR(100),
+    city VARCHAR(100),
+    region VARCHAR(100),
+    timezone VARCHAR(50),
+    is_bot BOOLEAN DEFAULT FALSE,
+    bot_name VARCHAR(100),
+    visited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (visitor_id) REFERENCES analytics_visitors(visitor_id) ON DELETE RESTRICT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS analytics_sessions (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(255) UNIQUE NOT NULL,
+    visitor_id VARCHAR(255) NOT NULL,
+    user_id INTEGER DEFAULT NULL,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP WITH TIME ZONE,
+    duration INTEGER DEFAULT 0,
+    page_views INTEGER DEFAULT 0,
+    is_bounce BOOLEAN DEFAULT TRUE,
+    referrer TEXT,
+    entry_page VARCHAR(500),
+    exit_page VARCHAR(500),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
+    deleted_by INT DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (visitor_id) REFERENCES analytics_visitors(visitor_id) ON DELETE RESTRICT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);

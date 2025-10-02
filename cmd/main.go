@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/db"
+	m "github.com/easy-comerce/backend/db/migrations"
 	"github.com/easy-comerce/backend/internal/route"
 	c "github.com/easy-comerce/backend/pkg/config"
 	dl "github.com/easy-comerce/backend/pkg/data_loader"
@@ -13,6 +14,10 @@ import (
 func main() {
 	cfg := c.InitConfig()
 	db.InitializeDB()
+
+	if err := m.RunMigrations2(); err != nil {
+		panic("Failed to run migrations: " + err.Error())
+	}
 
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
 		panic("Failed to create initial role and user: " + err.Error())
