@@ -325,8 +325,8 @@ func (r *UserRepository) SetPasswordResetToken(userID uint, token string, expire
 
 func (r *UserRepository) GetUserByResetPasswordToken(token string) (*User, error) {
 	var user User
-	err := r.db.Where(c.UserPasswordResetToken+" = ?", token).
-		Where(c.UserPasswordResetExpires+" > ?", timeutil.NowUTC()).
+	err := r.db.Where(c.UserPasswordResetToken+" = ? AND "+c.UserPasswordResetExpires+" > ?", token, timeutil.NowUTC()).
+		Select(c.UserEmail, c.UserPasswordResetExpires).
 		First(&user).Error
 	if err != nil {
 		logger.Logger.Error("Failed to check if reset password token is valid and not expired", "method", "IsValidResetPasswordToken", "error", err, "token", token)

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func ParseCommaSeparatedString(input string) []string {
@@ -315,4 +317,20 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, target any, method strin
 		return false
 	}
 	return true
+}
+
+func HashPassword(password string) (error, string) {
+	if password == "" {
+		return errors.New("password is empty"), ""
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err, ""
+	}
+	return nil, string(hashedPassword)
+}
+
+func CheckPassword(password string, hashedPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
 }

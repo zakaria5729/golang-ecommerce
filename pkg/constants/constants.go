@@ -55,10 +55,8 @@ const (
 )
 
 const (
-	EnvKeyJWTSecret       string = "JWT_SECRET"
-	EnvActiveProfile      string = "ACTIVE_PROFILE"
-	EnvSuperAdminEmail    string = "SUPER_ADMIN_EMAIL"
-	EnvSuperAdminPassword string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyJWTSecret  string = "JWT_SECRET"
+	EnvActiveProfile string = "ACTIVE_PROFILE"
 )
 
 const (

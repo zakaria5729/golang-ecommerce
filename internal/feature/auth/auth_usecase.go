@@ -11,11 +11,13 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
 	"github.com/easy-comerce/backend/pkg/utils"
+	"gorm.io/gorm"
 )
 
 type AuthUseCase struct {
@@ -89,7 +91,7 @@ func (uc *AuthUseCase) Register(req *RegisterRequest) (*user.UserResponse, error
 	req.Name = utils.Trim(req.Name)
 
 	exists, err := uc.userRepo.IsUserExists(req.Email)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("Failed to check if user exists", "method", "Register", "error", err, "email", req.Email)
 		return nil, fmt.Errorf("failed to check user existence: %w", err)
 	}
@@ -156,6 +158,11 @@ func (uc *AuthUseCase) ResetPassword(req *ResetPasswordRequest) error {
 	if err != nil || user == nil || user.PasswordResetExpires.Before(timeutil.NowUTC()) {
 		logger.Logger.Error("Invalid or expired password reset token", "method", "ResetPassword", "error", err, "token", req.Token)
 		return errors.New("invalid or expired reset token")
+	}
+
+	if user.Email == config.GetConfig().SuperAdminEmail {
+		logger.Logger.Error("Can not reset Super admin password", "method", "ResetPassword", "userID", user.ID)
+		return errors.New("can not reset super admin password")
 	}
 
 	user.Password = req.NewPassword

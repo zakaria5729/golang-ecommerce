@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -44,17 +44,19 @@ func (u *User) Sanitize() {
 }
 
 func (u *User) HashPassword() error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	err, hashedPassword := utils.HashPassword(u.Password)
 	if err != nil {
 		return err
 	}
-	u.Password = string(hashedPassword)
+	if hashedPassword == "" {
+		return errors.New("hashed password is empty")
+	}
+	u.Password = hashedPassword
 	return nil
 }
 
 func (u *User) CheckPassword(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-	return err == nil
+	return utils.CheckPassword(password, u.Password)
 }
 
 func (u *User) ToResponse() *UserResponse {

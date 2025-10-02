@@ -2,14 +2,15 @@ package data_loader
 
 import (
 	"errors"
-	"os"
 
 	p "github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -41,6 +42,11 @@ func createSuperAdminRoleAndUserIfNotExists(pr *p.PermissionRepository, rr *role
 		return err
 	}
 
+	if superAdminEmail == "" || superAdminPassword == "" {
+		logger.Logger.Error("Super admin email or password is not set", "method", "createSuperAdminRoleAndUserIfNotExists")
+		return errors.New("super admin email or password is getting null/empty from env")
+	}
+
 	superAdminRole, err := createSuperAdminRoleIfNotExists(rr, pr, allPermissionNames, showDeleted)
 	if err != nil {
 		return err
@@ -66,13 +72,22 @@ func createSuperAdminRoleAndUserIfNotExists(pr *p.PermissionRepository, rr *role
 }
 
 func getSuperAdminCredentials() (string, string, error) {
-	superAdminEmail := os.Getenv(c.EnvSuperAdminEmail)
-	superAdminPassword := os.Getenv(c.EnvSuperAdminPassword)
+	cfg := config.GetConfig()
+	superAdminEmail := cfg.SuperAdminEmail
+	superAdminPassword := cfg.SuperAdminPassword
 
+	err, hashedPassword := utils.HashPassword(superAdminPassword)
+	if err != nil || hashedPassword == "" {
+		logger.Logger.Error("Failed to hash password", "method", "getSuperAdminCredentials", "error", err, "email", superAdminEmail)
+		return "", "", err
+	}
+
+	superAdminPassword = hashedPassword
 	if superAdminEmail == "" || superAdminPassword == "" {
 		logger.Logger.Error("Super admin email or password is not set", "method", "getSuperAdminCredentials")
 		return "", "", errors.New("super admin email or password is getting null/empty from env")
 	}
+
 	return superAdminEmail, superAdminPassword, nil
 }
 

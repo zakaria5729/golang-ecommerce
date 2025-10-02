@@ -78,15 +78,17 @@ func loadConfig() *Config {
 	}
 
 	config := &Config{
-		Port:       getEnvWithPanic(c.EnvKeyPort),
-		DBHost:     getEnvWithPanic(c.EnvKeyDBHost),
-		DBPort:     getEnvWithPanic(c.EnvKeyDBPort),
-		DBUser:     getEnvWithPanic(c.EnvKeyDBUser),
-		DBPassword: getEnvWithPanic(c.EnvKeyDBPassword),
-		DBName:     getEnvWithPanic(c.EnvKeyDBName),
-		DBSSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
-		DBShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
-		JWTSecret:  getEnvWithPanic(c.EnvKeyJWTSecret),
+		Port:               getEnvWithPanic(c.EnvKeyPort),
+		DBHost:             getEnvWithPanic(c.EnvKeyDBHost),
+		DBPort:             getEnvWithPanic(c.EnvKeyDBPort),
+		DBUser:             getEnvWithPanic(c.EnvKeyDBUser),
+		DBPassword:         getEnvWithPanic(c.EnvKeyDBPassword),
+		DBName:             getEnvWithPanic(c.EnvKeyDBName),
+		DBSSLMode:          getEnvWithPanic(c.EnvKeyDBSSLMode),
+		DBShowLog:          getEnvWithPanic(c.EnvKeyDBShowLog),
+		JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
+		SuperAdminEmail:    getEnvWithPanic(c.EnvSuperAdminEmail),
+		SuperAdminPassword: getEnvWithPanic(c.EnvSuperAdminPassword),
 		ObjStore: ObjectStoreConfig{
 			Region:          getEnvWithPanic(c.EnvKeyObjStoreRegion),
 			BucketName:      getEnvWithPanic(c.EnvKeyObjStoreBucketName),

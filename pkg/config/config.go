@@ -1,16 +1,18 @@
 package config
 
 type Config struct {
-	Port       string
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
-	DBShowLog  string
-	JWTSecret  string
-	ObjStore   ObjectStoreConfig
+	Port               string
+	DBHost             string
+	DBPort             string
+	DBUser             string
+	DBPassword         string
+	DBName             string
+	DBSSLMode          string
+	DBShowLog          string
+	JWTSecret          string
+	SuperAdminEmail    string
+	SuperAdminPassword string
+	ObjStore           ObjectStoreConfig
 }
 
 type ObjectStoreConfig struct {
