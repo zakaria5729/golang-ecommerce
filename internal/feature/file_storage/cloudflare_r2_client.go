@@ -1,27 +1,27 @@
 package file_storage
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/tokenutil"
 )
 
 type CloudflareR2Client struct {
 	client        *s3.Client
-	uploader      *manager.Uploader
 	presignClient *s3.PresignClient
 	bucketName    string
-	accountID     string
-	publicDomain  string
 }
 
 func NewCloudflareR2Client() (*CloudflareR2Client, error) {
@@ -34,82 +34,110 @@ func NewCloudflareR2Client() (*CloudflareR2Client, error) {
 			"",
 		)),
 	)
+
 	if err != nil {
+		logger.Logger.Error("Failed to create AWS config", "error", err)
 		return nil, fmt.Errorf("failed to create Cloudflare R2 config: %w", err)
 	}
 
+	endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.AccountID)
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.UsePathStyle = true
-		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.AccountID))
+		o.BaseEndpoint = &endpoint
 	})
-	uploader := manager.NewUploader(client)
-	presignClient := s3.NewPresignClient(client)
 
 	return &CloudflareR2Client{
 		client:        client,
-		uploader:      uploader,
-		presignClient: presignClient,
 		bucketName:    cfg.BucketName,
-		accountID:     cfg.AccountID,
-		publicDomain:  cfg.PublicDomain,
+		presignClient: s3.NewPresignClient(client),
 	}, nil
 }
 
-func (r *CloudflareR2Client) Upload(ctx context.Context, req StorageUploadRequest) (*StorageUploadResponse, error) {
-	key := r.buildKey(req.Folder, req.Key)
-
-	uploadInput := &s3.PutObjectInput{
-		Bucket:      aws.String(r.bucketName),
-		Key:         aws.String(key),
-		Body:        req.Body,
-		ContentType: aws.String(req.ContentType),
-	}
-
-	if req.Metadata != nil {
-		uploadInput.Metadata = req.Metadata
-	}
-
-	result, err := r.uploader.Upload(ctx, uploadInput)
+func (r *CloudflareR2Client) Upload(ctx *context.Context, req *StorageUploadRequest) (*StorageUploadResponse, error) {
+	file, err := req.File.Open()
 	if err != nil {
-		logger.Logger.Error("Failed to upload file to Cloudflare R2", "error", err, "key", key)
-		return nil, fmt.Errorf("failed to upload file to Cloudflare R2: %w", err)
+		logger.Logger.Error("Failed to open file", "error", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		logger.Logger.Error("Failed to read file content", "error", err)
+		return nil, fmt.Errorf("failed to read file content: %w", err)
 	}
 
-	etag := ""
-	if result.ETag != nil {
-		etag = strings.Trim(*result.ETag, "\"")
+	fileUUID, _ := tokenutil.GenerateNewToken(true)
+	if fileUUID == "" {
+		return nil, fmt.Errorf("failed to generate file UUID")
+	}
+
+	fileName := fmt.Sprintf("%s%s", fileUUID, filepath.Ext(req.File.Filename))
+	pathKey := filepath.Join(req.Folder, fileName)
+	contentLength := int64(len(fileBytes))
+
+	_, err = r.client.PutObject(*ctx, &s3.PutObjectInput{
+		Bucket:        &r.bucketName,
+		Key:           &pathKey,
+		Body:          bytes.NewReader(fileBytes),
+		ContentType:   &req.ContentType,
+		ContentLength: &contentLength,
+	})
+
+	if err == nil {
+		return &StorageUploadResponse{
+			PathKey: pathKey,
+		}, nil
+	}
+
+	expiresIn := 2 * time.Minute
+	presignedURL, presignErr := r.generatePresignedUploadURL(ctx, pathKey, req.ContentType, expiresIn)
+	if presignErr != nil {
+		logger.Logger.Error("Failed to generate presigned URL", "error", presignErr, "pathKey", pathKey)
+		return nil, fmt.Errorf("direct upload failed and fallback to presigned URL failed: %w", presignErr)
+	}
+
+	httpReq, httpErr := http.NewRequest(http.MethodPut, presignedURL, bytes.NewReader(fileBytes))
+	if httpErr != nil {
+		return nil, fmt.Errorf("failed to create HTTP request for presigned URL: %w", httpErr)
+	}
+	httpReq.ContentLength = contentLength
+	httpReq.Header.Set("Content-Type", req.ContentType)
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	res, httpErr := httpClient.Do(httpReq)
+	if httpErr != nil {
+		return nil, fmt.Errorf("failed to upload via presigned URL: %w", httpErr)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		return nil, fmt.Errorf("presigned URL upload failed with status %d: %s", res.StatusCode, string(body))
 	}
 
 	return &StorageUploadResponse{
-		Key:      key,
-		ETag:     etag,
-		Location: result.Location,
+		PathKey: pathKey,
 	}, nil
 }
 
-func (r *CloudflareR2Client) Delete(ctx context.Context, req StorageDeleteRequest) error {
-	_, err := r.client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(r.bucketName),
-		Key:    aws.String(req.Key),
+func (r *CloudflareR2Client) Delete(ctx *context.Context, req *StorageDeleteRequest) error {
+	_, err := r.client.DeleteObject(*ctx, &s3.DeleteObjectInput{
+		Bucket: &r.bucketName,
+		Key:    &req.PathKey,
 	})
 	if err != nil {
-		logger.Logger.Error("Failed to delete file from Cloudflare R2", "error", err, "key", req.Key)
+		logger.Logger.Error("Failed to delete file from Cloudflare R2", "error", err, "key", req.PathKey)
 		return fmt.Errorf("failed to delete file from Cloudflare R2: %w", err)
 	}
 
 	return nil
 }
 
-func (r *CloudflareR2Client) GetURL(ctx context.Context, key string) (string, error) {
-	// Return public URL for Cloudflare R2
-	publicURL := r.buildPublicURL(key)
-	return publicURL, nil
-}
-
-func (r *CloudflareR2Client) Exists(ctx context.Context, key string) (bool, error) {
-	_, err := r.client.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(r.bucketName),
-		Key:    aws.String(key),
+func (r *CloudflareR2Client) Exists(ctx *context.Context, key string) (bool, error) {
+	_, err := r.client.HeadObject(*ctx, &s3.HeadObjectInput{
+		Bucket: &r.bucketName,
+		Key:    &key,
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "NoSuchKey") {
@@ -122,45 +150,28 @@ func (r *CloudflareR2Client) Exists(ctx context.Context, key string) (bool, erro
 	return true, nil
 }
 
-func (r *CloudflareR2Client) buildKey(folder, key string) string {
-	if folder == "" {
-		return key
+func (r *CloudflareR2Client) generatePresignedUploadURL(ctx *context.Context, pathKey string, contentType string, expiresIn time.Duration) (string, error) {
+	if r.presignClient == nil {
+		return "", fmt.Errorf("presignClient is nil")
 	}
-	return folder + "/" + key
-}
 
-func (r *CloudflareR2Client) buildPublicURL(key string) string {
-	if r.publicDomain != "" {
-		return fmt.Sprintf("https://%s/%s", r.publicDomain, key)
+	input := &s3.PutObjectInput{
+		Bucket:      &r.bucketName,
+		Key:         &pathKey,
+		ContentType: &contentType,
 	}
-	return fmt.Sprintf("https://%s.%s.r2.dev/%s", r.bucketName, r.accountID, key)
-}
 
-// GeneratePresignedUploadURL generates a pre-signed URL for uploading files
-func (r *CloudflareR2Client) GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, expiresIn time.Duration) (string, error) {
-	request, err := r.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(r.bucketName),
-		Key:         aws.String(key),
-		ContentType: aws.String(contentType),
-	}, func(opts *s3.PresignOptions) {
+	request, err := r.presignClient.PresignPutObject(*ctx, input, func(opts *s3.PresignOptions) {
 		opts.Expires = expiresIn
 	})
+
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned upload URL: %w", err)
 	}
-	return request.URL, nil
-}
 
-// GeneratePresignedDownloadURL generates a pre-signed URL for downloading files
-func (r *CloudflareR2Client) GeneratePresignedDownloadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
-	request, err := r.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(r.bucketName),
-		Key:    aws.String(key),
-	}, func(opts *s3.PresignOptions) {
-		opts.Expires = expiresIn
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned download URL: %w", err)
+	if request == nil || request.URL == "" {
+		return "", fmt.Errorf("generated empty presigned URL")
 	}
+
 	return request.URL, nil
 }

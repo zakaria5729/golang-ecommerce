@@ -1,23 +1,15 @@
 package file_storage
 
 import (
-	"io"
 	"mime/multipart"
 )
 
-type StorageUploadRequest struct {
-	Body        io.Reader
-	Metadata    map[string]string
-	Key         string
-	ContentType string
-	Folder      string
-}
-
 type StorageDeleteRequest struct {
-	Key string
+	PathKey string `json:"path_key"`
 }
 
-type FileUploadAPIRequest struct {
-	File   *multipart.FileHeader
-	Folder string
+type StorageUploadRequest struct {
+	File        *multipart.FileHeader `json:"file"`
+	Folder      string                `json:"folder"`
+	ContentType string                `json:"content_type"`
 }

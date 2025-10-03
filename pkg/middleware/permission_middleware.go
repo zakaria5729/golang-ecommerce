@@ -122,7 +122,7 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
-				logger.Logger.Error("Invalid/expired token", "method", "RequireAuth", "error", err)
+				logger.Logger.Error("Invalid/expired jwt token", "method", "RequireAuth", "error", err)
 				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}

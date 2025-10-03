@@ -34,23 +34,23 @@ func New(mux *http.ServeMux) *Router {
 	}
 }
 func (r *Router) GET(path string, handler t.HandlerFunc) *Route {
-	return r.addRoute(c.GET, path, handler)
+	return r.addRoute(http.MethodGet, path, handler)
 }
 
 func (r *Router) POST(path string, handler t.HandlerFunc) *Route {
-	return r.addRoute(c.POST, path, handler)
+	return r.addRoute(http.MethodPost, path, handler)
 }
 
 func (r *Router) PUT(path string, handler t.HandlerFunc) *Route {
-	return r.addRoute(c.PUT, path, handler)
+	return r.addRoute(http.MethodPut, path, handler)
 }
 
 func (r *Router) DELETE(path string, handler t.HandlerFunc) *Route {
-	return r.addRoute(c.DELETE, path, handler)
+	return r.addRoute(http.MethodDelete, path, handler)
 }
 
 func (r *Router) PATCH(path string, handler t.HandlerFunc) *Route {
-	return r.addRoute(c.PATCH, path, handler)
+	return r.addRoute(http.MethodPatch, path, handler)
 }
 
 func (r *Router) addRoute(method, path string, handler t.HandlerFunc) *Route {

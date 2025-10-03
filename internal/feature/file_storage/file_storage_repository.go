@@ -2,7 +2,6 @@ package file_storage
 
 import (
 	"context"
-	"time"
 
 	"github.com/easy-comerce/backend/pkg/constants"
 )
@@ -22,26 +21,14 @@ func NewFileStorageRepository() *FileStorageRepository {
 	}
 }
 
-func (r *FileStorageRepository) Upload(ctx context.Context, req StorageUploadRequest) (*StorageUploadResponse, error) {
+func (r *FileStorageRepository) Upload(ctx *context.Context, req *StorageUploadRequest) (*StorageUploadResponse, error) {
 	return r.client.Upload(ctx, req)
 }
 
-func (r *FileStorageRepository) Delete(ctx context.Context, req StorageDeleteRequest) error {
+func (r *FileStorageRepository) Delete(ctx *context.Context, req *StorageDeleteRequest) error {
 	return r.client.Delete(ctx, req)
 }
 
-func (r *FileStorageRepository) GetURL(ctx context.Context, key string) (string, error) {
-	return r.client.GetURL(ctx, key)
-}
-
-func (r *FileStorageRepository) Exists(ctx context.Context, key string) (bool, error) {
+func (r *FileStorageRepository) Exists(ctx *context.Context, key string) (bool, error) {
 	return r.client.Exists(ctx, key)
-}
-
-func (r *FileStorageRepository) GeneratePresignedUploadURL(ctx context.Context, key, contentType string, expiresIn time.Duration) (string, error) {
-	return r.client.GeneratePresignedUploadURL(ctx, key, contentType, expiresIn)
-}
-
-func (r *FileStorageRepository) GeneratePresignedDownloadURL(ctx context.Context, key string, expiresIn time.Duration) (string, error) {
-	return r.client.GeneratePresignedDownloadURL(ctx, key, expiresIn)
 }

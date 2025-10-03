@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
@@ -12,10 +11,7 @@ import (
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID, err := tokenutil.GenerateNewToken()
-		if err != nil {
-			requestID = timeutil.NowUTC().Format("20060102150405")
-		}
+		requestID, _ := tokenutil.GenerateNewToken(true)
 		start := timeutil.NowUTC()
 		logger.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path, "method", r.Method)
 
@@ -31,7 +27,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
-		if r.Method == constants.OPTIONS {
+		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
 		}

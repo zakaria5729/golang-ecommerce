@@ -52,6 +52,7 @@ const (
 	File            string = "file"
 	From            string = "from"
 	To              string = "to"
+	ContentType     string = "Content-Type"
 )
 
 const (
@@ -73,7 +74,7 @@ const (
 )
 
 const (
-	MaxFileSizeMB     int64  = 5 * 1024 * 1024 // 5MB
+	SizeInMB          int64  = 1024 * 1024 // 1MB
 	AllowedImageTypes string = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
 	AllowedDocTypes   string = "application/pdf"
 )
@@ -99,14 +100,14 @@ const (
 	FolderUser     string = "user"
 )
 
-const (
-	GET     string = "GET"
-	POST    string = "POST"
-	PUT     string = "PUT"
-	DELETE  string = "DELETE"
-	PATCH   string = "PATCH"
-	OPTIONS string = "OPTIONS"
-)
+// const (
+// 	GET     string = "GET"
+// 	POST    string = "POST"
+// 	PUT     string = "PUT"
+// 	DELETE  string = "DELETE"
+// 	PATCH   string = "PATCH"
+// 	OPTIONS string = "OPTIONS"
+// )
 
 const (
 	VersionPrefix string = "/v"

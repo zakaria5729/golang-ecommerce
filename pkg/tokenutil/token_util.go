@@ -16,10 +16,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateNewToken() (string, error) {
+func GenerateNewToken(isFallback ...bool) (string, error) {
 	ts := time.Now().UnixNano()
 	randBytes := make([]byte, 6)
 	if _, err := rand.Read(randBytes); err != nil {
+		if len(isFallback) > 0 && isFallback[0] {
+			return timeutil.NowUTC().Format("20060102150405"), nil
+		}
 		return "", err
 	}
 	return fmt.Sprintf("%x%x", ts, randBytes), nil
@@ -53,11 +56,11 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 	}
 
 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-		logger.Logger.Error("Token expired", "method", "VerifyToken", "error", err)
-		return nil, errors.New("token expired")
+		logger.Logger.Error("Jwt Token expired", "method", "VerifyToken", "error", err)
+		return nil, errors.New("jwt token expired")
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, errors.New("jwt token invalid")
 }
 
 // **REQUIRED
@@ -110,7 +113,7 @@ func ExtractJwtToken(r *http.Request) string {
 func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*models.JwtClaims, error) {
 	token := ExtractJwtToken(r)
 	if token == "" {
-		return nil, errors.New("no token provided")
+		return nil, errors.New("no jwt token provided")
 	}
 
 	claims, err := VerifyJwtToken(token, jwtSecret)
