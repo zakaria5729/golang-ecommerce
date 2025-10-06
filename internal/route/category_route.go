@@ -12,9 +12,15 @@ func RegisterCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware
 
 	r.GET("/categories/public", h.GetAllCategoriesPublic).Register()
 
+	r.GET("/categories-subcategories/public", h.GetAllCategoriesWithSubcategoriesPublic).Register()
+
 	r.GET("/categories/id/{id}/public", h.GetCategoryByIdPublic).Register()
 
 	r.GET("/categories/paginated/public", h.GetAllCategoriesPaginatedPublic).Register()
+
+	r.GET("/categories-subcategories", h.GetAllCategoriesWithSubcategories).Use(
+		pm.RequirePermission(c.PermissionCategoryRead),
+	).Register()
 
 	r.GET("/categories", h.GetAllCategories).Use(
 		pm.RequirePermission(c.PermissionCategoryRead),

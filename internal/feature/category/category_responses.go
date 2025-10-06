@@ -11,3 +11,8 @@ type CategoryResponse struct {
 	Title    string  `json:"title"`
 	IsActive bool    `json:"is_active"`
 }
+
+type CategorySubcategoriesResponse struct {
+	Category      CategoryResponse                `json:"category"`
+	Subcategories []CategorySubcategoriesResponse `json:"subcategories"`
+}

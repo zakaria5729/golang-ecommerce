@@ -4,6 +4,7 @@ import (
 	"time"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/logger"
 	"gorm.io/gorm"
 )
 
@@ -17,14 +18,20 @@ type BaseModel struct {
 }
 
 func (b *BaseModel) BeforeDelete(tx *gorm.DB) (err error) {
+	logger.Logger.Info("BeforeDelete")
+
 	if userID, ok := tx.Statement.Context.Value(c.UserIDContextKey).(uint); ok {
+		logger.Logger.Info("BeforeDelete", "FieldDeletedBy", userID)
 		tx.Statement.SetColumn(c.FieldDeletedBy, userID)
 	}
 	return
 }
 
 func (b *BaseModel) BeforeUpdate(tx *gorm.DB) (err error) {
+	logger.Logger.Info("BeforeUpdate")
+
 	if userID, ok := tx.Statement.Context.Value(c.UserIDContextKey).(uint); ok {
+		logger.Logger.Info("BeforeDelete", "FieldUpdatedBy", userID)
 		tx.Statement.SetColumn(c.FieldUpdatedBy, userID)
 	}
 	return

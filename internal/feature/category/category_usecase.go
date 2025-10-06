@@ -19,29 +19,43 @@ func NewCategoryUseCase() *CategoryUseCase {
 	}
 }
 
-func (uc *CategoryUseCase) GetAllCategories(isActive *bool, showDeleted *bool, includeStr string, parentIDFilter string, priorityFilter string, sortBy, sortOrder string) ([]CategoryResponse, error) {
+func (uc *CategoryUseCase) GetAllCategoriesWithSubcategories(isActive *bool, showDeleted *bool, includeStr string, priorityFilter string, subcategoryDepthFilter string, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
+	include := utils.ParseCommaSeparatedString(includeStr)
+	showPriority := utils.ParseBoolPtr(priorityFilter)
+	subcategoryDepth, _ := utils.ParseInt(subcategoryDepthFilter)
+
+	categories, err := uc.repo.GetAllCategoriesWithSubcategories(subcategoryDepth, isActive, showDeleted, include, showPriority, sortBy, sortOrder)
+	if err != nil {
+		logger.Logger.Error("Failed to fetch nested categories", "method", "GetAllCategoriesWithSubcategories", "error", err)
+		return nil, fmt.Errorf("failed to fetch nested categories: %w", err)
+	}
+
+	return categories, nil
+}
+
+func (uc *CategoryUseCase) GetAllCategories(isActive *bool, showDeleted *bool, includeStr string, parentIDFilter string, priorityLimitFilter string, sortBy, sortOrder string) ([]CategoryResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
-	showPriority := utils.ParseBoolPtr(priorityFilter)
+	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
 
-	categories, err := uc.repo.GetAllCategories(isActive, showDeleted, include, parentID, showPriority, sortBy, sortOrder)
+	categories, err := uc.repo.GetAllCategories(isActive, showDeleted, include, parentID, priorityLimit, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 
 	return uc.getCategoryResponses(categories), nil
 }
 
-func (uc *CategoryUseCase) GetAllCategoriesPaginated(isActive *bool, showDeleted *bool, includeStr string, parentIDFilter string, pageStr string, pageSizeStr string, priorityFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *CategoryUseCase) GetAllCategoriesPaginated(isActive *bool, showDeleted *bool, includeStr string, parentIDFilter string, pageStr string, pageSizeStr string, priorityLimitFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	include := utils.ParseCommaSeparatedString(includeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
-	showPriority := utils.ParseBoolPtr(priorityFilter)
+	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
 
-	categories, total, err := uc.repo.GetAllCategoriesPaginated(isActive, showDeleted, include, parentID, page, pageSize, showPriority, sortBy, sortOrder)
+	categories, total, err := uc.repo.GetAllCategoriesPaginated(isActive, showDeleted, include, parentID, page, pageSize, priorityLimit, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
 	}
 

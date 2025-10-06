@@ -37,33 +37,14 @@ const (
 )
 
 const (
-	DefaultPageSize int    = 20
-	MaxPageSize     int    = 200
-	Include         string = "include"
-	All             string = "all"
-	Page            string = "page"
-	PageSize        string = "page_size"
-	SortBy          string = "sort_by"
-	SortOrder       string = "sort_order"
-	SortOrderDesc   string = "DESC"
-	SortOrderAsc    string = "ASC"
-	ShowDeleted     string = "show_deleted"
-	Folder          string = "folder"
-	File            string = "file"
-	From            string = "from"
-	To              string = "to"
-	ContentType     string = "Content-Type"
-)
-
-const (
 	EnvKeyJWTSecret  string = "JWT_SECRET"
 	EnvActiveProfile string = "ACTIVE_PROFILE"
 )
 
 const (
-	AccessTokenExpiryHours        int = 12
+	AccessTokenExpiryHours        int = 24
 	RefreshTokenExpiryHours       int = 48
-	PasswordResetTokenExpiryHours int = 5
+	PasswordResetTokenExpiryHours int = 6
 )
 
 const (
@@ -100,15 +81,6 @@ const (
 	FolderUser     string = "user"
 )
 
-// const (
-// 	GET     string = "GET"
-// 	POST    string = "POST"
-// 	PUT     string = "PUT"
-// 	DELETE  string = "DELETE"
-// 	PATCH   string = "PATCH"
-// 	OPTIONS string = "OPTIONS"
-// )
-
 const (
 	VersionPrefix string = "/v"
 	V1            string = "v1"
@@ -118,5 +90,6 @@ const (
 	MinReviewRating        int = 1
 	MaxReviewRating        int = 5
 	MaxReviewCommentLength int = 1000
-	PriorityLimit          int = 10
+	MaxPriorityLimit       int = 100
+	SubcategoryDepthLimit  int = 10
 )

@@ -29,7 +29,7 @@ func GenerateNewToken(isFallback ...bool) (string, error) {
 }
 
 func GenerateNewRefreshToken() (string, time.Time, error) {
-	token, err := GenerateNewToken()
+	token, err := GenerateNewToken(true)
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -63,7 +63,6 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 	return nil, errors.New("jwt token invalid")
 }
 
-// **REQUIRED
 func GenerateNewJwtToken(user *user.User, jwtSecret string) (string, int64, error) {
 	now := timeutil.NowUTC()
 	expirationTime := timeutil.AddHoursUTC(constants.AccessTokenExpiryHours)

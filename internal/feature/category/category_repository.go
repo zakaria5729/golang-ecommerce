@@ -22,8 +22,13 @@ func NewCategoryRepository() *CategoryRepository {
 	}
 }
 
-func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool, include []string, parentID *uint, showPriority *bool, sortBy, sortOrder string) ([]Category, error) {
+func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool, include []string, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]Category, error) {
 	var categories []Category
+
+	var maxPriorityLimit int = c.MaxPriorityLimit
+	if priorityLimit != nil && *priorityLimit > maxPriorityLimit {
+		priorityLimit = &maxPriorityLimit
+	}
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
@@ -40,8 +45,8 @@ func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool,
 		query = query.Where(c.CategoryParentID+" = ?", *parentID)
 	}
 
-	if showPriority != nil && *showPriority {
-		query = query.Where(c.CategoryPriority+" >= ?", c.PriorityLimit)
+	if priorityLimit != nil && *priorityLimit > 0 {
+		query = query.Where(c.CategoryPriority+" >= ?", *priorityLimit)
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
@@ -50,14 +55,19 @@ func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool,
 
 	err := query.Find(&categories).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDeleted *bool, include []string, parentID *uint, page int, pageSize int, showPriority *bool, sortBy, sortOrder string) ([]Category, int, error) {
+func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDeleted *bool, include []string, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]Category, int, error) {
 	var categories []Category
 	var total int64
+
+	var maxPriorityLimit int = c.MaxPriorityLimit
+	if priorityLimit != nil && *priorityLimit > maxPriorityLimit {
+		priorityLimit = &maxPriorityLimit
+	}
 
 	selectFields := r.getSelectableFields(include)
 	query := r.db.Select(strings.Join(selectFields, ", "))
@@ -74,8 +84,8 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDelet
 		query = query.Where(c.CategoryParentID+" = ?", *parentID)
 	}
 
-	if showPriority != nil && *showPriority {
-		query = query.Where(c.CategoryPriority+" >= ?", c.PriorityLimit)
+	if priorityLimit != nil && *priorityLimit > 0 {
+		query = query.Where(c.CategoryPriority+" >= ?", *priorityLimit)
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
@@ -83,13 +93,13 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDelet
 	}
 
 	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
-		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&categories).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "showPriority", showPriority, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return categories, int(total), err
@@ -273,6 +283,104 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 		logger.Logger.Error("Failed to increment priority", "method", "IncrementPriority", "error", err, "categoryID", categoryID)
 	}
 	return err
+}
+
+func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth *int, isActive *bool, showDeleted *bool, include []string, showPriority *bool, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
+	var categories []Category
+
+	query := `
+        WITH RECURSIVE category_tree AS (
+            SELECT 
+                c.*, 
+                1 AS level
+            FROM categories c
+            WHERE c.parent_id IS NULL
+            AND (?::boolean IS NULL OR c.is_active = ?)
+            AND (?::boolean IS NULL OR ?::boolean OR c.deleted_at IS NULL)
+            
+            UNION ALL
+            
+            SELECT 
+                c.*,
+                ct.level + 1
+            FROM categories c
+            JOIN category_tree ct ON c.parent_id = ct.id
+            WHERE ct.level < ?
+            AND (?::boolean IS NULL OR c.is_active = ?)
+            AND (?::boolean IS NULL OR ?::boolean OR c.deleted_at IS NULL)
+        )
+        SELECT * FROM category_tree
+        ORDER BY level, 
+            CASE WHEN ? = 'id' AND ? = 'asc' THEN id END ASC,
+            CASE WHEN ? = 'id' AND ? = 'desc' THEN id END DESC,
+            CASE WHEN ? = 'title' AND ? = 'asc' THEN title END ASC,
+            CASE WHEN ? = 'title' AND ? = 'desc' THEN title END DESC,
+            CASE WHEN ? = 'created_at' AND ? = 'asc' THEN created_at END ASC,
+            CASE WHEN ? = 'created_at' AND ? = 'desc' THEN created_at END DESC
+    `
+
+	var subcategoryDepthInt int = c.SubcategoryDepthLimit
+	if subcategoryDepth == nil || *subcategoryDepth > c.SubcategoryDepthLimit {
+		subcategoryDepth = &subcategoryDepthInt
+	}
+
+	err := r.db.Raw(query,
+		// Initial WHERE
+		isActive, isActive, // is_active status (NULL + value)
+		showDeleted, showDeleted, // deleted_at (NULL + showDeleted)
+
+		// UNION ALL WHERE
+		subcategoryDepth,   // subcategoryDepth
+		isActive, isActive, // is_active status (NULL + value)
+		showDeleted, showDeleted, // deleted_at (NULL + showDeleted)
+
+		// ORDER BY
+		sortBy, sortOrder, // id ASC
+		sortBy, sortOrder, // id DESC
+		sortBy, sortOrder, // title ASC
+		sortBy, sortOrder, // title DESC
+		sortBy, sortOrder, // created_at ASC
+		sortBy, sortOrder, // created_at DESC
+	).Scan(&categories).Error
+
+	if err != nil {
+		logger.Logger.Error("Failed to fetch nested categories", "method", "GetNestedCategories", "error", err)
+		return nil, err
+	}
+
+	lookup := make(map[uint]*Category)
+	for i := range categories {
+		categories[i].ImageURL = utils.BuildFullImageURL(categories[i].PathKey)
+		lookup[categories[i].ID] = &categories[i]
+	}
+
+	var buildSubcategories func(parentID uint) []CategorySubcategoriesResponse
+	buildSubcategories = func(parentID uint) []CategorySubcategoriesResponse {
+		var subs []CategorySubcategoriesResponse
+		for _, cat := range categories {
+			if cat.ParentID != nil && *cat.ParentID == parentID {
+				sub := CategorySubcategoriesResponse{
+					Category:      *lookup[cat.ID].ToResponse(),
+					Subcategories: buildSubcategories(cat.ID),
+				}
+				subs = append(subs, sub)
+			}
+		}
+		return subs
+	}
+
+	var roots []CategorySubcategoriesResponse
+	for i := range categories {
+		if categories[i].ParentID == nil {
+			root := CategorySubcategoriesResponse{
+				Category:      *lookup[categories[i].ID].ToResponse(),
+				Subcategories: buildSubcategories(categories[i].ID),
+			}
+			roots = append(roots, root)
+		}
+	}
+
+	return roots, nil
 }
 
 func (r *CategoryRepository) findRootCategoryID(tx *gorm.DB, categoryID uint) (uint, error) {

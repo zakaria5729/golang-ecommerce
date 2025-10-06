@@ -23,6 +23,17 @@ func NewCategoryHandler() *CategoryHandler {
 	}
 }
 
+func (h *CategoryHandler) GetAllCategoriesWithSubcategoriesPublic(w http.ResponseWriter, r *http.Request) {
+	isActive := true
+	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, &isActive, nil)
+	if err != nil {
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccessJSON(w, categoryResponses)
+}
+
 func (h *CategoryHandler) GetAllCategoriesPublic(w http.ResponseWriter, r *http.Request) {
 	isActive := true
 	err, categoryResponses := h.getAllCategoriesData(r, &isActive, nil)
@@ -54,6 +65,19 @@ func (h *CategoryHandler) GetAllCategoriesPaginatedPublic(w http.ResponseWriter,
 	}
 
 	response.SendSuccessJSON(w, paginatedResponse)
+}
+
+func (h *CategoryHandler) GetAllCategoriesWithSubcategories(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	isActive := utils.ParseBoolPtr(q.Get(c.CategoryIsActive))
+	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
+	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, isActive, showDeleted)
+	if err != nil {
+		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response.SendSuccessJSON(w, categoryResponses)
 }
 
 func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
@@ -194,13 +218,30 @@ func (h *CategoryHandler) getAllCategoriesData(r *http.Request, isActive *bool, 
 	q := r.URL.Query()
 	includeStr := q.Get(c.Include)
 	parentIDFilter := q.Get(c.CategoryParentID)
-	showPriorityFilter := q.Get(c.CategoryPriority)
+	priorityLimitFilter := q.Get(c.CategoryPriorityLimit)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	responses, err := h.useCase.GetAllCategories(isActive, showDeleted, includeStr, parentIDFilter, showPriorityFilter, sortBy, sortOrder)
+	responses, err := h.useCase.GetAllCategories(isActive, showDeleted, includeStr, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "getAllCategoriesData", "error", err, "include", includeStr, "parentID", parentIDFilter, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "getAllCategoriesData", "error", err, "include", includeStr, "parentID", parentIDFilter, "priorityLimit", priorityLimitFilter, "sortBy", sortBy, "sortOrder", sortOrder)
+		return err, nil
+	}
+
+	return nil, responses
+}
+
+func (h *CategoryHandler) getAllCategoriesWithSubcategoriesData(r *http.Request, isActive *bool, showDeleted *bool) (error, []category.CategorySubcategoriesResponse) {
+	q := r.URL.Query()
+	includeStr := q.Get(c.Include)
+	showPriorityFilter := q.Get(c.CategoryPriority)
+	subcategoryDepthFilter := q.Get(c.SubcategoryDepth)
+	sortBy := q.Get(c.SortBy)
+	sortOrder := q.Get(c.SortOrder)
+
+	responses, err := h.useCase.GetAllCategoriesWithSubcategories(isActive, showDeleted, includeStr, showPriorityFilter, subcategoryDepthFilter, sortBy, sortOrder)
+	if err != nil {
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategoriesWithSubcategories", "error", err, "include", includeStr, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
 		return err, nil
 	}
 
