@@ -9,12 +9,10 @@ import (
 type Category struct {
 	models.BaseModel
 	SubTitle *string `gorm:"column:sub_title"`
-	ImageURL *string `gorm:"-"`
 	ParentID *uint   `gorm:"column:parent_id"`
 	Priority *uint   `gorm:"column:priority"`
 	PathKey  *string `gorm:"column:path_key"`
 	Title    string  `gorm:"not null; column:title"`
-	IsActive bool    `gorm:"column:is_active"`
 }
 
 func (Category) TableName() string {
@@ -29,6 +27,9 @@ func (c *Category) Sanitize() {
 		sanitized := utils.Trim(*c.SubTitle)
 		c.SubTitle = &sanitized
 	}
+	if c.PathKey != nil && *c.PathKey == "" {
+		c.PathKey = nil
+	}
 }
 
 func (c *Category) ToResponse() *CategoryResponse {
@@ -37,7 +38,6 @@ func (c *Category) ToResponse() *CategoryResponse {
 		Title:     c.Title,
 		SubTitle:  c.SubTitle,
 		ParentID:  c.ParentID,
-		IsActive:  c.IsActive,
 		Priority:  c.Priority,
 		ImageURL:  utils.BuildFullImageURL(c.PathKey),
 	}

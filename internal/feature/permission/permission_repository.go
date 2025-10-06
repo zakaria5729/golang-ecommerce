@@ -219,9 +219,3 @@ func (r *PermissionRepository) buildPermissionJoinQuery() *gorm.DB {
 		Joins("JOIN " + c.TablePermission + " p ON rp.permission_id = p.id").
 		Where("u.deleted_at IS NULL AND r.deleted_at IS NULL AND p.deleted_at IS NULL")
 }
-
-func (r *PermissionRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{c.FieldID, c.PermissionName, c.FieldCreatedAt, c.FieldUpdatedAt}
-	optionalFields := []string{c.PermissionDescription}
-	return utils.BuildSelectFields(defaultFields, optionalFields, include)
-}

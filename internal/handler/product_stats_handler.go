@@ -66,7 +66,7 @@ func (h *ProductStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err := h.useCase.IncreaseProductStats(&req)
+	err := h.useCase.IncreaseProductStats(r.Context(), &req)
 	if err != nil {
 		response.SendErrorJSON(w, "Failed to increase product stats", http.StatusInternalServerError)
 		return

@@ -5,7 +5,7 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/address"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -22,7 +22,7 @@ func NewAddressHandler() *AddressHandler {
 }
 
 func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -83,7 +83,7 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -109,7 +109,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -156,7 +156,7 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -192,7 +192,7 @@ func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -219,7 +219,7 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return

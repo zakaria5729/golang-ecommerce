@@ -42,10 +42,6 @@ func RegisterCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware
 		pm.RequirePermission(c.PermissionCategoryUpdate),
 	).Register()
 
-	r.PATCH("/categories/id/{id}/toggle", h.ToggleCategoryIsActive).Use(
-		pm.RequirePermission(c.PermissionCategoryUpdate),
-	).Register()
-
 	r.DELETE("/categories/id/{id}", h.DeleteCategory).Use(
 		pm.RequirePermission(c.PermissionCategoryDelete),
 	).Register()

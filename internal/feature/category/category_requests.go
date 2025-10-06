@@ -5,6 +5,7 @@ type CreateCategoryRequest struct {
 	ParentID *uint   `json:"parent_id,omitempty" validate:"omitempty,min=1"`
 	Priority *uint   `json:"priority,omitempty" validate:"omitempty,min=1"`
 	Title    string  `json:"title" validate:"required,min=2,max=100"`
+	PathKey  string  `json:"path_key,omitempty" validate:"omitempty"`
 }
 
 type UpdateCategoryRequest struct {
@@ -12,5 +13,5 @@ type UpdateCategoryRequest struct {
 	ParentID *uint   `json:"parent_id,omitempty" validate:"omitempty,min=1"`
 	Priority *uint   `json:"priority,omitempty" validate:"omitempty,min=1"`
 	Title    string  `json:"title,omitempty" validate:"omitempty,min=2,max=100"`
-	IsActive *bool   `json:"is_active,omitempty"`
+	PathKey  string  `json:"path_key,omitempty" validate:"omitempty"`
 }

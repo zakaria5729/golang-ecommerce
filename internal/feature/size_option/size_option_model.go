@@ -8,9 +8,9 @@ import (
 
 type SizeOption struct {
 	models.BaseModel
-	Name           string `gorm:"not null;column:name"`
+	Name           string `gorm:"not null; column:name"`
 	SortOrder      *int   `gorm:"column:sort_order"`
-	SizeCategoryID uint   `gorm:"not null;column:size_category_id"`
+	SizeCategoryID uint   `gorm:"not null; column:size_category_id"`
 }
 
 func (SizeOption) TableName() string {

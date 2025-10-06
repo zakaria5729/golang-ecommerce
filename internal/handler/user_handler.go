@@ -6,7 +6,7 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -23,7 +23,7 @@ func NewUserHandler() *UserHandler {
 }
 
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := middleware.GetUserFromContext(r)
+	currentUser, err := m.GetUserFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -33,7 +33,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -61,7 +61,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := middleware.GetUserFromContext(r)
+	currentUser, err := m.GetUserFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -97,7 +97,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userResponse, err := h.userUseCase.CreateUser(&req)
+	userResponse, err := h.userUseCase.CreateUser(r.Context(), &req)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -108,7 +108,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	authUserID, err := middleware.GetUserIDFromContext(r)
+	authUserID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || authUserID == nil || *authUserID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -185,7 +185,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userUseCase.DeleteUser(*id); err != nil {
+	if err := h.userUseCase.DeleteUser(r.Context(), *id); err != nil {
 		logger.Logger.Error("Delete user failed", "method", "DeleteUser", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
@@ -201,7 +201,7 @@ func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userUseCase.UndoDeletedUser(*id); err != nil {
+	if err := h.userUseCase.UndoDeletedUser(r.Context(), *id); err != nil {
 		logger.Logger.Error("Undo delete user failed", "method", "UndoDeletedUser", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return

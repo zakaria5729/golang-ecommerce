@@ -1,6 +1,7 @@
 package product_stats
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -45,7 +46,7 @@ func (uc *ProductStatsUseCase) GetProductStatsByID(id uint) (*ProductStats, erro
 	return history, nil
 }
 
-func (uc *ProductStatsUseCase) IncreaseProductStats(req *IncreaseProductStatsRequest) error {
+func (uc *ProductStatsUseCase) IncreaseProductStats(ctx context.Context, req *IncreaseProductStatsRequest) error {
 	productStats, err := uc.repo.GetProductStatsByID(req.ProductID)
 	if err != nil || productStats == nil {
 		productStats = &ProductStats{
@@ -69,7 +70,7 @@ func (uc *ProductStatsUseCase) IncreaseProductStats(req *IncreaseProductStatsReq
 		productStats.RemoveFromWishlistCount = productStats.RemoveFromWishlistCount + 1
 	}
 
-	if err := uc.repo.IncreaseProductStats(productStats); err != nil {
+	if err := uc.repo.IncreaseProductStats(ctx, productStats); err != nil {
 		logger.Logger.Error("Failed to increase product stats", "method", "IncreaseProductStats", "error", err)
 		return fmt.Errorf("failed to increase product stats: %w", err)
 	}
@@ -77,7 +78,7 @@ func (uc *ProductStatsUseCase) IncreaseProductStats(req *IncreaseProductStatsReq
 	return nil
 }
 
-func (uc *ProductStatsUseCase) IncreasePurchaseCountInProductStats(productID uint) error {
+func (uc *ProductStatsUseCase) IncreasePurchaseCountInProductStats(ctx context.Context, productID uint) error {
 	productStats, err := uc.repo.GetProductStatsByID(productID)
 	if err != nil || productStats == nil {
 		productStats = &ProductStats{
@@ -86,7 +87,7 @@ func (uc *ProductStatsUseCase) IncreasePurchaseCountInProductStats(productID uin
 	}
 
 	productStats.PurchaseCount = productStats.PurchaseCount + 1
-	if err := uc.repo.IncreaseProductStats(productStats); err != nil {
+	if err := uc.repo.IncreaseProductStats(ctx, productStats); err != nil {
 		logger.Logger.Error("Failed to increase product stats", "method", "IncreasePurchaseCountInProductStats", "error", err)
 		return fmt.Errorf("failed to increase product stats: %w", err)
 	}

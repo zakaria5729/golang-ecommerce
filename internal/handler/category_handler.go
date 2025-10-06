@@ -24,8 +24,8 @@ func NewCategoryHandler() *CategoryHandler {
 }
 
 func (h *CategoryHandler) GetAllCategoriesWithSubcategoriesPublic(w http.ResponseWriter, r *http.Request) {
-	isActive := true
-	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, &isActive, nil)
+	showDeleted := false
+	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, &showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -35,8 +35,7 @@ func (h *CategoryHandler) GetAllCategoriesWithSubcategoriesPublic(w http.Respons
 }
 
 func (h *CategoryHandler) GetAllCategoriesPublic(w http.ResponseWriter, r *http.Request) {
-	isActive := true
-	err, categoryResponses := h.getAllCategoriesData(r, &isActive, nil)
+	err, categoryResponses := h.getAllCategoriesData(r, nil)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -46,8 +45,7 @@ func (h *CategoryHandler) GetAllCategoriesPublic(w http.ResponseWriter, r *http.
 }
 
 func (h *CategoryHandler) GetCategoryByIdPublic(w http.ResponseWriter, r *http.Request) {
-	isActive := true
-	err, categoryResponse := h.getCategoryDataById(r, &isActive, nil)
+	err, categoryResponse := h.getCategoryDataById(r, nil)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -57,8 +55,7 @@ func (h *CategoryHandler) GetCategoryByIdPublic(w http.ResponseWriter, r *http.R
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginatedPublic(w http.ResponseWriter, r *http.Request) {
-	isActive := true
-	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, &isActive, nil)
+	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, nil)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,10 +65,8 @@ func (h *CategoryHandler) GetAllCategoriesPaginatedPublic(w http.ResponseWriter,
 }
 
 func (h *CategoryHandler) GetAllCategoriesWithSubcategories(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	isActive := utils.ParseBoolPtr(q.Get(c.CategoryIsActive))
-	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
-	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, isActive, showDeleted)
+	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
+	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -81,11 +76,8 @@ func (h *CategoryHandler) GetAllCategoriesWithSubcategories(w http.ResponseWrite
 }
 
 func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	isActive := utils.ParseBoolPtr(q.Get(c.CategoryIsActive))
-	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
-
-	err, categoryResponses := h.getAllCategoriesData(r, isActive, showDeleted)
+	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
+	err, categoryResponses := h.getAllCategoriesData(r, showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -95,11 +87,8 @@ func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	isActive := utils.ParseBoolPtr(q.Get(c.CategoryIsActive))
-	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
-
-	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, isActive, showDeleted)
+	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
+	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -109,11 +98,8 @@ func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *ht
 }
 
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	isActive := utils.ParseBoolPtr(q.Get(c.CategoryIsActive))
-	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
-
-	err, categoryResponse := h.getCategoryDataById(r, isActive, showDeleted)
+	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
+	err, categoryResponse := h.getCategoryDataById(r, showDeleted)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -133,7 +119,7 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	categoryResponse, err := h.useCase.CreateCategory(&req)
+	categoryResponse, err := h.useCase.CreateCategory(r.Context(), &req)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -159,7 +145,7 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	categoryResponse, err := h.useCase.UpdateCategory(*id, &req)
+	categoryResponse, err := h.useCase.UpdateCategory(r.Context(), *id, &req)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -175,7 +161,7 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.useCase.DeleteCategory(*id); err != nil {
+	if err := h.useCase.DeleteCategory(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -190,7 +176,7 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.useCase.UndoDeletedCategory(*id); err != nil {
+	if err := h.useCase.UndoDeletedCategory(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -198,74 +184,54 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 	response.SendDeleteJSON(w, "Undo category deleted successfully")
 }
 
-func (h *CategoryHandler) ToggleCategoryIsActive(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(c.FieldID))
-	if err != nil || id == nil || *id == 0 {
-		response.SendErrorJSON(w, "Invalid category ID", http.StatusBadRequest)
-		return
-	}
-
-	categoryResponse, err := h.useCase.ToggleCategoryIsActive(*id)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponse)
-}
-
-func (h *CategoryHandler) getAllCategoriesData(r *http.Request, isActive *bool, showDeleted *bool) (error, []category.CategoryResponse) {
+func (h *CategoryHandler) getAllCategoriesData(r *http.Request, showDeleted *bool) (error, []category.CategoryResponse) {
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
 	parentIDFilter := q.Get(c.CategoryParentID)
 	priorityLimitFilter := q.Get(c.CategoryPriorityLimit)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	responses, err := h.useCase.GetAllCategories(isActive, showDeleted, includeStr, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
+	responses, err := h.useCase.GetAllCategories(showDeleted, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "getAllCategoriesData", "error", err, "include", includeStr, "parentID", parentIDFilter, "priorityLimit", priorityLimitFilter, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "getAllCategoriesData", "error", err, "showDeleted", showDeleted, "parentID", parentIDFilter, "priorityLimit", priorityLimitFilter, "sortBy", sortBy, "sortOrder", sortOrder)
 		return err, nil
 	}
 
 	return nil, responses
 }
 
-func (h *CategoryHandler) getAllCategoriesWithSubcategoriesData(r *http.Request, isActive *bool, showDeleted *bool) (error, []category.CategorySubcategoriesResponse) {
+func (h *CategoryHandler) getAllCategoriesWithSubcategoriesData(r *http.Request, showDeleted *bool) (error, []category.CategorySubcategoriesResponse) {
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
-	showPriorityFilter := q.Get(c.CategoryPriority)
 	subcategoryDepthFilter := q.Get(c.SubcategoryDepth)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	responses, err := h.useCase.GetAllCategoriesWithSubcategories(isActive, showDeleted, includeStr, showPriorityFilter, subcategoryDepthFilter, sortBy, sortOrder)
+	responses, err := h.useCase.GetAllCategoriesWithSubcategories(showDeleted, subcategoryDepthFilter, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategoriesWithSubcategories", "error", err, "include", includeStr, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategoriesWithSubcategories", "error", err, "showDeleted", showDeleted, "subcategoryDepth", subcategoryDepthFilter, "sortBy", sortBy, "sortOrder", sortOrder)
 		return err, nil
 	}
 
 	return nil, responses
 }
 
-func (h *CategoryHandler) getCategoryDataById(r *http.Request, isActive *bool, showDeleted *bool) (error, *category.CategoryResponse) {
+func (h *CategoryHandler) getCategoryDataById(r *http.Request, showDeleted *bool) (error, *category.CategoryResponse) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid category ID"), nil
 	}
 
-	response, err := h.useCase.GetCategoryByID(*id, isActive, showDeleted)
+	response, err := h.useCase.GetCategoryByID(*id, showDeleted)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch category by ID", "method", "getCategoryDataById", "error", err, "id", id, "isActive", isActive, "showDeleted", showDeleted)
+		logger.Logger.Error("Failed to fetch category by ID", "method", "getCategoryDataById", "error", err, "id", id, "showDeleted", showDeleted)
 		return errors.New("category not found"), nil
 	}
 
 	return nil, response
 }
 
-func (h *CategoryHandler) getAllCategoriesPaginatedData(r *http.Request, isActive *bool, showDeleted *bool) (error, *models.PaginatedResponse) {
+func (h *CategoryHandler) getAllCategoriesPaginatedData(r *http.Request, showDeleted *bool) (error, *models.PaginatedResponse) {
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
 	parentIDFilter := q.Get(c.CategoryParentID)
@@ -273,9 +239,9 @@ func (h *CategoryHandler) getAllCategoriesPaginatedData(r *http.Request, isActiv
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(isActive, showDeleted, includeStr, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
+	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(showDeleted, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories paginated", "method", "getAllCategoriesPaginatedData", "error", err, "include", includeStr, "parentID", parentIDFilter, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "getAllCategoriesPaginatedData", "error", err, "parentID", parentIDFilter, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
 		return err, nil
 	}
 

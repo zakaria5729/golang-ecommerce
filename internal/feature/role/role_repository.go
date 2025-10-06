@@ -1,12 +1,14 @@
 package role
 
 import (
+	"context"
 	"errors"
 
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -133,6 +135,7 @@ func (r *RoleRepository) UpdateRoleWithoutPermissions(role *Role) error {
 		RoleType:    role.RoleType,
 		Description: role.Description,
 	}
+	updatedRole.UpdatedBy = role.UpdatedBy
 
 	err := r.db.Model(&Role{}).Where(c.FieldID+" = ?", role.ID).Updates(updatedRole).Error
 	if err != nil {
@@ -141,8 +144,15 @@ func (r *RoleRepository) UpdateRoleWithoutPermissions(role *Role) error {
 	return err
 }
 
-func (r *RoleRepository) DeleteRole(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Role{}).Error
+func (r *RoleRepository) DeleteRole(ctx context.Context, id uint) error {
+	role := &Role{}
+	role.DeletedAt = timeutil.GormNowUTC()
+	userID, ok := ctx.Value(c.UserIDContextKey).(*uint)
+	if ok {
+		role.DeletedBy = userID
+	}
+
+	err := r.db.Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id).Updates(role).Error
 	if err != nil {
 		logger.Logger.Error("Failed to delete role", "method", "DeleteRole", "error", err, "id", id)
 	}
@@ -150,8 +160,18 @@ func (r *RoleRepository) DeleteRole(id uint) error {
 	return err
 }
 
-func (r *RoleRepository) UndoDeletedRole(id uint) error {
-	err := r.db.Unscoped().Model(&Role{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
+func (r *RoleRepository) UndoDeletedRole(ctx context.Context, id uint) error {
+	role := &Role{}
+	role.DeletedAt = nil
+	role.DeletedBy = nil
+	userID, ok := ctx.Value(c.UserIDContextKey).(*uint)
+	if ok {
+		role.UpdatedBy = userID
+	}
+
+	err := r.db.Unscoped().Model(&Role{}).
+		Select(c.FieldDeletedAt, c.FieldDeletedBy).
+		Where(c.FieldID+" = ?", id).Updates(role).Error
 
 	if err != nil {
 		logger.Logger.Error("Failed to undo deleted role", "method", "UndoDeletedRole", "error", err, "id", id)

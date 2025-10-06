@@ -1,12 +1,13 @@
 package product_stats
 
 import (
+	"context"
 	"time"
 
 	"github.com/easy-comerce/backend/db"
-	"github.com/easy-comerce/backend/pkg/constants"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -42,7 +43,7 @@ func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &[]string{c.ProductStatsViewCount}); orderClause != "" {
 		query = query.Order(orderClause)
 	} else {
-		query = query.Order(c.ProductStatsViewCount + " " + constants.SortOrderDesc)
+		query = query.Order(c.ProductStatsViewCount + " " + c.SortOrderDesc)
 	}
 
 	if err := query.Model(&ProductStats{}).Count(&total).Error; err != nil {
@@ -61,7 +62,7 @@ func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 func (r *ProductStatsRepository) GetProductStatsByID(id uint) (*ProductStats, error) {
 	var history ProductStats
 
-	if err := r.db.Model(&ProductStats{}).Where(constants.FieldID+" = ?", id).First(&history).Error; err != nil {
+	if err := r.db.Model(&ProductStats{}).Where(c.FieldID+" = ?", id).First(&history).Error; err != nil {
 		logger.Logger.Error("Failed to fetch product stats by ID", "method", "GetProductStatsByID", "error", err, "id", id)
 		return nil, err
 	}
@@ -69,16 +70,20 @@ func (r *ProductStatsRepository) GetProductStatsByID(id uint) (*ProductStats, er
 	return &history, nil
 }
 
-func (r *ProductStatsRepository) IncreaseProductStats(productStats *ProductStats) error {
+func (r *ProductStatsRepository) IncreaseProductStats(ctx context.Context, productStats *ProductStats) error {
+	userID := m.GetUserIdOnlyFromContext(ctx)
+
 	if productStats.ID == 0 {
-		err := r.db.Create(productStats).Error
+		productStats.CreatedBy = userID
+		err := r.db.Model(&ProductStats{}).Create(productStats).Error
 		if err != nil {
 			logger.Logger.Error("Failed to create product stats", "method", "IncreaseProductStats", "error", err)
 		}
 		return err
 	}
 
-	err := r.db.Model(&ProductStats{}).Where(constants.FieldID+" = ?", productStats.ID).Updates(productStats).Error
+	productStats.UpdatedBy = userID
+	err := r.db.Model(&ProductStats{}).Where(c.FieldID+" = ?", productStats.ID).Updates(productStats).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update product stats", "method", "IncreaseProductStats", "error", err)
 	}

@@ -167,29 +167,35 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 				return
 			}
 
-			if !loadFullUser {
-				ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
-				next.ServeHTTP(w, r.WithContext(ctx))
-			} else {
-				ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
-				next.ServeHTTP(w, r.WithContext(ctx))
+			ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
+			if loadFullUser {
+				ctx = context.WithValue(ctx, constants.UserContextKey, user)
 			}
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func GetUserFromContext(r *http.Request) (*user.User, error) {
-	user, ok := r.Context().Value(constants.UserContextKey).(*user.User)
+func GetUserFromContext(ctx context.Context) (*user.User, error) {
+	user, ok := ctx.Value(constants.UserContextKey).(*user.User)
 	if !ok || user == nil {
 		return nil, errors.New("user not found in context")
 	}
 	return user, nil
 }
 
-func GetUserIDFromContext(r *http.Request) (*uint, error) {
-	userID, ok := r.Context().Value(constants.UserIDContextKey).(uint)
+func GetUserIDFromContext(ctx context.Context) (*uint, error) {
+	userID, ok := ctx.Value(constants.UserIDContextKey).(uint)
 	if !ok {
 		return nil, errors.New("user ID not found or invalid type in context")
 	}
 	return &userID, nil
+}
+
+func GetUserIdOnlyFromContext(ctx context.Context) *uint {
+	userID, ok := ctx.Value(constants.UserIDContextKey).(uint)
+	if !ok {
+		return nil
+	}
+	return &userID
 }

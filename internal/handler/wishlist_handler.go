@@ -5,7 +5,7 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/wishlist"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -21,7 +21,7 @@ func NewWishlistHandler() *WishlistHandler {
 }
 
 func (h *WishlistHandler) GetAllWishlistsPaginatedByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -45,7 +45,7 @@ func (h *WishlistHandler) GetAllWishlistsPaginatedByUser(w http.ResponseWriter, 
 }
 
 func (h *WishlistHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -67,7 +67,7 @@ func (h *WishlistHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Re
 }
 
 func (h *WishlistHandler) RemoveFromWishlistByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -88,7 +88,7 @@ func (h *WishlistHandler) RemoveFromWishlistByUser(w http.ResponseWriter, r *htt
 }
 
 func (h *WishlistHandler) ClearUserWishlist(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -153,7 +153,7 @@ func (h *WishlistHandler) GetAllWishlistsPaginated(w http.ResponseWriter, r *htt
 }
 
 func (h *WishlistHandler) GetWishlistCountByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return

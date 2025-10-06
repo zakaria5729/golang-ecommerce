@@ -9,7 +9,7 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/review"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -70,7 +70,7 @@ func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -96,7 +96,7 @@ func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReviewHandler) UpdateReviewByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -132,9 +132,8 @@ func (h *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
-
 	idStr := r.PathValue(c.FieldID)
-	err := h.useCase.DeleteReview(idStr, nil)
+	err := h.useCase.DeleteReview(r.Context(), idStr, nil)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,14 +143,14 @@ func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReviewHandler) DeleteReviewByUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
 	idStr := r.PathValue(c.FieldID)
-	err = h.useCase.DeleteReview(idStr, userID)
+	err = h.useCase.DeleteReview(r.Context(), idStr, userID)
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -161,7 +160,7 @@ func (h *ReviewHandler) DeleteReviewByUser(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *ReviewHandler) UndoDeletedReview(w http.ResponseWriter, r *http.Request) {
-	err := h.useCase.UndoDeletedReview(r.PathValue(c.FieldID))
+	err := h.useCase.UndoDeletedReview(r.Context(), r.PathValue(c.FieldID))
 	if err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -325,7 +324,7 @@ func (h *ReviewHandler) updateReviewData(r *http.Request, userID *uint) (error, 
 		return errors.New("Invalid review ID"), validationErrors
 	}
 
-	err = h.useCase.UpdateReview(*id, userID, req.Rating, req.Comment)
+	err = h.useCase.UpdateReview(r.Context(), *id, userID, req.Rating, req.Comment)
 	if err != nil {
 		return err, nil
 	}

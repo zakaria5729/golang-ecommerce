@@ -1,10 +1,12 @@
 package review
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -48,7 +50,7 @@ func (uc *ReviewUseCase) GetReviewByID(id uint, showDeleted *bool) (*Review, err
 }
 
 func (uc *ReviewUseCase) CreateReview(userID uint, productID uint, rating int, comment string) (*Review, error) {
-	if rating < constants.MinReviewRating || rating > constants.MaxReviewRating {
+	if rating < c.MinReviewRating || rating > c.MaxReviewRating {
 		return nil, fmt.Errorf("invalid rating")
 	}
 
@@ -64,6 +66,7 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productID uint, rating int, c
 		Rating:    rating,
 		Comment:   &comment,
 	}
+	review.CreatedBy = &userID
 
 	err := uc.repo.CreateReview(review)
 	if err != nil {
@@ -74,16 +77,16 @@ func (uc *ReviewUseCase) CreateReview(userID uint, productID uint, rating int, c
 	return review, nil
 }
 
-func (uc *ReviewUseCase) UpdateReview(id uint, userID *uint, rating int, comment string) error {
+func (uc *ReviewUseCase) UpdateReview(ctx context.Context, id uint, userID *uint, rating int, comment string) error {
 	review := &Review{}
 
 	if rating != 0 {
-		if rating < constants.MinReviewRating || rating > constants.MaxReviewRating {
-			return fmt.Errorf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating)
+		if rating < c.MinReviewRating || rating > c.MaxReviewRating {
+			return fmt.Errorf("rating must be between %d and %d", c.MinReviewRating, c.MaxReviewRating)
 		}
 
-		if rating < constants.MinReviewRating || rating > constants.MaxReviewRating {
-			return fmt.Errorf("rating must be between %d and %d", constants.MinReviewRating, constants.MaxReviewRating)
+		if rating < c.MinReviewRating || rating > c.MaxReviewRating {
+			return fmt.Errorf("rating must be between %d and %d", c.MinReviewRating, c.MaxReviewRating)
 		}
 
 		review.Rating = rating
@@ -97,6 +100,7 @@ func (uc *ReviewUseCase) UpdateReview(id uint, userID *uint, rating int, comment
 		return fmt.Errorf("no fields to update")
 	}
 
+	review.UpdatedBy = m.GetUserIdOnlyFromContext(ctx)
 	err := uc.repo.UpdateReview(id, userID, review)
 	if err != nil {
 		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", err, "id", id, "userID", userID, "review", review)
@@ -106,13 +110,13 @@ func (uc *ReviewUseCase) UpdateReview(id uint, userID *uint, rating int, comment
 	return nil
 }
 
-func (uc *ReviewUseCase) UndoDeletedReview(idStr string) error {
+func (uc *ReviewUseCase) UndoDeletedReview(ctx context.Context, idStr string) error {
 	id, err := utils.ParseUint(idStr)
 	if err != nil || id == nil || *id == 0 {
 		return fmt.Errorf("invalid review ID: %w", err)
 	}
 
-	err = uc.repo.UndoDeletedReview(*id)
+	err = uc.repo.UndoDeletedReview(ctx, *id)
 	if err != nil {
 		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", err, "id", *id)
 		return fmt.Errorf("failed to undo deleted review: %w", err)
@@ -121,13 +125,13 @@ func (uc *ReviewUseCase) UndoDeletedReview(idStr string) error {
 	return nil
 }
 
-func (uc *ReviewUseCase) DeleteReview(idStr string, userID *uint) error {
+func (uc *ReviewUseCase) DeleteReview(ctx context.Context, idStr string, userID *uint) error {
 	id, err := utils.ParseUint(idStr)
 	if err != nil || id == nil || *id == 0 {
 		return fmt.Errorf("invalid review ID: %w", err)
 	}
 
-	err = uc.repo.DeleteReview(*id, userID)
+	err = uc.repo.DeleteReview(ctx, *id, userID)
 	if err != nil {
 		logger.Logger.Error("Failed to delete review", "method", "DeleteReview", "error", err, "id", *id, "userID", userID)
 		return fmt.Errorf("failed to delete review: %w", err)

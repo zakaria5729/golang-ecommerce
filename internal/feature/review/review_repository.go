@@ -1,11 +1,14 @@
 package review
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	m "github.com/easy-comerce/backend/pkg/middleware"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -115,8 +118,15 @@ func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *Review) e
 	return nil
 }
 
-func (r *ReviewRepository) UndoDeletedReview(id uint) error {
-	result := r.db.Unscoped().Model(&Review{}).Select(c.FieldCreatedAt).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil)
+func (r *ReviewRepository) UndoDeletedReview(ctx context.Context, id uint) error {
+	review := &Review{}
+	review.DeletedAt = nil
+	review.DeletedBy = nil
+	review.UpdatedBy = m.GetUserIdOnlyFromContext(ctx)
+
+	result := r.db.Unscoped().Model(&Review{}).
+		Select(c.FieldDeletedAt, c.FieldDeletedBy).
+		Where(c.FieldID+" = ?", id).Updates(review)
 	if result.Error != nil {
 		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id)
 		return result.Error
@@ -129,8 +139,8 @@ func (r *ReviewRepository) UndoDeletedReview(id uint) error {
 	return nil
 }
 
-func (r *ReviewRepository) DeleteReview(id uint, userID *uint) error {
-	query := r.db
+func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *uint) error {
+	query := r.db.Model(&Review{})
 
 	if userID != nil {
 		query = query.Where(c.FieldID+" = ? AND "+c.ReviewUserID+" = ?", id, userID)
@@ -138,7 +148,11 @@ func (r *ReviewRepository) DeleteReview(id uint, userID *uint) error {
 		query = query.Where(c.FieldID+" = ?", id)
 	}
 
-	result := query.Delete(&Review{})
+	review := &Review{}
+	review.DeletedAt = timeutil.GormNowUTC()
+	review.DeletedBy = m.GetUserIdOnlyFromContext(ctx)
+
+	result := query.Omit(c.FieldUpdatedAt).Updates(review)
 	if result.Error != nil {
 		logger.Logger.Error("Failed to delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
 		return result.Error

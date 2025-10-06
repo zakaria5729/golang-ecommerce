@@ -8,7 +8,7 @@ import (
 
 type SizeCategory struct {
 	models.BaseModel
-	Name string `gorm:"not null;unique;column:name"`
+	Name string `gorm:"not null; column:name"`
 }
 
 func (SizeCategory) TableName() string {

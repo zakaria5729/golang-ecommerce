@@ -71,7 +71,7 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := h.roleUseCase.CreateRole(&req)
+	role, err := h.roleUseCase.CreateRole(r.Context(), &req)
 	if err != nil {
 		logger.Logger.Error("Create role failed", "method", "CreateRole", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
@@ -98,7 +98,7 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := h.roleUseCase.UpdateRole(*id, &req)
+	role, err := h.roleUseCase.UpdateRole(r.Context(), *id, &req)
 	if err != nil {
 		logger.Logger.Error("Update role failed", "method", "UpdateRole", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
@@ -115,7 +115,7 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.roleUseCase.DeleteRole(*id); err != nil {
+	if err := h.roleUseCase.DeleteRole(r.Context(), *id); err != nil {
 		logger.Logger.Error("Delete role failed", "method", "DeleteRole", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
@@ -131,7 +131,7 @@ func (h *RoleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.roleUseCase.UndoDeletedRole(*id); err != nil {
+	if err := h.roleUseCase.UndoDeletedRole(r.Context(), *id); err != nil {
 		logger.Logger.Error("Delete role failed", "method", "DeleteRole", "error", err, "id", id)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return

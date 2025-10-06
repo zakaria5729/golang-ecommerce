@@ -1,11 +1,12 @@
 package role
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/easy-comerce/backend/internal/feature/permission"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -53,8 +54,7 @@ func (uc *RoleUseCase) GetRoleByID(id uint, includeStr string, showDeletedStr st
 	return role, nil
 }
 
-// **REQUIRED
-func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
+func (uc *RoleUseCase) CreateRole(ctx context.Context, req *CreateRoleRequest) (*Role, error) {
 	req.Sanitize()
 
 	if !isValidRoleType(req.RoleType) {
@@ -62,7 +62,7 @@ func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
 		return nil, errors.New("invalid role type")
 	}
 
-	if req.RoleType == constants.RoleTypeSuperAdmin {
+	if req.RoleType == c.RoleTypeSuperAdmin {
 		logger.Logger.Error("Role type cannot create roles", "method", "CreateRole", "roleType", req.RoleType)
 		return nil, errors.New("Super admin role already exists, you can't create role with this role type")
 	}
@@ -77,6 +77,11 @@ func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
 		RoleName:    req.RoleName,
 		RoleType:    req.RoleType,
 		Description: req.Description,
+	}
+
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
+	if ok {
+		role.CreatedBy = &userID
 	}
 
 	permissions, err := uc.permissionRepo.GetPermissionsByIDs(req.PermissionIDs)
@@ -98,7 +103,7 @@ func (uc *RoleUseCase) CreateRole(req *CreateRoleRequest) (*Role, error) {
 	return role, nil
 }
 
-func (uc *RoleUseCase) UpdateRole(id uint, req *UpdateRoleRequest) (*Role, error) {
+func (uc *RoleUseCase) UpdateRole(ctx context.Context, id uint, req *UpdateRoleRequest) (*Role, error) {
 	req.Sanitize()
 
 	existingRole, err := uc.roleRepo.GetRoleByID(id, nil, nil)
@@ -107,7 +112,7 @@ func (uc *RoleUseCase) UpdateRole(id uint, req *UpdateRoleRequest) (*Role, error
 		return nil, fmt.Errorf("role not found: %w", err)
 	}
 
-	if existingRole.RoleType == constants.RoleTypeSuperAdmin {
+	if existingRole.RoleType == c.RoleTypeSuperAdmin {
 		logger.Logger.Error("Cannot update super admin role", "method", "UpdateRole", "id", id)
 		return nil, errors.New("cannot update super admin role")
 	}
@@ -127,6 +132,11 @@ func (uc *RoleUseCase) UpdateRole(id uint, req *UpdateRoleRequest) (*Role, error
 
 	if req.Description != nil {
 		existingRole.Description = req.Description
+	}
+
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
+	if ok {
+		existingRole.UpdatedBy = &userID
 	}
 
 	if len(req.PermissionIDs) > 0 {
@@ -155,19 +165,19 @@ func (uc *RoleUseCase) UpdateRole(id uint, req *UpdateRoleRequest) (*Role, error
 	return existingRole, nil
 }
 
-func (uc *RoleUseCase) DeleteRole(id uint) error {
+func (uc *RoleUseCase) DeleteRole(ctx context.Context, id uint) error {
 	role, err := uc.roleRepo.GetRoleByID(id, nil, nil)
 	if err != nil {
 		logger.Logger.Error("Role not found", "method", "DeleteRole", "error", err, "id", id)
 		return fmt.Errorf("role not found: %w", err)
 	}
 
-	if role.RoleType == constants.RoleTypeSuperAdmin {
+	if role.RoleType == c.RoleTypeSuperAdmin {
 		logger.Logger.Error("Cannot delete super admin role", "method", "DeleteRole", "id", id)
 		return errors.New("cannot delete super admin role")
 	}
 
-	if err := uc.roleRepo.DeleteRole(id); err != nil {
+	if err := uc.roleRepo.DeleteRole(ctx, id); err != nil {
 		logger.Logger.Error("Failed to delete role", "method", "DeleteRole", "error", err, "id", id)
 		return fmt.Errorf("failed to delete role: %w", err)
 	}
@@ -175,7 +185,7 @@ func (uc *RoleUseCase) DeleteRole(id uint) error {
 	return nil
 }
 
-func (uc *RoleUseCase) UndoDeletedRole(id uint) error {
+func (uc *RoleUseCase) UndoDeletedRole(ctx context.Context, id uint) error {
 	showDeleted := true
 	exists, err := uc.roleRepo.RoleExists(id, &showDeleted)
 	if err != nil || !exists {
@@ -183,7 +193,7 @@ func (uc *RoleUseCase) UndoDeletedRole(id uint) error {
 		return fmt.Errorf("role not found: %w", err)
 	}
 
-	if err := uc.roleRepo.UndoDeletedRole(id); err != nil {
+	if err := uc.roleRepo.UndoDeletedRole(ctx, id); err != nil {
 		logger.Logger.Error("Failed to undo deleted role", "method", "UndoDeletedRole", "error", err, "id", id)
 		return fmt.Errorf("failed to undo deleted role: %w", err)
 	}
@@ -221,7 +231,7 @@ func (uc *RoleUseCase) GetRoleByType(roleType string) (*Role, error) {
 
 func isValidRoleType(roleType string) bool {
 	switch roleType {
-	case constants.RoleTypeSuperAdmin, constants.RoleTypeAdmin, constants.RoleTypeMaintainer, constants.RoleTypeSeller, constants.RoleTypeUser:
+	case c.RoleTypeSuperAdmin, c.RoleTypeAdmin, c.RoleTypeMaintainer, c.RoleTypeSeller, c.RoleTypeUser:
 		return true
 	default:
 		return false

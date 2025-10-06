@@ -1,9 +1,20 @@
 package timeutil
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 func NowUTC() time.Time {
 	return time.Now().UTC()
+}
+
+func GormNowUTC() *gorm.DeletedAt {
+	return &gorm.DeletedAt{
+		Time:  time.Now().UTC(),
+		Valid: true,
+	}
 }
 
 func ParseTimeUTC(layout, value string) (time.Time, error) {

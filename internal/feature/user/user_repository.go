@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -192,6 +193,8 @@ func (r *UserRepository) UpdateNameAndPathKey(userID uint, name string, pathKey 
 		Name:    name,
 		PathKey: pathKey,
 	}
+	user.UpdatedBy = &userID
+	user.CreatedBy = &userID
 
 	err := r.db.Model(&User{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
@@ -212,14 +215,16 @@ func (r *UserRepository) UpdateUserPassword(userID uint, password string, req *C
 		return errors.New("invalid current password")
 	}
 
+	user.UpdatedBy = &userID
 	user.Password = req.NewPassword
+
 	if err := user.HashPassword(); err != nil {
 		logger.Logger.Error("Failed to hash new password", "method", "ChangePassword", "error", err, "userID", user.ID)
 		return fmt.Errorf("failed to process new password: %w", err)
 	}
 
 	err := r.db.Model(&User{}).
-		Select(c.UserPassword, c.UserPasswordResetToken, c.UserPasswordResetExpires).
+		Select(c.UserPasswordResetToken, c.UserPasswordResetExpires).
 		Where(c.FieldID+" = ?", userID).Updates(&user).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update user password", "method", "UpdateUserPassword", "error", err, "userID", userID)
@@ -227,16 +232,34 @@ func (r *UserRepository) UpdateUserPassword(userID uint, password string, req *C
 	return err
 }
 
-func (r *UserRepository) DeleteUser(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&User{}).Error
+func (r *UserRepository) DeleteUser(ctx context.Context, id uint) error {
+	user := &User{}
+	user.DeletedAt = timeutil.GormNowUTC()
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
+	if ok {
+		user.UpdatedBy = &userID
+	}
+
+	err := r.db.Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id).Updates(user).Error
 	if err != nil {
 		logger.Logger.Error("Failed to soft delete user", "method", "SoftDeleteUser", "error", err, "id", id)
 	}
 	return err
 }
 
-func (r *UserRepository) UndoDeletedUser(id uint) error {
-	err := r.db.Unscoped().Model(&User{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
+func (r *UserRepository) UndoDeletedUser(ctx context.Context, id uint) error {
+	user := &User{}
+	user.DeletedAt = nil
+	user.DeletedBy = nil
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
+	if ok {
+		user.UpdatedBy = &userID
+	}
+
+	err := r.db.Unscoped().Model(&User{}).
+		Select(c.FieldDeletedAt, c.FieldDeletedBy).
+		Where(c.FieldID+" = ?", id).Updates(user).Error
+
 	if err != nil {
 		logger.Logger.Error("Failed to undo deleted user", "method", "UndoDeletedUser", "error", err, "id", id)
 	}

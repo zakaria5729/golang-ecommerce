@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -106,23 +107,22 @@ func (uc *UserUseCase) GetAuthUserStatusByID(userID uint) (bool, bool, *string, 
 	return banned, verified, refreshToken, nil
 }
 
-func (uc *UserUseCase) DeleteUser(userID uint) error {
+func (uc *UserUseCase) DeleteUser(ctx context.Context, userID uint) error {
 	exists, err := uc.userRepo.UserExists(userID, nil)
 	if err != nil || !exists {
 		logger.Logger.Error("User not found", "method", "DeleteUser", "error", err, "userID", userID)
 		return errors.New("user not found")
 	}
 
-	if err := uc.userRepo.DeleteUser(userID); err != nil {
+	if err := uc.userRepo.DeleteUser(ctx, userID); err != nil {
 		logger.Logger.Error("Failed to delete user", "method", "DeleteUser", "error", err, "userID", userID)
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	logger.Logger.Info("User deleted successfully", "method", "DeleteUser", "userID", userID)
 	return nil
 }
 
-func (uc *UserUseCase) UndoDeletedUser(userID uint) error {
+func (uc *UserUseCase) UndoDeletedUser(ctx context.Context, userID uint) error {
 	showDeleted := true
 	exists, err := uc.userRepo.UserExists(userID, &showDeleted)
 	if err != nil || !exists {
@@ -130,16 +130,15 @@ func (uc *UserUseCase) UndoDeletedUser(userID uint) error {
 		return errors.New("user not found")
 	}
 
-	if err := uc.userRepo.UndoDeletedUser(userID); err != nil {
+	if err := uc.userRepo.UndoDeletedUser(ctx, userID); err != nil {
 		logger.Logger.Error("Failed to delete user", "method", "DeleteUser", "error", err, "userID", userID)
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	logger.Logger.Info("User deleted successfully", "method", "DeleteUser", "userID", userID)
 	return nil
 }
 
-func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error) {
+func (uc *UserUseCase) CreateUser(ctx context.Context, req *CreateUserRequest) (*UserResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
 
@@ -155,6 +154,11 @@ func (uc *UserUseCase) CreateUser(req *CreateUserRequest) (*UserResponse, error)
 		Name:     req.Name,
 		Verified: req.Verified,
 		Banned:   req.Banned,
+	}
+
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
+	if ok {
+		user.CreatedBy = &userID
 	}
 
 	if err := user.HashPassword(); err != nil {
@@ -207,6 +211,7 @@ func (uc *UserUseCase) UpdateUser(authUserID uint, updateUserID uint, req *Updat
 		Verified: req.Verified,
 		Banned:   req.Banned,
 	}
+	user.UpdatedBy = &authUserID
 
 	err = uc.userRepo.UpdateUserInfo(updateUserID, user)
 	if err != nil {

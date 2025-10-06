@@ -1,13 +1,15 @@
 package category
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	m "github.com/easy-comerce/backend/pkg/middleware"
+	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -22,7 +24,7 @@ func NewCategoryRepository() *CategoryRepository {
 	}
 }
 
-func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool, include []string, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]Category, error) {
+func (r *CategoryRepository) GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]Category, error) {
 	var categories []Category
 
 	var maxPriorityLimit int = c.MaxPriorityLimit
@@ -30,15 +32,9 @@ func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool,
 		priorityLimit = &maxPriorityLimit
 	}
 
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
+	query := r.db.Model(&Category{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
-	}
-
-	if isActive != nil {
-		query = query.Where(c.CategoryIsActive+" = ?", *isActive)
 	}
 
 	if parentID != nil {
@@ -55,12 +51,12 @@ func (r *CategoryRepository) GetAllCategories(isActive *bool, showDeleted *bool,
 
 	err := query.Find(&categories).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "include", include, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDeleted *bool, include []string, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]Category, int, error) {
+func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]Category, int, error) {
 	var categories []Category
 	var total int64
 
@@ -69,15 +65,9 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDelet
 		priorityLimit = &maxPriorityLimit
 	}
 
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
-
+	query := r.db.Model(&Category{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
-	}
-
-	if isActive != nil {
-		query = query.Where(c.CategoryIsActive+" = ?", *isActive)
 	}
 
 	if parentID != nil {
@@ -92,20 +82,20 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(isActive *bool, showDelet
 		query = query.Order(orderClause)
 	}
 
-	if err := query.Model(&Category{}).Count(&total).Error; err != nil {
-		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+	if err := query.Count(&total).Error; err != nil {
+		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&categories).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "include", include, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return categories, int(total), err
 }
 
-func (r *CategoryRepository) GetCategoryByID(id uint, isActive *bool, showDeleted *bool) (*Category, error) {
+func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*Category, error) {
 	var category Category
 	query := r.db.Where(c.FieldID+" = ?", id)
 
@@ -113,12 +103,8 @@ func (r *CategoryRepository) GetCategoryByID(id uint, isActive *bool, showDelete
 		query = query.Unscoped()
 	}
 
-	if isActive != nil {
-		query = query.Where(c.CategoryIsActive+" = ?", *isActive)
-	}
-
 	if err := query.First(&category).Error; err != nil {
-		logger.Logger.Error("Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id, "isActive", isActive)
+		logger.Logger.Error("Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -134,19 +120,8 @@ func (r *CategoryRepository) CreateCategory(category *Category) (*Category, erro
 	return category, nil
 }
 
-func (r *CategoryRepository) UpdateCategory(category *Category, newIsActive *bool) (*Category, error) {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Updates(category).Error; err != nil {
-			return err
-		}
-
-		if newIsActive != nil && *newIsActive != category.IsActive {
-			return r.updateSubCategoriesIsActiveRecursively(tx, category.ID, *newIsActive)
-		}
-
-		return nil
-	})
-
+func (r *CategoryRepository) UpdateCategory(category *Category) (*Category, error) {
+	err := r.db.Model(&Category{}).Updates(category).Error
 	if err != nil {
 		logger.Logger.Error("Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
 		return nil, err
@@ -155,69 +130,13 @@ func (r *CategoryRepository) UpdateCategory(category *Category, newIsActive *boo
 	return category, nil
 }
 
-func (r *CategoryRepository) UndoDeletedCategory(id uint) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Unscoped().Update(c.FieldDeletedAt, nil).Where(c.FieldID+" = ?", id).Error; err != nil {
-			logger.Logger.Error("Failed to delete category", "method", "DeleteCategory", "error", err, "id", id)
-			return err
-		}
-
-		if err := tx.Unscoped().Where(c.CategoryParentID+" = ?", id).Update(c.FieldDeletedAt, nil).Error; err != nil {
-			logger.Logger.Error("Failed to delete subcategories", "method", "DeleteCategory", "error", err, "id", id)
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		logger.Logger.Error("Failed to delete category transaction", "method", "DeleteCategory", "error", err, "id", id)
-	}
-	return err
+func (r *CategoryRepository) UndoDeletedCategory(ctx context.Context, id uint) error {
+	isUndo := true
+	return r.deleteOrUndoCategory(ctx, id, &isUndo)
 }
 
-func (r *CategoryRepository) DeleteCategory(id uint) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Delete(&Category{}, id).Error; err != nil {
-			logger.Logger.Error("Failed to delete category", "method", "DeleteCategory", "error", err, "id", id)
-			return err
-		}
-
-		if err := tx.Where(c.CategoryParentID+" = ?", id).Delete(&Category{}).Error; err != nil {
-			logger.Logger.Error("Failed to delete subcategories", "method", "DeleteCategory", "error", err, "id", id)
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		logger.Logger.Error("Failed to delete category transaction", "method", "DeleteCategory", "error", err, "id", id)
-	}
-	return err
-}
-
-func (r *CategoryRepository) ToggleCategoryIsActive(id uint, isActive bool) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&Category{}).Where(c.FieldID+" = ?", id).Update(c.CategoryIsActive, isActive).Error; err != nil {
-			return err
-		}
-
-		return r.updateSubCategoriesIsActiveRecursively(tx, id, isActive)
-	})
-	if err != nil {
-		logger.Logger.Error("Failed to update category status", "method", "UpdateCategoryStatus", "error", err, "id", id, "isActive", isActive)
-	}
-	return err
-}
-
-func (r *CategoryRepository) updateSubCategoriesIsActiveRecursively(tx *gorm.DB, parentID uint, isActive bool) error {
-	if err := tx.Where(c.CategoryParentID+" = ?", parentID).Update(c.CategoryIsActive, isActive).Error; err != nil {
-		logger.Logger.Error("Failed to update subcategories is active", "method", "updateSubCategoriesIsActiveRecursively", "error", err, "parentID", parentID, "isActive", isActive)
-		return err
-	}
-
-	return nil
+func (r *CategoryRepository) DeleteCategory(ctx context.Context, id uint) error {
+	return r.deleteOrUndoCategory(ctx, id, nil)
 }
 
 func (r *CategoryRepository) CategoryExists(id uint, showDeleted *bool) (bool, error) {
@@ -285,7 +204,7 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 	return err
 }
 
-func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth *int, isActive *bool, showDeleted *bool, include []string, showPriority *bool, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
+func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth *int, showDeleted *bool, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
 	var categories []Category
 
 	query := `
@@ -295,7 +214,6 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
                 1 AS level
             FROM categories c
             WHERE c.parent_id IS NULL
-            AND (?::boolean IS NULL OR c.is_active = ?)
             AND (?::boolean IS NULL OR ?::boolean OR c.deleted_at IS NULL)
             
             UNION ALL
@@ -306,7 +224,6 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
             FROM categories c
             JOIN category_tree ct ON c.parent_id = ct.id
             WHERE ct.level < ?
-            AND (?::boolean IS NULL OR c.is_active = ?)
             AND (?::boolean IS NULL OR ?::boolean OR c.deleted_at IS NULL)
         )
         SELECT * FROM category_tree
@@ -326,12 +243,10 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
 
 	err := r.db.Raw(query,
 		// Initial WHERE
-		isActive, isActive, // is_active status (NULL + value)
 		showDeleted, showDeleted, // deleted_at (NULL + showDeleted)
 
 		// UNION ALL WHERE
-		subcategoryDepth,   // subcategoryDepth
-		isActive, isActive, // is_active status (NULL + value)
+		subcategoryDepth,         // subcategoryDepth
 		showDeleted, showDeleted, // deleted_at (NULL + showDeleted)
 
 		// ORDER BY
@@ -350,7 +265,6 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
 
 	lookup := make(map[uint]*Category)
 	for i := range categories {
-		categories[i].ImageURL = utils.BuildFullImageURL(categories[i].PathKey)
 		lookup[categories[i].ID] = &categories[i]
 	}
 
@@ -412,8 +326,52 @@ func (r *CategoryRepository) findRootCategoryID(tx *gorm.DB, categoryID uint) (u
 	}
 }
 
-func (r *CategoryRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{c.FieldID, c.CategoryTitle, c.CategoryIsActive, c.FieldCreatedAt, c.FieldUpdatedAt}
-	optionalFields := []string{c.CategorySubTitle, c.CategoryImageURL, c.CategoryParentID, c.CategoryPriority}
-	return utils.BuildSelectFields(defaultFields, optionalFields, include)
+func (r *CategoryRepository) deleteOrUndoCategory(ctx context.Context, id uint, isUndo *bool) error {
+	category := Category{}
+	if isUndo != nil && *isUndo {
+		category.DeletedAt = nil
+		category.DeletedBy = nil
+		category.UpdatedBy = m.GetUserIdOnlyFromContext(ctx)
+	} else {
+		category.DeletedAt = timeutil.GormNowUTC()
+		category.DeletedBy = m.GetUserIdOnlyFromContext(ctx)
+	}
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		queryR := `
+			WITH RECURSIVE category_tree AS (
+				SELECT id, parent_id FROM categories WHERE id = ?
+				UNION ALL
+				SELECT c.id, c.parent_id FROM categories c
+				INNER JOIN category_tree ct ON c.parent_id = ct.id
+			)
+			SELECT id FROM category_tree;
+		`
+
+		var idsToDelete []uint
+		if err := tx.Raw(queryR, id).Scan(&idsToDelete).Error; err != nil {
+			logger.Logger.Error("Failed to fetch category hierarchy", "method", "deleteOrUndoCategory", "error", err, "id", id, "isUndo", isUndo)
+			return err
+		}
+
+		if len(idsToDelete) == 0 {
+			logger.Logger.Warn("No categories found to delete", "method", "deleteOrUndoCategory", "id", id, "isUndo", isUndo)
+			return nil
+		}
+
+		query := tx.Model(&Category{})
+		if isUndo != nil && *isUndo {
+			query = query.Unscoped()
+		} else {
+			query = query.Omit(c.FieldUpdatedAt)
+		}
+
+		if err := query.Select(c.FieldDeletedAt, c.FieldDeletedBy).
+			Where("id IN ?", idsToDelete).Updates(category).Error; err != nil {
+			logger.Logger.Error("Failed to delete categories", "method", "deleteOrUndoCategory", "error", err, "ids", idsToDelete, "isUndo", isUndo)
+			return err
+		}
+
+		return nil
+	})
 }

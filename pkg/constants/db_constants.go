@@ -94,7 +94,6 @@ const (
 	CategorySubTitle string = "sub_title"
 	CategoryImageURL string = "image_url"
 	CategoryParentID string = "parent_id"
-	CategoryIsActive string = "is_active"
 	CategoryPriority string = "priority"
 )
 

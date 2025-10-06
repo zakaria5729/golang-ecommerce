@@ -6,7 +6,7 @@ import (
 	"github.com/easy-comerce/backend/internal/feature/file_storage"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 )
 
@@ -21,7 +21,7 @@ func NewFileStorageHandler() *FileStorageHandler {
 }
 
 func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	userID, err := middleware.GetUserIDFromContext(r)
+	userID, err := m.GetUserIDFromContext(r.Context())
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return

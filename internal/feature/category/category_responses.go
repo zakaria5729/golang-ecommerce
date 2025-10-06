@@ -9,7 +9,6 @@ type CategoryResponse struct {
 	ParentID *uint   `json:"parent_id"`
 	Priority *uint   `json:"priority"`
 	Title    string  `json:"title"`
-	IsActive bool    `json:"is_active"`
 }
 
 type CategorySubcategoriesResponse struct {
