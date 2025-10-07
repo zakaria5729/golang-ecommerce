@@ -31,6 +31,7 @@ const (
 	TableAttributeOption string = "attribute_options"
 	TableSizeCategory    string = "size_categories"
 	TableSizeOption      string = "size_options"
+	TableAnalytics       string = "analytics"
 )
 
 const (

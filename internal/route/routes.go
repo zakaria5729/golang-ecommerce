@@ -3,7 +3,7 @@ package route
 import (
 	"net/http"
 
-	m "github.com/easy-comerce/backend/pkg/middleware"
+	m 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
@@ -14,7 +14,6 @@ func RegisterAllRoutes(mux *http.ServeMux) {
 		m.RecoveryMiddleware,
 		m.LoggingMiddleware,
 		m.CORSMiddleware,
-		// m.AnalyticsMiddleware(),
 	)
 
 	RegisterAuthRoute(r, pm)
@@ -33,5 +32,4 @@ func RegisterAllRoutes(mux *http.ServeMux) {
 	RegisterAttributeOptionRoute(r, pm)
 	RegisterSizeCategoryRoute(r, pm)
 	RegisterSizeOptionRoute(r, pm)
-	RegisterAnalyticsRoute(r, pm)
 }
