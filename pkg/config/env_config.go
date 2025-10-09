@@ -56,25 +56,11 @@ func loadConfig() *Config {
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
 	}
-	activeProfile := GetActiveProfile()
-	var projectRoot string
-
-	if activeProfile == c.EnvDev {
-		// Get the project root directory
-		_, filename, _, _ := runtime.Caller(0)
-		projectRoot = filepath.Join(filepath.Dir(filename), "..", "..")
-	} else {
-		// Get the directory of the executable (binary location at runtime)
-		exePath, err := os.Executable()
-		if err != nil {
-			logger.Logger.Error("Failed to get executable path", "error", err)
-			exePath = "." // Fallback to current dir
-		}
-		projectRoot = filepath.Dir(exePath)
-	}
+	_, filename, _, _ := runtime.Caller(0)
+	projectRoot := filepath.Join(filepath.Dir(filename), "..", "..")
 
 	var envFileName string
-	switch activeProfile {
+	switch GetActiveProfile() {
 	case c.EnvStage:
 		envFileName = ".env.stage"
 	case c.EnvProd:
