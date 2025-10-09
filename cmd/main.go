@@ -16,6 +16,7 @@ func main() {
 
 	// if err := m.RunMigrations2(); err != nil {
 	// 	panic("Failed to run migrations: " + err.Error())
+	//
 	// }
 
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
