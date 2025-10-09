@@ -18,15 +18,17 @@ jobs:
 
     - name: Build Go binary
       run: |
-        GOOS=linux GOARCH=amd64 go build -o easy_com_api ./cmd/main.go
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o easy_com_api ./cmd/main.go
       env:
         CGO_ENABLED: 0  # For static binary
 
-    - name: Upload binary artifact
+    - name: Upload deployment assets
       uses: actions/upload-artifact@v4
       with:
-        name: easy_com_api-binary
-        path: easy_com_api
+        name: deployment-assets
+        path: |
+          easy_com_api
+          .env.stage  # Add .env.prod here if it exists in repo
 
   deploy:
     needs: build
@@ -36,10 +38,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download binary artifact
+    - name: Download deployment assets
       uses: actions/download-artifact@v4
       with:
-        name: easy_com_api-binary
+        name: deployment-assets
         path: .
 
     - name: Install sshpass
@@ -49,15 +51,18 @@ jobs:
       run: |
         cat > deploy.sh << 'EOF'
         #!/bin/bash
+        set -e  # Exit on any error
         ENV=$1
         if [ "$ENV" = "production" ]; then
           SERVICE="easy_com_api"
           OPT_DIR="/opt/easy_com_api"
           DB_NAME="easy_com_db"
+          ENV_FILE=".env.prod"  # Change to .env.stage if no prod file
         else
           SERVICE="easy_com_api_stage"
           OPT_DIR="/opt/easy_com_api_stage"
           DB_NAME="easy_com_stage_db"
+          ENV_FILE=".env.stage"
         fi
 
         # Stop the running service
@@ -73,15 +78,19 @@ jobs:
         sudo mv /tmp/easy_com_api $OPT_DIR/easy_com_api
         sudo chmod +x $OPT_DIR/easy_com_api
 
-        # Optional: Run database migrations (uncomment and adjust if using a migrator)
-        # cd $OPT_DIR && $OPT_DIR/easy_com_api migrate -database "postgres://easy_com_user:your_db_password@localhost:5432/$DB_NAME?sslmode=disable" up
+        # Move .env file to binary dir
+        sudo mv /tmp/$ENV_FILE $OPT_DIR/.env.stage  # Use .env.stage for both; adjust if prod differs
+        sudo chmod 600 $OPT_DIR/.env.stage  # Secure perms
 
-        # Start the service
-        sudo systemctl start $SERVICE
+        # Optional: Run database migrations (uncomment and adjust)
+        # cd $OPT_DIR && $OPT_DIR/easy_com_api migrate -database "postgres://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME?sslmode=disable" up
+
+        # Restart the service
+        sudo systemctl restart $SERVICE
         sudo systemctl status $SERVICE --no-pager -l
 
         # Clean up
-        rm /tmp/easy_com_api
+        rm /tmp/easy_com_api /tmp/$ENV_FILE
 
         # Log deployment
         echo "Deployed to $ENV on $(date)"
@@ -97,6 +106,9 @@ jobs:
       run: |
         # Upload binary via SSH pipe
         sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST" 'cat > /tmp/easy_com_api' < easy_com_api
+
+        # Upload .env.stage via SSH pipe (adjust filename if prod)
+        sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST" 'cat > /tmp/.env.stage' < .env.stage
 
         # Upload deployment script via SSH pipe
         sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$USERNAME@$HOST" 'cat > /tmp/deploy.sh' < deploy.sh
