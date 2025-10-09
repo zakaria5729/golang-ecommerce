@@ -21,6 +21,21 @@ func NewAuthHandler(jwtSecret string) *AuthHandler {
 	}
 }
 
+func (h *AuthHandler) AppHealthCheck(w http.ResponseWriter, r *http.Request) {
+	var req auth.AppHealthRequest
+	if !utils.DecodeJSON(w, r, &req, "AppHealthCheck") {
+		return
+	}
+
+	if req.HealthToken != nil && *req.HealthToken == c.AppHealthCheckToken {
+		healthResponse := h.authUseCase.HealthCheck(r.Context())
+		response.SendSuccessJSON(w, healthResponse)
+		return
+	}
+
+	response.SendErrorJSON(w, "Invalid health token", http.StatusForbidden)
+}
+
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
 	if !utils.DecodeJSON(w, r, &req, "Login") {
@@ -138,11 +153,6 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendCommonResponseJSON(w, "Logged out successfully")
-}
-
-func (h *AuthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	healthResponse := h.authUseCase.HealthCheck(r.Context())
-	response.SendSuccessJSON(w, healthResponse)
 }
 
 func (h *AuthHandler) validateRefreshTokenRequest(req *auth.RefreshTokenRequest) validator.ValidationErrors {

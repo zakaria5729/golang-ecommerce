@@ -6,6 +6,10 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
+type AppHealthRequest struct {
+	HealthToken *string `json:"health_token"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

@@ -3,10 +3,11 @@ package constants
 type stringKey string
 
 const (
-	UserContextKey     stringKey = "user"
-	UserIDContextKey   stringKey = "user_id"
-	ObjStoreProviderR2 string    = "r2"
-	ProjectName        string    = "easy-comerce"
+	UserContextKey      stringKey = "user"
+	UserIDContextKey    stringKey = "user_id"
+	ObjStoreProviderR2  string    = "r2"
+	ProjectName         string    = "easy-comerce"
+	AppHealthCheckToken string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
 )
 
 const (

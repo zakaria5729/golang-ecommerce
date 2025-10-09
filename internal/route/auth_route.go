@@ -9,7 +9,7 @@ import (
 func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	h := handler.NewAuthHandler(pm.GetJWTSecret())
 
-	r.GET("/health", h.HealthCheck).Register()
+	r.POST("/app-health", h.AppHealthCheck).Register()
 
 	r.POST("/auth/login", h.Login).Register()
 
