@@ -32,4 +32,5 @@ func RegisterAllRoutes(mux *http.ServeMux) {
 	RegisterAttributeOptionRoute(r, pm)
 	RegisterSizeCategoryRoute(r, pm)
 	RegisterSizeOptionRoute(r, pm)
+	RegisterNotificationRoute(r, pm)
 }
