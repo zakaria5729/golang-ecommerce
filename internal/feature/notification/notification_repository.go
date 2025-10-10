@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/easy-comerce/backend/db"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -47,34 +49,41 @@ func (r *NotificationRepository) GetByID(ctx context.Context, id uint, showDelet
 	return &notification, nil
 }
 
-func (r *NotificationRepository) GetByUserID(ctx context.Context, userID uint, page, limit int, showDeleted *bool) ([]*Notification, error) {
+func (r *NotificationRepository) GetAllByUserIDPaginated(showDeleted *bool, userID uint, page int, pageSize int, sortBy, sortOrder string) ([]*Notification, int, error) {
 	var notifications []*Notification
-	offset := (page - 1) * limit
+	var total int64
 
-	query := r.db.WithContext(ctx).Where("user_id = ?", userID)
-
-	if showDeleted != nil && !*showDeleted {
-		query = query.Where("deleted_at IS NULL")
+	query := r.db.Model(&Notification{}).Where(c.NotificationUserID+" = ?", userID)
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
 	}
 
-	err := query.Order("created_at DESC").
-		Offset(offset).
-		Limit(limit).
-		Find(&notifications).Error
+	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
+		query = query.Order(orderClause)
+	}
 
+	if err := query.Count(&total).Error; err != nil {
+		logger.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		return nil, 0, err
+	}
+
+	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&notifications).Error
 	if err != nil {
-		logger.Logger.Error("Failed to get user notifications", "method", "GetByUserID", "error", err, "userID", userID)
-		return nil, err
+		logger.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return notifications, nil
+	return notifications, int(total), err
 }
 
-func (r *NotificationRepository) MarkAsRead(ctx context.Context, notificationID, userID uint) error {
-	result := r.db.WithContext(ctx).
-		Model(&Notification{}).
-		Where("id = ? AND user_id = ?", notificationID, userID).
-		Update("is_read", true)
+func (r *NotificationRepository) MarkAsRead(notificationID uint, userID uint) error {
+	notification := &Notification{
+		IsRead: true,
+	}
+	notification.UpdatedBy = &userID
+
+	result := r.db.Model(&Notification{}).
+		Where(c.FieldID+" = ? AND "+c.NotificationUserID+" = ?", notificationID, userID).
+		Updates(notification)
 
 	if result.Error != nil {
 		logger.Logger.Error("Failed to mark notification as read", "method", "MarkAsRead", "error", result.Error, "notificationID", notificationID, "userID", userID)
@@ -88,25 +97,33 @@ func (r *NotificationRepository) MarkAsRead(ctx context.Context, notificationID,
 	return nil
 }
 
-func (r *NotificationRepository) MarkAllAsRead(ctx context.Context, userID uint) error {
-	result := r.db.WithContext(ctx).
-		Model(&Notification{}).
-		Where("user_id = ? AND is_read = ?", userID, false).
-		Update("is_read", true)
+func (r *NotificationRepository) MarkAllAsRead(userID uint) error {
+	notification := &Notification{
+		IsRead: true,
+	}
+	notification.UpdatedBy = &userID
+
+	result := r.db.Model(&Notification{}).
+		Where(c.NotificationUserID+" = ? AND "+c.NotificationIsRead+" = ?", userID, false).
+		Updates(notification)
 
 	if result.Error != nil {
 		logger.Logger.Error("Failed to mark all notifications as read", "method", "MarkAllAsRead", "error", result.Error, "userID", userID)
 		return result.Error
 	}
 
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
 	return nil
 }
 
-func (r *NotificationRepository) GetUnreadCount(ctx context.Context, userID uint) (int64, error) {
+func (r *NotificationRepository) GetUnreadCount(userID uint) (int64, error) {
 	var count int64
 
-	err := r.db.WithContext(ctx).Model(&Notification{}).
-		Where("user_id = ? AND is_read = ?", userID, false).
+	err := r.db.Model(&Notification{}).
+		Where(c.NotificationUserID+" = ? AND "+c.NotificationIsRead+" = ?", userID, false).
 		Count(&count).Error
 
 	if err != nil {

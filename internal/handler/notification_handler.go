@@ -3,51 +3,42 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/easy-comerce/backend/internal/feature/notification"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
+	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type NotificationHandler struct {
 	notificationUC *notification.NotificationUseCase
 }
 
-func NewNotificationHandler(notificationUC *notification.NotificationUseCase) *NotificationHandler {
+func NewNotificationHandler() *NotificationHandler {
 	return &NotificationHandler{
-		notificationUC: notificationUC,
+		notificationUC: notification.NewNotificationUseCase(),
 	}
 }
 
 func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	user, err := middleware.GetUserFromContext(ctx)
-	if err != nil {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
 		return
 	}
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page == 0 {
-		page = 1
-	}
+	q := r.URL.Query()
+	pageStr := q.Get(c.Page)
+	pageSizeStr := q.Get(c.PageSize)
+	sortBy := q.Get(c.SortBy)
+	sortOrder := q.Get(c.SortOrder)
+	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit == 0 {
-		limit = 10
-	}
-
-	showDeleted := false
-	if r.URL.Query().Get("showDeleted") == "true" {
-		showDeleted = true
-	}
-
-	notifications, err := h.notificationUC.GetUserNotifications(ctx, user.ID, page, limit, &showDeleted)
+	notifications, err := h.notificationUC.GetUserNotifications(showDeleted, *userID, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
-		logger.Logger.Error("Failed to get notifications", "error", err, "userID", user.ID)
+		logger.Logger.Error("Failed to get notifications", "error", err, "userID", userID)
 		response.SendErrorJSON(w, "Failed to get notifications", http.StatusInternalServerError)
 		return
 	}
@@ -56,23 +47,19 @@ func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Re
 }
 
 func (h *NotificationHandler) MarkAsRead(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	user, err := middleware.GetUserFromContext(ctx)
-	if err != nil {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
 		return
 	}
 
-	idStr := r.PathValue("id")
-	notificationID, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil {
 		response.SendErrorJSON(w, "Invalid notification ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.notificationUC.MarkNotificationAsRead(ctx, uint(notificationID), user.ID); err != nil {
-		logger.Logger.Error("Failed to mark notification as read", "error", err, "notificationID", notificationID, "userID", user.ID)
+	if err := h.notificationUC.MarkNotificationAsRead(*id, *userID); err != nil {
 		response.SendErrorJSON(w, "Failed to mark notification as read", http.StatusInternalServerError)
 		return
 	}
@@ -81,16 +68,14 @@ func (h *NotificationHandler) MarkAsRead(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *NotificationHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	user, err := middleware.GetUserFromContext(ctx)
-	if err != nil {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.notificationUC.MarkAllNotificationsAsRead(ctx, user.ID); err != nil {
-		logger.Logger.Error("Failed to mark all notifications as read", "error", err, "userID", user.ID)
+	if err := h.notificationUC.MarkAllNotificationsAsRead(*userID); err != nil {
+		logger.Logger.Error("Failed to mark all notifications as read", "error", err, "userID", userID)
 		response.SendErrorJSON(w, "Failed to mark all notifications as read", http.StatusInternalServerError)
 		return
 	}
@@ -99,17 +84,15 @@ func (h *NotificationHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *NotificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	user, err := middleware.GetUserFromContext(ctx)
-	if err != nil {
-		response.SendErrorJSON(w, "User not authenticated", http.StatusUnauthorized)
+	userID, err := middleware.GetUserIDFromContext(r.Context())
+	if err != nil || userID == nil || *userID == 0 {
+		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
 		return
 	}
 
-	count, err := h.notificationUC.GetUnreadNotificationsCount(ctx, user.ID)
+	count, err := h.notificationUC.GetUnreadNotificationsCount(*userID)
 	if err != nil {
-		logger.Logger.Error("Failed to get unread notifications count", "error", err, "userID", user.ID)
+		logger.Logger.Error("Failed to get unread notifications count", "error", err, "userID", userID)
 		response.SendErrorJSON(w, "Failed to get unread notifications count", http.StatusInternalServerError)
 		return
 	}
@@ -127,11 +110,11 @@ func (h *NotificationHandler) SendPush(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title       string                        `json:"title"`
-		Message     string                        `json:"message"`
-		Type        notification.NotificationType `json:"type"`
-		Data        map[string]interface{}        `json:"data,omitempty"`
-		DeviceToken string                        `json:"deviceToken"`
+		Title       string                 `json:"title"`
+		Message     string                 `json:"message"`
+		Type        string                 `json:"type"`
+		Data        map[string]interface{} `json:"data,omitempty"`
+		DeviceToken string                 `json:"deviceToken"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
@@ -16,9 +15,9 @@ type ProductStatsRepository struct {
 	db *gorm.DB
 }
 
-func NewProductStatsRepository() *ProductStatsRepository {
+func NewProductStatsRepository(db *gorm.DB) *ProductStatsRepository {
 	return &ProductStatsRepository{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 
@@ -47,13 +46,13 @@ func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 	}
 
 	if err := query.Model(&ProductStats{}).Count(&total).Error; err != nil {
-		logger.Logger.Error("Failed to count product stats", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("Failed to count product stats", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&history).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch product stats paginated", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("Failed to fetch product stats paginated", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return history, int(total), err
@@ -63,7 +62,7 @@ func (r *ProductStatsRepository) GetProductStatsByID(id uint) (*ProductStats, er
 	var history ProductStats
 
 	if err := r.db.Model(&ProductStats{}).Where(c.FieldID+" = ?", id).First(&history).Error; err != nil {
-		logger.Logger.Error("Failed to fetch product stats by ID", "method", "GetProductStatsByID", "error", err, "id", id)
+		l.Logger.Error("Failed to fetch product stats by ID", "method", "GetProductStatsByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -76,8 +75,9 @@ func (r *ProductStatsRepository) IncreaseProductStats(ctx context.Context, produ
 	if productStats.ID == 0 {
 		productStats.CreatedBy = userID
 		err := r.db.Model(&ProductStats{}).Create(productStats).Error
+
 		if err != nil {
-			logger.Logger.Error("Failed to create product stats", "method", "IncreaseProductStats", "error", err)
+			l.Logger.Error("Failed to create product stats", "method", "IncreaseProductStats", "error", err)
 		}
 		return err
 	}
@@ -85,7 +85,7 @@ func (r *ProductStatsRepository) IncreaseProductStats(ctx context.Context, produ
 	productStats.UpdatedBy = userID
 	err := r.db.Model(&ProductStats{}).Where(c.FieldID+" = ?", productStats.ID).Updates(productStats).Error
 	if err != nil {
-		logger.Logger.Error("Failed to update product stats", "method", "IncreaseProductStats", "error", err)
+		l.Logger.Error("Failed to update product stats", "method", "IncreaseProductStats", "error", err)
 	}
 	return err
 }

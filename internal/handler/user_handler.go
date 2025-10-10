@@ -4,8 +4,7 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/user"
-	"github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -13,12 +12,12 @@ import (
 )
 
 type UserHandler struct {
-	userUseCase *user.UserUseCase
+	service *user.UserService
 }
 
-func NewUserHandler() *UserHandler {
+func NewUserHandler(service *user.UserService) *UserHandler {
 	return &UserHandler{
-		userUseCase: user.NewUserUseCase(),
+		service: service,
 	}
 }
 
@@ -50,9 +49,8 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userUseCase.UpdateProfile(*userID, &req)
+	err = h.service.UpdateProfile(*userID, &req)
 	if err != nil {
-		logger.Logger.Error("Update profile failed", "method", "UpdateProfile", "error", err, "userID", *userID)
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -77,8 +75,7 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userUseCase.ChangePassword(currentUser.ID, currentUser.Password, &req); err != nil {
-		logger.Logger.Error("Change password failed", "method", "ChangePassword", "error", err, "userID", currentUser.ID)
+	if err := h.service.ChangePassword(currentUser.ID, currentUser.Password, &req); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -97,13 +94,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userResponse, err := h.userUseCase.CreateUser(r.Context(), &req)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, userResponse)
+	userResponse, err := h.service.CreateUser(r.Context(), &req)
+	response.SendResponse(w, userResponse, err, http.StatusInternalServerError)
 
 }
 
@@ -114,7 +106,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updateUserID, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	updateUserID, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || updateUserID == nil || *updateUserID == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -130,9 +122,8 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userUseCase.UpdateUser(*authUserID, *updateUserID, &req)
+	err = h.service.UpdateUser(*authUserID, *updateUserID, &req)
 	if err != nil {
-		logger.Logger.Error("Update user failed", "method", "UpdateUser", "error", err)
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -142,51 +133,38 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	includeStr := q.Get(constants.Include)
-	pageStr := q.Get(constants.Page)
-	pageSizeStr := q.Get(constants.PageSize)
-	sortBy := q.Get(constants.SortBy)
-	sortOrder := q.Get(constants.SortOrder)
-	showDeleted := q.Get(constants.ShowDeleted)
+	includeStr := q.Get(c.Include)
+	pageStr := q.Get(c.Page)
+	pageSizeStr := q.Get(c.PageSize)
+	sortBy := q.Get(c.SortBy)
+	sortOrder := q.Get(c.SortOrder)
+	showDeleted := q.Get(c.ShowDeleted)
 
-	userResponses, err := h.userUseCase.GetAllUsersPaginated(includeStr, showDeleted, pageStr, pageSizeStr, sortBy, sortOrder)
-	if err != nil {
-		logger.Logger.Error("Get all users failed", "method", "GetAllUsers", "error", err)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, userResponses)
+	userResponses, err := h.service.GetAllUsersPaginated(includeStr, showDeleted, pageStr, pageSizeStr, sortBy, sortOrder)
+	response.SendResponse(w, userResponses, err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	include := r.URL.Query().Get(constants.Include)
-	showDeleted := r.URL.Query().Get(constants.ShowDeleted)
-	userResponse, err := h.userUseCase.GetUserByID(*id, include, showDeleted)
-	if err != nil {
-		logger.Logger.Error("Get user by ID failed", "method", "GetUserByID", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	response.SendSuccessJSON(w, userResponse)
+	include := r.URL.Query().Get(c.Include)
+	showDeleted := r.URL.Query().Get(c.ShowDeleted)
+	userResponse, err := h.service.GetUserByID(*id, include, showDeleted)
+	response.SendResponse(w, userResponse, err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.userUseCase.DeleteUser(r.Context(), *id); err != nil {
-		logger.Logger.Error("Delete user failed", "method", "DeleteUser", "error", err, "id", id)
+	if err := h.service.DeleteUser(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -195,14 +173,13 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.ParseUint(r.PathValue(constants.FieldID))
+	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.userUseCase.UndoDeletedUser(r.Context(), *id); err != nil {
-		logger.Logger.Error("Undo delete user failed", "method", "UndoDeletedUser", "error", err, "id", id)
+	if err := h.service.UndoDeletedUser(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}

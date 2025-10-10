@@ -12,7 +12,6 @@ import (
 
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
 	"golang.org/x/crypto/bcrypt"
@@ -312,7 +311,6 @@ func BuildFullImageURL(pathKey *string) *string {
 
 func DecodeJSON(w http.ResponseWriter, r *http.Request, target any, method string) bool {
 	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
-		logger.Logger.Error("Failed to decode request", "method", method, "error", err)
 		response.SendErrorJSON(w, "Invalid request body", http.StatusBadRequest)
 		return false
 	}

@@ -12,6 +12,8 @@ type Config struct {
 	JWTSecret          string
 	SuperAdminEmail    string
 	SuperAdminPassword string
+	FcmServerKey       string
+	FcmUrl             string
 	ObjStore           ObjectStoreConfig
 }
 

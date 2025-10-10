@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	ps "github.com/easy-comerce/backend/internal/feature/product_stats"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterProductStatsRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewProductStatsHandler()
+	repo := ps.NewProductStatsRepository(db.GetDB())
+	service := ps.NewProductStatsService(repo)
+	h := handler.NewProductStatsHandler(service)
 
 	r.GET("/product-stats/paginated", h.GetAllProductStatsPaginated).Use(
 		pm.RequirePermission(c.PermissionProductStatsRead),

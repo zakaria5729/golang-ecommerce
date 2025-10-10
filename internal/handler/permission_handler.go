@@ -5,18 +5,17 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type PermissionHandler struct {
-	permissionUseCase *permission.PermissionUseCase
+	service *permission.PermissionService
 }
 
-func NewPermissionHandler() *PermissionHandler {
+func NewPermissionHandler(service *permission.PermissionService) *PermissionHandler {
 	return &PermissionHandler{
-		permissionUseCase: permission.NewPermissionUseCase(),
+		service: service,
 	}
 }
 
@@ -25,14 +24,8 @@ func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Req
 	sortBy := q.Get(constants.SortBy)
 	sortOrder := q.Get(constants.SortOrder)
 
-	permissions, err := h.permissionUseCase.GetAllPermissions(sortBy, sortOrder)
-	if err != nil {
-		logger.Logger.Error("Get all permissions failed", "method", "GetAllPermissions", "error", err)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, permissions)
+	permissions, err := h.service.GetAllPermissions(sortBy, sortOrder)
+	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
 }
 
 func (h *PermissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +35,6 @@ func (h *PermissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	permission, err := h.permissionUseCase.GetPermissionByID(*id)
-	if err != nil {
-		logger.Logger.Error("Get permission by ID failed", "method", "GetPermissionByID", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	response.SendSuccessJSON(w, permission)
+	permission, err := h.service.GetPermissionByID(*id)
+	response.SendResponse(w, permission, err, http.StatusNotFound)
 }

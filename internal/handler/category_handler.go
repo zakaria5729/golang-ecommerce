@@ -6,7 +6,6 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/category"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -14,98 +13,58 @@ import (
 )
 
 type CategoryHandler struct {
-	useCase *category.CategoryUseCase
+	service *category.CategoryService
 }
 
-func NewCategoryHandler() *CategoryHandler {
+func NewCategoryHandler(service *category.CategoryService) *CategoryHandler {
 	return &CategoryHandler{
-		useCase: category.NewCategoryUseCase(),
+		service: service,
 	}
 }
 
 func (h *CategoryHandler) GetAllCategoriesWithSubcategoriesPublic(w http.ResponseWriter, r *http.Request) {
 	showDeleted := false
-	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, &showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponses)
+	categoryResponses, err := getAllCategoriesWithSubcategoriesData(r, h.service, &showDeleted)
+	response.SendResponse(w, categoryResponses, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetAllCategoriesPublic(w http.ResponseWriter, r *http.Request) {
-	err, categoryResponses := h.getAllCategoriesData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponses)
+	categoryResponses, err := getAllCategoriesData(r, h.service, nil)
+	response.SendResponse(w, categoryResponses, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetCategoryByIdPublic(w http.ResponseWriter, r *http.Request) {
-	err, categoryResponse := h.getCategoryDataById(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponse)
+	categoryResponse, err := getCategoryDataById(r, h.service, nil)
+	response.SendResponse(w, categoryResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginatedPublic(w http.ResponseWriter, r *http.Request) {
-	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := getAllCategoriesPaginatedData(r, h.service, nil)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetAllCategoriesWithSubcategories(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, categoryResponses := h.getAllCategoriesWithSubcategoriesData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponses)
+	categoryResponses, err := getAllCategoriesWithSubcategoriesData(r, h.service, showDeleted)
+	response.SendResponse(w, categoryResponses, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, categoryResponses := h.getAllCategoriesData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponses)
+	categoryResponses, err := getAllCategoriesData(r, h.service, showDeleted)
+	response.SendResponse(w, categoryResponses, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetAllCategoriesPaginated(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, paginatedResponse := h.getAllCategoriesPaginatedData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := getAllCategoriesPaginatedData(r, h.service, showDeleted)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, categoryResponse := h.getCategoryDataById(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponse)
+	categoryResponse, err := getCategoryDataById(r, h.service, showDeleted)
+	response.SendResponse(w, categoryResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
@@ -114,18 +73,13 @@ func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if validationErrors := h.validateCreateCategoryRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateCreateCategoryRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	categoryResponse, err := h.useCase.CreateCategory(r.Context(), &req)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponse, http.StatusCreated)
+	categoryResponse, err := h.service.CreateCategory(r.Context(), &req)
+	response.SendResponse(w, categoryResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
@@ -140,18 +94,13 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if validationErrors := h.validateUpdateCategoryRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateUpdateCategoryRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	categoryResponse, err := h.useCase.UpdateCategory(r.Context(), *id, &req)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, categoryResponse)
+	categoryResponse, err := h.service.UpdateCategory(r.Context(), *id, &req)
+	response.SendResponse(w, categoryResponse, err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +110,7 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.useCase.DeleteCategory(r.Context(), *id); err != nil {
+	if err := h.service.DeleteCategory(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -176,7 +125,7 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.useCase.UndoDeletedCategory(r.Context(), *id); err != nil {
+	if err := h.service.UndoDeletedCategory(r.Context(), *id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -184,53 +133,33 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 	response.SendDeleteJSON(w, "Undo category deleted successfully")
 }
 
-func (h *CategoryHandler) getAllCategoriesData(r *http.Request, showDeleted *bool) (error, []category.CategoryResponse) {
+func getAllCategoriesData(r *http.Request, service *category.CategoryService, showDeleted *bool) ([]category.CategoryResponse, error) {
 	q := r.URL.Query()
 	parentIDFilter := q.Get(c.CategoryParentID)
 	priorityLimitFilter := q.Get(c.CategoryPriorityLimit)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
-
-	responses, err := h.useCase.GetAllCategories(showDeleted, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
-	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "getAllCategoriesData", "error", err, "showDeleted", showDeleted, "parentID", parentIDFilter, "priorityLimit", priorityLimitFilter, "sortBy", sortBy, "sortOrder", sortOrder)
-		return err, nil
-	}
-
-	return nil, responses
+	return service.GetAllCategories(showDeleted, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
 }
 
-func (h *CategoryHandler) getAllCategoriesWithSubcategoriesData(r *http.Request, showDeleted *bool) (error, []category.CategorySubcategoriesResponse) {
+func getAllCategoriesWithSubcategoriesData(r *http.Request, service *category.CategoryService, showDeleted *bool) ([]category.CategorySubcategoriesResponse, error) {
 	q := r.URL.Query()
 	subcategoryDepthFilter := q.Get(c.SubcategoryDepth)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
-
-	responses, err := h.useCase.GetAllCategoriesWithSubcategories(showDeleted, subcategoryDepthFilter, sortBy, sortOrder)
-	if err != nil {
-		logger.Logger.Error("Failed to fetch categories", "method", "GetAllCategoriesWithSubcategories", "error", err, "showDeleted", showDeleted, "subcategoryDepth", subcategoryDepthFilter, "sortBy", sortBy, "sortOrder", sortOrder)
-		return err, nil
-	}
-
-	return nil, responses
+	return service.GetAllCategoriesWithSubcategories(showDeleted, subcategoryDepthFilter, sortBy, sortOrder)
 }
 
-func (h *CategoryHandler) getCategoryDataById(r *http.Request, showDeleted *bool) (error, *category.CategoryResponse) {
+func getCategoryDataById(r *http.Request, service *category.CategoryService, showDeleted *bool) (*category.CategoryResponse, error) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
-		return errors.New("invalid category ID"), nil
+		return nil, errors.New("invalid category ID")
 	}
 
-	response, err := h.useCase.GetCategoryByID(*id, showDeleted)
-	if err != nil {
-		logger.Logger.Error("Failed to fetch category by ID", "method", "getCategoryDataById", "error", err, "id", id, "showDeleted", showDeleted)
-		return errors.New("category not found"), nil
-	}
-
-	return nil, response
+	return service.GetCategoryByID(*id, showDeleted)
 }
 
-func (h *CategoryHandler) getAllCategoriesPaginatedData(r *http.Request, showDeleted *bool) (error, *models.PaginatedResponse) {
+func getAllCategoriesPaginatedData(r *http.Request, service *category.CategoryService, showDeleted *bool) (*models.PaginatedResponse, error) {
 	q := r.URL.Query()
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
@@ -238,25 +167,18 @@ func (h *CategoryHandler) getAllCategoriesPaginatedData(r *http.Request, showDel
 	showPriorityFilter := q.Get(c.CategoryPriority)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
-
-	paginatedResponse, err := h.useCase.GetAllCategoriesPaginated(showDeleted, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
-	if err != nil {
-		logger.Logger.Error("Failed to fetch categories paginated", "method", "getAllCategoriesPaginatedData", "error", err, "parentID", parentIDFilter, "showPriority", showPriorityFilter, "sortBy", sortBy, "sortOrder", sortOrder)
-		return err, nil
-	}
-
-	return nil, paginatedResponse
+	return service.GetAllCategoriesPaginated(showDeleted, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
 }
 
-func (h *CategoryHandler) validateUpdateCategoryRequest(req *category.UpdateCategoryRequest) validator.ValidationErrors {
-	return h.validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
+func validateUpdateCategoryRequest(req *category.UpdateCategoryRequest) validator.ValidationErrors {
+	return validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
 }
 
-func (h *CategoryHandler) validateCreateCategoryRequest(req *category.CreateCategoryRequest) validator.ValidationErrors {
-	return h.validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
+func validateCreateCategoryRequest(req *category.CreateCategoryRequest) validator.ValidationErrors {
+	return validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
 }
 
-func (h *CategoryHandler) validateRequest(title string, subTitle *string, parentID *uint, priority *uint) validator.ValidationErrors {
+func validateRequest(title string, subTitle *string, parentID *uint, priority *uint) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
 	if title == "" || len(title) < 2 {

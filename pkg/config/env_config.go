@@ -32,7 +32,7 @@ func InitConfig() *Config {
 }
 
 func GetActiveProfile() string {
-	return getEnv(c.EnvActiveProfile, c.EnvStage)
+	return getEnv(c.EnvActiveProfile, c.EnvDev)
 }
 
 func loadConfig() *Config {
@@ -46,6 +46,8 @@ func loadConfig() *Config {
 		c.EnvKeyDBSSLMode,
 		c.EnvKeyDBShowLog,
 		c.EnvKeyJWTSecret,
+		c.EnvKeyFcmServerKey,
+		c.EnvKeyFcmUrl,
 		c.EnvKeyObjStoreRegion,
 		c.EnvKeyObjStoreBucketName,
 		c.EnvKeyObjStoreAccountID,
@@ -85,6 +87,8 @@ func loadConfig() *Config {
 		DBSSLMode:          getEnvWithPanic(c.EnvKeyDBSSLMode),
 		DBShowLog:          getEnvWithPanic(c.EnvKeyDBShowLog),
 		JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
+		FcmServerKey:       getEnv(c.EnvKeyJWTSecret, ""),
+		FcmUrl:             getEnv(c.EnvKeyJWTSecret, ""),
 		SuperAdminEmail:    getEnvWithPanic(c.EnvSuperAdminEmail),
 		SuperAdminPassword: getEnvWithPanic(c.EnvSuperAdminPassword),
 		ObjStore: ObjectStoreConfig{

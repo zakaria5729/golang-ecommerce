@@ -1,13 +1,21 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/auth"
+	"github.com/easy-comerce/backend/internal/feature/role"
+	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/internal/handler"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
 func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewAuthHandler(pm.GetJWTSecret())
+	db := db.GetDB()
+	userRepo := user.NewUserRepository(db)
+	roleRepo := role.NewRoleRepository(db)
+	service := auth.NewAuthService(pm.GetJWTSecret(), userRepo, roleRepo)
+	h := handler.NewAuthHandler(service)
 
 	r.POST("/app-health", h.AppHealthCheck).Register()
 

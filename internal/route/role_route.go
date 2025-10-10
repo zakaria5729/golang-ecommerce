@@ -1,6 +1,9 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	p "github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +11,10 @@ import (
 )
 
 func RegisterRoleRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewRoleHandler()
+	roleRepo := role.NewRoleRepository(db.GetDB())
+	permissionRepo := p.NewPermissionRepository(db.GetDB())
+	service := role.NewRoleService(roleRepo, permissionRepo)
+	h := handler.NewRoleHandler(service)
 
 	r.GET("/roles", h.GetAllRoles).Use(
 		pm.RequirePermission(c.PermissionRoleRead),

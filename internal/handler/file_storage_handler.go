@@ -11,12 +11,12 @@ import (
 )
 
 type FileStorageHandler struct {
-	usecase *file_storage.FileStorageUseCase
+	service *file_storage.FileStorageService
 }
 
-func NewFileStorageHandler() *FileStorageHandler {
+func NewFileStorageHandler(service *file_storage.FileStorageService) *FileStorageHandler {
 	return &FileStorageHandler{
-		usecase: file_storage.NewFileStorageUseCase(),
+		service: service,
 	}
 }
 
@@ -46,14 +46,6 @@ func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) 
 		ContentType: fileHeader.Header.Get(c.ContentType),
 	}
 
-	result, err := h.usecase.UploadFile(r.Context(), *userID, &uploadReq)
-	if err != nil {
-		logger.Logger.Error("Failed to upload file", "error", err, "user_id", *userID)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, file_storage.StorageUploadResponse{
-		PathKey: result.PathKey,
-	})
+	result, err := h.service.UploadFile(r.Context(), *userID, &uploadReq)
+	response.SendResponse(w, result, err, http.StatusInternalServerError)
 }

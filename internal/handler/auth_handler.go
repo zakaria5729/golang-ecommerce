@@ -5,19 +5,18 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type AuthHandler struct {
-	authUseCase *auth.AuthUseCase
+	service *auth.AuthService
 }
 
-func NewAuthHandler(jwtSecret string) *AuthHandler {
+func NewAuthHandler(service *auth.AuthService) *AuthHandler {
 	return &AuthHandler{
-		authUseCase: auth.NewAuthUseCase(jwtSecret),
+		service: service,
 	}
 }
 
@@ -28,7 +27,7 @@ func (h *AuthHandler) AppHealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.HealthToken != nil && *req.HealthToken == c.AppHealthCheckToken {
-		healthResponse := h.authUseCase.HealthCheck(r.Context())
+		healthResponse := h.service.HealthCheck(r.Context())
 		response.SendSuccessJSON(w, healthResponse)
 		return
 	}
@@ -47,14 +46,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginResponse, err := h.authUseCase.Login(&req)
-	if err != nil {
-		logger.Logger.Error("Login failed", "method", "Login", "error", err, "email", req.Email)
-		response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	response.SendSuccessJSON(w, loginResponse)
+	loginResponse, err := h.service.Login(&req)
+	response.SendResponse(w, loginResponse, err, http.StatusOK)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -68,14 +61,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authUseCase.Register(&req)
-	if err != nil {
-		logger.Logger.Error("Registration failed", "method", "Register", "error", err, "email", req.Email)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendSuccessJSON(w, user, http.StatusCreated)
+	user, err := h.service.Register(&req)
+	response.SendResponse(w, user, err, http.StatusCreated)
 }
 
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -89,8 +76,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authUseCase.ForgotPassword(&req); err != nil {
-		logger.Logger.Error("Forgot password failed", "method", "ForgotPassword", "error", err, "email", req.Email)
+	if err := h.service.ForgotPassword(&req); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -109,8 +95,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authUseCase.ResetPassword(&req); err != nil {
-		logger.Logger.Error("Reset password failed", "method", "ResetPassword", "error", err)
+	if err := h.service.ResetPassword(&req); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -129,14 +114,8 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginResponse, err := h.authUseCase.RefreshToken(&req)
-	if err != nil {
-		logger.Logger.Error("Refresh token failed", "method", "RefreshToken", "error", err)
-		response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	response.SendSuccessJSON(w, loginResponse)
+	loginResponse, err := h.service.RefreshToken(&req)
+	response.SendResponse(w, loginResponse, err, http.StatusOK)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -146,8 +125,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authUseCase.Logout(*userID); err != nil {
-		logger.Logger.Error("Logout failed", "method", "Logout", "error", err, "userID", userID)
+	if err := h.service.Logout(*userID); err != nil {
 		response.SendErrorJSON(w, "Logout failed", http.StatusInternalServerError)
 		return
 	}

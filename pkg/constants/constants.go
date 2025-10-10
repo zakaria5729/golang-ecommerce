@@ -5,7 +5,7 @@ type stringKey string
 const (
 	UserContextKey      stringKey = "user"
 	UserIDContextKey    stringKey = "user_id"
-	ObjStoreProviderR2  string    = "r2"
+	ObjStoreProviderR2  string    = "cloudflare_r2"
 	ProjectName         string    = "easy-comerce"
 	AppHealthCheckToken string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
 )
@@ -38,8 +38,10 @@ const (
 )
 
 const (
-	EnvKeyJWTSecret  string = "JWT_SECRET"
-	EnvActiveProfile string = "ACTIVE_PROFILE"
+	EnvKeyJWTSecret    string = "JWT_SECRET"
+	EnvKeyFcmServerKey string = "FCM_SERVER_KEY"
+	EnvKeyFcmUrl       string = "FCM_URL"
+	EnvActiveProfile   string = "ACTIVE_PROFILE"
 )
 
 const (

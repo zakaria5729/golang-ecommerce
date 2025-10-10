@@ -12,12 +12,12 @@ import (
 )
 
 type AddressHandler struct {
-	useCase *address.AddressUseCase
+	service *address.AddressService
 }
 
-func NewAddressHandler() *AddressHandler {
+func NewAddressHandler(service *address.AddressService) *AddressHandler {
 	return &AddressHandler{
-		useCase: address.NewAddressUseCase(),
+		service: service,
 	}
 }
 
@@ -29,24 +29,17 @@ func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Re
 	}
 
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
 	addressTypeFilter := q.Get(c.AddressAddressType)
 	isDefaultFilter := q.Get(c.AddressIsDefault)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	addresses, err := h.useCase.GetAllAddressesByUser(*userID, includeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch addresses", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, addresses)
+	addresses, err := h.service.GetAllAddressesByUser(*userID, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
+	response.SendResponse(w, addresses, err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
 	userIdStr := q.Get(c.AddressUserID)
@@ -56,13 +49,8 @@ func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http
 	sortOrder := q.Get(c.SortOrder)
 	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 
-	paginatedResponse, err := h.useCase.GetAllAddressesPaginated(showDeleted, userIdStr, includeStr, pageStr, pageSizeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch addresses", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := h.service.GetAllAddressesPaginated(showDeleted, userIdStr, pageStr, pageSizeStr, addressTypeFilter, isDefaultFilter, sortBy, sortOrder)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) {
@@ -73,13 +61,8 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	address, err := h.useCase.GetAddressByID(*id, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, "Address not found", http.StatusNotFound)
-		return
-	}
-
-	response.SendSuccessJSON(w, address)
+	address, err := h.service.GetAddressByID(*id, showDeleted)
+	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
@@ -94,18 +77,13 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateAddressRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateAddressRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	address, err := h.useCase.CreateAddress(*userID, &req)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to create address", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, address, http.StatusCreated)
+	address, err := h.service.CreateAddress(*userID, &req)
+	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
@@ -126,18 +104,13 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateAddressRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateAddressRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	address, err := h.useCase.UpdateAddress(*id, *userID, &req)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to update address", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, address)
+	address, err := h.service.UpdateAddress(*id, *userID, &req)
+	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +120,7 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.useCase.DeleteAddress(*id); err != nil {
+	if err := h.service.DeleteAddress(*id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -168,7 +141,7 @@ func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.useCase.RemoveAddress(*id, *userID); err != nil {
+	if err := h.service.RemoveAddress(*id, *userID); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -183,7 +156,7 @@ func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.useCase.UndoDeleteAddress(*id); err != nil {
+	if err := h.service.UndoDeleteAddress(*id); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -210,7 +183,7 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.useCase.SetDefaultAddress(*id, *userID, addressType); err != nil {
+	if err := h.service.SetDefaultAddress(*id, *userID, addressType); err != nil {
 		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -231,16 +204,11 @@ func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	address, err := h.useCase.GetDefaultAddress(*userID, addressType)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, address)
+	address, err := h.service.GetDefaultAddress(*userID, addressType)
+	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) validateAddressRequest(req *address.Address) validator.ValidationErrors {
+func validateAddressRequest(req *address.Address) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
 	if req.Street == "" || len(req.Street) < 5 {

@@ -3,6 +3,7 @@ package data_loader
 import (
 	"errors"
 
+	"github.com/easy-comerce/backend/db"
 	p "github.com/easy-comerce/backend/internal/feature/permission"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
@@ -16,9 +17,10 @@ import (
 
 func InitRoleAndSuperAdmin() error {
 	showDeleted := true
-	userRepo := user.NewUserRepository()
-	roleRepo := role.NewRoleRepository()
-	permissionRepo := p.NewPermissionRepository()
+	db := db.GetDB()
+	userRepo := user.NewUserRepository(db)
+	roleRepo := role.NewRoleRepository(db)
+	permissionRepo := p.NewPermissionRepository(db)
 
 	allPermissionNames := getAllPermissionNames()
 	if err := createAllPermissionsIfNotExists(permissionRepo, allPermissionNames, &showDeleted); err != nil {

@@ -3,7 +3,7 @@ package route
 import (
 	"net/http"
 
-	m 	"github.com/easy-comerce/backend/pkg/middleware"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
@@ -13,7 +13,7 @@ func RegisterAllRoutes(mux *http.ServeMux) {
 	r.Use(
 		m.RecoveryMiddleware,
 		m.LoggingMiddleware,
-		m.CORSMiddleware,
+		m.CorsMiddleware,
 	)
 
 	RegisterAuthRoute(r, pm)

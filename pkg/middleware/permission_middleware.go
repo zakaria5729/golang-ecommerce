@@ -5,11 +5,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/easy-comerce/backend/internal/feature/auth"
-	"github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/db"
+	p "github.com/easy-comerce/backend/internal/feature/permission"
+	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/config"
-	"github.com/easy-comerce/backend/pkg/constants"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
@@ -17,47 +18,50 @@ import (
 )
 
 type PermissionMiddleware struct {
-	permissionUseCase *permission.PermissionUseCase
-	authUseCase       *auth.AuthUseCase
-	userUseCase       *user.UserUseCase
+	permissionService *p.PermissionService
+	userService       *user.UserService
 	jwtSecret         string
 }
 
 func NewPermissionMiddleware() *PermissionMiddleware {
+	db := db.GetDB()
 	cfg := config.GetConfig()
+	roleRepo := role.NewRoleRepository(db)
+	userRepo := user.NewUserRepository(db)
+	permissionRepo := p.NewPermissionRepository(db)
+
 	return &PermissionMiddleware{
-		permissionUseCase: permission.NewPermissionUseCase(),
-		authUseCase:       auth.NewAuthUseCase(cfg.JWTSecret),
-		userUseCase:       user.NewUserUseCase(),
+		permissionService: p.NewPermissionService(permissionRepo),
+		userService:       user.NewUserService(userRepo, roleRepo),
 		jwtSecret:         cfg.JWTSecret,
 	}
 }
 
 func (pm *PermissionMiddleware) RequireAuthUserStatus() t.MiddlewareHandler {
-	return pm.loadAuthUser(false, false, false)
+	return loadAuthUser(pm, false, false, false)
 }
 
 func (pm *PermissionMiddleware) RequireAuthUser() t.MiddlewareHandler {
-	return pm.loadAuthUser(true, false, false)
+	return loadAuthUser(pm, true, false, false)
 }
 
 func (pm *PermissionMiddleware) RequireAuthWithRolePermission() t.MiddlewareHandler {
-	return pm.loadAuthUser(true, true, true)
+	return loadAuthUser(pm, true, true, true)
 }
 
 func (pm *PermissionMiddleware) RequirePermission(permission string) t.MiddlewareHandler {
-	return pm.loadPermissionsStatus([]string{permission}, "RequirePermission")
+	return loadPermissionsStatus(pm, []string{permission}, "RequirePermission")
 }
 
 func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) t.MiddlewareHandler {
-	return pm.loadPermissionsStatus(permissions, "RequireAnyPermission")
+	return loadPermissionsStatus(pm, permissions, "RequireAnyPermission")
 }
 
 func (pm *PermissionMiddleware) GetJWTSecret() string {
 	return pm.jwtSecret
 }
 
-func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string, methodName string) t.MiddlewareHandler {
+func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, methodName string) t.MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -75,9 +79,9 @@ func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string, meth
 			var refreshToken *string
 
 			if len(permissions) == 1 {
-				banned, verified, refreshToken, hasPermission, err = pm.permissionUseCase.GetUserStatusAndPermission(claims.UserID, permissions[0])
+				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndPermission(claims.UserID, permissions[0])
 			} else {
-				banned, verified, refreshToken, hasPermission, err = pm.permissionUseCase.GetUserStatusAndAnyPermission(claims.UserID, permissions)
+				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndAnyPermission(claims.UserID, permissions)
 			}
 
 			if err != nil {
@@ -87,36 +91,32 @@ func (pm *PermissionMiddleware) loadPermissionsStatus(permissions []string, meth
 			}
 
 			if refreshToken == nil {
-				logger.Logger.Error("Invalid refresh token", "method", methodName, "userID", claims.UserID)
 				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
 				return
 			}
 
 			if banned {
-				logger.Logger.Warn("Banned user attempted to access protected resource", "method", methodName, "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
 				return
 			}
 
 			if !verified {
-				logger.Logger.Warn("Unverified user attempted to access protected resource", "method", methodName, "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account not verified", http.StatusUnauthorized)
 				return
 			}
 
 			if !hasPermission {
-				logger.Logger.Warn("User lacks any of the required permissions", "method", methodName, "userID", claims.UserID, "permissions", permissions)
 				response.SendErrorJSON(w, "Insufficient permissions", http.StatusForbidden)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
+			ctx := context.WithValue(r.Context(), c.UserIDContextKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles bool, includePermissions bool) t.MiddlewareHandler {
+func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool, includePermissions bool) t.MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -133,9 +133,9 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 			var user *user.User
 
 			if !loadFullUser {
-				banned, verified, refreshToken, err = pm.userUseCase.GetAuthUserStatusByID(claims.UserID)
+				banned, verified, refreshToken, err = pm.userService.GetAuthUserStatusByID(claims.UserID)
 			} else {
-				user, err = pm.userUseCase.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
+				user, err = pm.userService.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
 				if user != nil {
 					banned = user.Banned
 					verified = user.Verified
@@ -150,26 +150,23 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 			}
 
 			if refreshToken == nil {
-				logger.Logger.Error("Invalid refresh token", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
 				return
 			}
 
 			if !verified {
-				logger.Logger.Error("Account is not verified", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account not verified yet", http.StatusUnauthorized)
 				return
 			}
 
 			if banned {
-				logger.Logger.Error("User is banned", "method", "RequireAuth", "userID", claims.UserID)
 				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), constants.UserIDContextKey, claims.UserID)
+			ctx := context.WithValue(r.Context(), c.UserIDContextKey, claims.UserID)
 			if loadFullUser {
-				ctx = context.WithValue(ctx, constants.UserContextKey, user)
+				ctx = context.WithValue(ctx, c.UserContextKey, user)
 			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -177,7 +174,7 @@ func (pm *PermissionMiddleware) loadAuthUser(loadFullUser bool, includeRoles boo
 }
 
 func GetUserFromContext(ctx context.Context) (*user.User, error) {
-	user, ok := ctx.Value(constants.UserContextKey).(*user.User)
+	user, ok := ctx.Value(c.UserContextKey).(*user.User)
 	if !ok || user == nil {
 		return nil, errors.New("user not found in context")
 	}
@@ -185,7 +182,7 @@ func GetUserFromContext(ctx context.Context) (*user.User, error) {
 }
 
 func GetUserIDFromContext(ctx context.Context) (*uint, error) {
-	userID, ok := ctx.Value(constants.UserIDContextKey).(uint)
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
 	if !ok {
 		return nil, errors.New("user ID not found or invalid type in context")
 	}
@@ -193,7 +190,7 @@ func GetUserIDFromContext(ctx context.Context) (*uint, error) {
 }
 
 func GetUserIdOnlyFromContext(ctx context.Context) *uint {
-	userID, ok := ctx.Value(constants.UserIDContextKey).(uint)
+	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
 	if !ok {
 		return nil
 	}

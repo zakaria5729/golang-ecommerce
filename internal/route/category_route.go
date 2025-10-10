@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/category"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewCategoryHandler()
+	repo := category.NewCategoryRepository(db.GetDB())
+	service := category.NewCategoryService(repo)
+	h := handler.NewCategoryHandler(service)
 
 	r.GET("/categories/public", h.GetAllCategoriesPublic).Register()
 

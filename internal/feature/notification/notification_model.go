@@ -1,28 +1,19 @@
 package notification
 
-import "time"
-
-type NotificationType string
-
-const (
-	TypeInfo    NotificationType = "INFO"
-	TypeSuccess NotificationType = "SUCCESS"
-	TypeWarning NotificationType = "WARNING"
-	TypeError   NotificationType = "ERROR"
+import (
+	"github.com/easy-comerce/backend/pkg/models"
+	// "gorm.io/datatypes"
 )
 
 type Notification struct {
-	ID        uint            `json:"id" gorm:"primaryKey"`
-	UserID    uint            `json:"userId" gorm:"index"`
-	Title     string          `json:"title"`
-	Message   string          `json:"message"`
-	Type      NotificationType `json:"type"`
-	IsRead    bool            `json:"isRead" gorm:"default:false"`
-	Data      JSONMap         `json:"data,omitempty" gorm:"type:jsonb"`
-	CreatedAt time.Time       `json:"createdAt"`
+	models.BaseModel
+	UserID  uint   `json:"user_id" gorm:"index; column:user_id"`
+	Title   string `json:"title" gorm:"column:message"`
+	Message string `json:"message" gorm:"column:message"`
+	Type    string `json:"type" gorm:"column:type"`
+	IsRead  bool   `json:"is_read" gorm:"default:false; column:is_read"`
+	// Data    *datatypes.JSON `json:"data" gorm:"type:json; column:data"`
 }
-
-type JSONMap map[string]interface{}
 
 type FCMMessage struct {
 	To           string      `json:"to,omitempty"`
@@ -34,3 +25,7 @@ type FCMPayload struct {
 	Title string `json:"title"`
 	Body  string `json:"body"`
 }
+
+const (
+	TypeGeneral string = "GENERAL"
+)

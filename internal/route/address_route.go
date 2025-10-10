@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	a "github.com/easy-comerce/backend/internal/feature/address"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterAddressRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewAddressHandler()
+	repo := a.NewAddressRepository(db.GetDB())
+	service := a.NewAddressService(repo)
+	h := handler.NewAddressHandler(service)
 
 	r.GET("/addresses/me", h.GetAllAddressesByUser).Use(
 		pm.RequireAuthUserStatus(),

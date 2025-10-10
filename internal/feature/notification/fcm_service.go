@@ -11,13 +11,13 @@ import (
 
 type FCMService struct {
 	serverKey string
-	fcmURL   string
+	fcmURL    string
 }
 
 func NewFCMService() *FCMService {
 	return &FCMService{
 		serverKey: os.Getenv("FCM_SERVER_KEY"),
-		fcmURL:   os.Getenv("FCM_URL"),
+		fcmURL:    os.Getenv("FCM_URL"),
 	}
 }
 
@@ -33,7 +33,7 @@ func (s *FCMService) SendNotification(deviceToken string, notification *Notifica
 			Title: notification.Title,
 			Body:  notification.Message,
 		},
-		Data: notification.Data,
+		// Data: notification.Data,
 	}
 
 	payload, err := json.Marshal(msg)

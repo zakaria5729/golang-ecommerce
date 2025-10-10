@@ -144,3 +144,8 @@ const (
 	SizeOptionSizeCategoryID string = "size_category_id"
 	SizeCategoryName         string = "name"
 )
+
+const (
+	NotificationUserID string = "user_id"
+	NotificationIsRead string = "is_read"
+)

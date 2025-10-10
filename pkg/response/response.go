@@ -89,6 +89,14 @@ func SendValidationErrorJSON(w http.ResponseWriter, message string, validationEr
 	sendJSON(w, response, code)
 }
 
+func SendResponse(w http.ResponseWriter, result any, err error, errorStatusCode int) {
+	if err != nil {
+		SendErrorJSON(w, err.Error(), errorStatusCode)
+		return
+	}
+	SendSuccessJSON(w, result)
+}
+
 func sendJSON(w http.ResponseWriter, response Response, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
