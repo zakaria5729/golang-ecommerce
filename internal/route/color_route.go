@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/color"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterColorRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewColorHandler()
+	repo := color.NewColorRepository(db.GetDB())
+	service := color.NewColorService(repo)
+	h := handler.NewColorHandler(service)
 
 	r.GET("/colors/public", h.GetAllColorsPublic).Register()
 

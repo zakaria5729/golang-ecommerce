@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	so "github.com/easy-comerce/backend/internal/feature/size_option"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterSizeOptionRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewSizeOptionHandler()
+	repo := so.NewSizeOptionRepository(db.GetDB())
+	service := so.NewSizeOptionService(repo)
+	h := handler.NewSizeOptionHandler(service)
 
 	r.GET("/size-options/public", h.GetAllSizeOptionsPublic).Register()
 

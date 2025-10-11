@@ -6,62 +6,41 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/brand"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type BrandHandler struct {
-	brandUseCase *brand.BrandUseCase
+	service *brand.BrandService
 }
 
-func NewBrandHandler() *BrandHandler {
+func NewBrandHandler(service *brand.BrandService) *BrandHandler {
 	return &BrandHandler{
-		brandUseCase: brand.NewBrandUseCase(),
+		service: service,
 	}
 }
 
 func (h *BrandHandler) GetAllBrandsPublic(w http.ResponseWriter, r *http.Request) {
-	err, brands := h.getAllBrandsData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, brands)
+	err, brands := getAllBrandsData(r, nil, h.service)
+	response.SendResponse(w, brands, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) GetBrandByIDPublic(w http.ResponseWriter, r *http.Request) {
-	err, brand := h.getBrandDataById(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, brand)
+	err, brand := getBrandDataById(r, nil, h.service)
+	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) GetAllBrands(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, brands := h.getAllBrandsData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, brands)
+	err, brands := getAllBrandsData(r, showDeleted, h.service)
+	response.SendResponse(w, brands, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) GetBrandByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, brand := h.getBrandDataById(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, brand)
+	err, brand := getBrandDataById(r, showDeleted, h.service)
+	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
@@ -70,19 +49,13 @@ func (h *BrandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateCreateBrandRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateCreateBrandRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	brand, err := h.brandUseCase.CreateBrand(&req)
-	if err != nil {
-		logger.Logger.Error("Create brand failed", "method", "CreateBrand", "error", err)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendSuccessJSON(w, brand, http.StatusCreated)
+	brand, err := h.service.CreateBrand(&req)
+	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
@@ -97,19 +70,13 @@ func (h *BrandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateUpdateBrandRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateUpdateBrandRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	brand, err := h.brandUseCase.UpdateBrand(*id, &req)
-	if err != nil {
-		logger.Logger.Error("Update brand failed", "method", "UpdateBrand", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendSuccessJSON(w, brand)
+	brand, err := h.service.UpdateBrand(*id, &req)
+	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
@@ -119,13 +86,8 @@ func (h *BrandHandler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.brandUseCase.DeleteBrand(*id); err != nil {
-		logger.Logger.Error("Delete brand failed", "method", "DeleteBrand", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Brand deleted successfully")
+	err = h.service.DeleteBrand(*id)
+	response.SendResponse(w, "Brand deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *BrandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) {
@@ -135,21 +97,16 @@ func (h *BrandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.brandUseCase.UndoDeletedBrand(*id); err != nil {
-		logger.Logger.Error("Undo deleted brand failed", "method", "UndoDeletedBrand", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Brand restored successfully")
+	err = h.service.UndoDeletedBrand(*id)
+	response.SendResponse(w, "Brand restored successfully", err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) getAllBrandsData(r *http.Request, showDeleted *bool) (error, []brand.Brand) {
+func getAllBrandsData(r *http.Request, showDeleted *bool, service *brand.BrandService) (error, []brand.Brand) {
 	q := r.URL.Query()
-	include := q.Get(c.Include)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
-	brands, err := h.brandUseCase.GetAllBrands(include, showDeleted, sortBy, sortOrder)
+	brands, err := service.GetAllBrands(showDeleted, sortBy, sortOrder)
+
 	if err != nil {
 		return errors.New("failed to get all brands"), nil
 	}
@@ -157,14 +114,13 @@ func (h *BrandHandler) getAllBrandsData(r *http.Request, showDeleted *bool) (err
 	return nil, brands
 }
 
-func (h *BrandHandler) getBrandDataById(r *http.Request, showDeleted *bool) (error, *brand.Brand) {
+func getBrandDataById(r *http.Request, showDeleted *bool, service *brand.BrandService) (error, *brand.Brand) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid brand ID"), nil
 	}
 
-	include := r.URL.Query().Get(c.Include)
-	brand, err := h.brandUseCase.GetBrandByID(*id, include, showDeleted)
+	brand, err := service.GetBrandByID(*id, showDeleted)
 	if err != nil {
 		return errors.New("brand not found"), nil
 	}
@@ -172,7 +128,7 @@ func (h *BrandHandler) getBrandDataById(r *http.Request, showDeleted *bool) (err
 	return nil, brand
 }
 
-func (h *BrandHandler) validateCreateBrandRequest(req *brand.CreateBrandRequest) validator.ValidationErrors {
+func validateCreateBrandRequest(req *brand.CreateBrandRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -180,7 +136,7 @@ func (h *BrandHandler) validateCreateBrandRequest(req *brand.CreateBrandRequest)
 	)
 }
 
-func (h *BrandHandler) validateUpdateBrandRequest(req *brand.UpdateBrandRequest) validator.ValidationErrors {
+func validateUpdateBrandRequest(req *brand.UpdateBrandRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

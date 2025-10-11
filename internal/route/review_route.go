@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/review"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterReviewRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewReviewHandler()
+	repo := review.NewReviewRepository(db.GetDB())
+	service := review.NewReviewService(repo)
+	h := handler.NewReviewHandler(service)
 
 	r.GET("/reviews/{id}/public", h.GetReviewByIdPublic).Register()
 

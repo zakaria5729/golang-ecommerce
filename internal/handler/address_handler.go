@@ -23,7 +23,7 @@ func NewAddressHandler(service *address.AddressService) *AddressHandler {
 
 func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -67,7 +67,7 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 
 func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -88,7 +88,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 
 func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -120,17 +120,13 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteAddress(*id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Address deleted successfully")
+	err = h.service.DeleteAddress(*id)
+	response.SendResponse(w, "Address deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -141,12 +137,8 @@ func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.RemoveAddress(*id, *userID); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Address removed successfully")
+	err = h.service.RemoveAddress(*id, *userID)
+	response.SendResponse(w, "Address removed successfully", err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Request) {
@@ -156,17 +148,13 @@ func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.UndoDeleteAddress(*id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Undo delete address successfully")
+	err = h.service.UndoDeleteAddress(*id)
+	response.SendResponse(w, "Undo delete address successfully", err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -183,17 +171,13 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.SetDefaultAddress(*id, *userID, addressType); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, "Address set as default successfully")
+	err = h.service.SetDefaultAddress(*id, *userID, addressType)
+	response.SendResponse(w, "Address set as default successfully", err, http.StatusInternalServerError)
 }
 
 func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}

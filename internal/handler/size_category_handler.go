@@ -6,62 +6,41 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/size_category"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type SizeCategoryHandler struct {
-	sizeCategoryUseCase *size_category.SizeCategoryUseCase
+	service *size_category.SizeCategoryService
 }
 
-func NewSizeCategoryHandler() *SizeCategoryHandler {
+func NewSizeCategoryHandler(service *size_category.SizeCategoryService) *SizeCategoryHandler {
 	return &SizeCategoryHandler{
-		sizeCategoryUseCase: size_category.NewSizeCategoryUseCase(),
+		service: service,
 	}
 }
 
 func (h *SizeCategoryHandler) GetAllSizeCategoriesPublic(w http.ResponseWriter, r *http.Request) {
-	err, sizeCategories := h.getAllSizeCategoriesData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategories)
+	err, sizeCategories := getAllSizeCategoriesData(r, nil, h.service)
+	response.SendResponse(w, sizeCategories, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) GetSizeCategoryByIDPublic(w http.ResponseWriter, r *http.Request) {
-	err, sizeCategory := h.getSizeCategoryDataById(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategory)
+	err, sizeCategory := getSizeCategoryDataById(r, nil, h.service)
+	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) GetAllSizeCategories(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, sizeCategories := h.getAllSizeCategoriesData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategories)
+	err, sizeCategories := getAllSizeCategoriesData(r, showDeleted, h.service)
+	response.SendResponse(w, sizeCategories, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) GetSizeCategoryByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, sizeCategory := h.getSizeCategoryDataById(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategory)
+	err, sizeCategory := getSizeCategoryDataById(r, showDeleted, h.service)
+	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.Request) {
@@ -70,19 +49,13 @@ func (h *SizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if validationErrors := h.validateCreateSizeCategoryRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateCreateSizeCategoryRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	sizeCategory, err := h.sizeCategoryUseCase.CreateSizeCategory(&req)
-	if err != nil {
-		logger.Logger.Error("Failed to create size category", "method", "CreateSizeCategory", "error", err, "request", req)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategory)
+	sizeCategory, err := h.service.CreateSizeCategory(&req)
+	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.Request) {
@@ -97,19 +70,13 @@ func (h *SizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if validationErrors := h.validateUpdateSizeCategoryRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateUpdateSizeCategoryRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	sizeCategory, err := h.sizeCategoryUseCase.UpdateSizeCategory(*id, &req)
-	if err != nil {
-		logger.Logger.Error("Failed to update size category", "method", "UpdateSizeCategory", "error", err, "id", *id, "request", req)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, sizeCategory)
+	sizeCategory, err := h.service.UpdateSizeCategory(*id, &req)
+	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) DeleteSizeCategory(w http.ResponseWriter, r *http.Request) {
@@ -119,14 +86,8 @@ func (h *SizeCategoryHandler) DeleteSizeCategory(w http.ResponseWriter, r *http.
 		return
 	}
 
-	err = h.sizeCategoryUseCase.DeleteSizeCategory(*id)
-	if err != nil {
-		logger.Logger.Error("Failed to delete size category", "method", "DeleteSizeCategory", "error", err, "id", *id)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Size category deleted successfully")
+	err = h.service.DeleteSizeCategory(*id)
+	response.SendResponse(w, "Size category deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *SizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *http.Request) {
@@ -136,23 +97,16 @@ func (h *SizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *
 		return
 	}
 
-	err = h.sizeCategoryUseCase.UndoDeletedSizeCategory(*id)
-	if err != nil {
-		logger.Logger.Error("Failed to undo deleted size category", "method", "UndoDeletedSizeCategory", "error", err, "id", *id)
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, map[string]string{"message": "Size category restored successfully"})
+	err = h.service.UndoDeletedSizeCategory(*id)
+	response.SendResponse(w, "Size category restored successfully", err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) getAllSizeCategoriesData(r *http.Request, showDeleted *bool) (error, []size_category.SizeCategory) {
+func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *size_category.SizeCategoryService) (error, []size_category.SizeCategory) {
 	q := r.URL.Query()
-	include := q.Get(c.Include)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	sizeCategories, err := h.sizeCategoryUseCase.GetAllSizeCategories(include, showDeleted, sortBy, sortOrder)
+	sizeCategories, err := service.GetAllSizeCategories(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return errors.New("failed to get all size categories"), nil
 	}
@@ -160,16 +114,13 @@ func (h *SizeCategoryHandler) getAllSizeCategoriesData(r *http.Request, showDele
 	return nil, sizeCategories
 }
 
-func (h *SizeCategoryHandler) getSizeCategoryDataById(r *http.Request, showDeleted *bool) (error, *size_category.SizeCategory) {
+func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service *size_category.SizeCategoryService) (error, *size_category.SizeCategory) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid size category ID"), nil
 	}
 
-	q := r.URL.Query()
-	include := q.Get(c.Include)
-
-	sizeCategory, err := h.sizeCategoryUseCase.GetSizeCategoryByID(*id, include, showDeleted)
+	sizeCategory, err := service.GetSizeCategoryByID(*id, showDeleted)
 	if err != nil {
 		return errors.New("failed to get size category by ID"), nil
 	}
@@ -177,7 +128,7 @@ func (h *SizeCategoryHandler) getSizeCategoryDataById(r *http.Request, showDelet
 	return nil, sizeCategory
 }
 
-func (h *SizeCategoryHandler) validateCreateSizeCategoryRequest(req *size_category.CreateSizeCategoryRequest) validator.ValidationErrors {
+func validateCreateSizeCategoryRequest(req *size_category.CreateSizeCategoryRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -185,7 +136,7 @@ func (h *SizeCategoryHandler) validateCreateSizeCategoryRequest(req *size_catego
 	)
 }
 
-func (h *SizeCategoryHandler) validateUpdateSizeCategoryRequest(req *size_category.UpdateSizeCategoryRequest) validator.ValidationErrors {
+func validateUpdateSizeCategoryRequest(req *size_category.UpdateSizeCategoryRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

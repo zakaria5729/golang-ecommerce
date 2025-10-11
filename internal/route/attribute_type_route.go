@@ -1,6 +1,7 @@
 package route
 
 import (
+	at "github.com/easy-comerce/backend/internal/feature/attribute_type"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +9,9 @@ import (
 )
 
 func RegisterAttributeTypeRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewAttributeTypeHandler()
+	repo := at.NewAttributeTypeRepository()
+	service := at.NewAttributeTypeService(repo)
+	h := handler.NewAttributeTypeHandler(service)
 
 	r.GET("/attribute-types/public", h.GetAllAttributeTypesPublic).Register()
 

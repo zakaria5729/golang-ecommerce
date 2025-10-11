@@ -183,7 +183,7 @@ func GetUserFromContext(ctx context.Context) (*user.User, error) {
 
 func GetUserIDFromContext(ctx context.Context) (*uint, error) {
 	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
-	if !ok {
+	if !ok || userID == 0 {
 		return nil, errors.New("user ID not found or invalid type in context")
 	}
 	return &userID, nil
@@ -191,7 +191,7 @@ func GetUserIDFromContext(ctx context.Context) (*uint, error) {
 
 func GetUserIdOnlyFromContext(ctx context.Context) *uint {
 	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
-	if !ok {
+	if !ok || userID == 0 {
 		return nil
 	}
 	return &userID

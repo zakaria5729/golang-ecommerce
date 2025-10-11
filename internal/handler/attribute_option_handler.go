@@ -6,62 +6,41 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/attribute_option"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type AttributeOptionHandler struct {
-	attributeOptionUseCase *attribute_option.AttributeOptionUseCase
+	service *attribute_option.AttributeOptionService
 }
 
-func NewAttributeOptionHandler() *AttributeOptionHandler {
+func NewAttributeOptionHandler(service *attribute_option.AttributeOptionService) *AttributeOptionHandler {
 	return &AttributeOptionHandler{
-		attributeOptionUseCase: attribute_option.NewAttributeOptionUseCase(),
+		service: service,
 	}
 }
 
 func (h *AttributeOptionHandler) GetAllAttributeOptionsPublic(w http.ResponseWriter, r *http.Request) {
-	err, attributeOptions := h.getAllAttributeOptionsData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOptions)
+	err, attributeOptions := getAllAttributeOptionsData(r, nil, h.service)
+	response.SendResponse(w, attributeOptions, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) GetAttributeOptionByIDPublic(w http.ResponseWriter, r *http.Request) {
-	err, attributeOption := h.getAttributeOptionDataById(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOption)
+	err, attributeOption := getAllAttributeOptionsData(r, nil, h.service)
+	response.SendResponse(w, attributeOption, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) GetAllAttributeOptions(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, attributeOptions := h.getAllAttributeOptionsData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOptions)
+	err, attributeOptions := getAllAttributeOptionsData(r, showDeleted, h.service)
+	response.SendResponse(w, attributeOptions, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) GetAttributeOptionByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, attributeOption := h.getAttributeOptionDataById(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOption)
+	err, attributeOption := getAllAttributeOptionsData(r, showDeleted, h.service)
+	response.SendResponse(w, attributeOption, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) CreateAttributeOption(w http.ResponseWriter, r *http.Request) {
@@ -70,19 +49,13 @@ func (h *AttributeOptionHandler) CreateAttributeOption(w http.ResponseWriter, r 
 		return
 	}
 
-	if validationErrors := h.validateCreateAttributeOptionRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateCreateAttributeOptionRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	attributeOption, err := h.attributeOptionUseCase.CreateAttributeOption(&req)
-	if err != nil {
-		logger.Logger.Error("Create attribute option failed", "method", "CreateAttributeOption", "error", err)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOption, http.StatusCreated)
+	attributeOption, err := h.service.CreateAttributeOption(&req)
+	response.SendResponse(w, attributeOption, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) UpdateAttributeOption(w http.ResponseWriter, r *http.Request) {
@@ -97,19 +70,13 @@ func (h *AttributeOptionHandler) UpdateAttributeOption(w http.ResponseWriter, r 
 		return
 	}
 
-	if validationErrors := h.validateUpdateAttributeOptionRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateUpdateAttributeOptionRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	attributeOption, err := h.attributeOptionUseCase.UpdateAttributeOption(*id, &req)
-	if err != nil {
-		logger.Logger.Error("Update attribute option failed", "method", "UpdateAttributeOption", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendSuccessJSON(w, attributeOption)
+	attributeOption, err := h.service.UpdateAttributeOption(*id, &req)
+	response.SendResponse(w, attributeOption, err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) DeleteAttributeOption(w http.ResponseWriter, r *http.Request) {
@@ -119,13 +86,8 @@ func (h *AttributeOptionHandler) DeleteAttributeOption(w http.ResponseWriter, r 
 		return
 	}
 
-	if err := h.attributeOptionUseCase.DeleteAttributeOption(*id); err != nil {
-		logger.Logger.Error("Delete attribute option failed", "method", "DeleteAttributeOption", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Attribute option deleted successfully")
+	err = h.service.DeleteAttributeOption(*id)
+	response.SendResponse(w, "Attribute option deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *AttributeOptionHandler) UndoDeletedAttributeOption(w http.ResponseWriter, r *http.Request) {
@@ -135,16 +97,26 @@ func (h *AttributeOptionHandler) UndoDeletedAttributeOption(w http.ResponseWrite
 		return
 	}
 
-	if err := h.attributeOptionUseCase.UndoDeletedAttributeOption(*id); err != nil {
-		logger.Logger.Error("Undo deleted attribute option failed", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Attribute option restored successfully")
+	err = h.service.UndoDeletedAttributeOption(*id)
+	response.SendResponse(w, "Attribute option restored successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AttributeOptionHandler) validateCreateAttributeOptionRequest(req *attribute_option.CreateAttributeOptionRequest) validator.ValidationErrors {
+func getAllAttributeOptionsData(r *http.Request, showDeleted *bool, service *attribute_option.AttributeOptionService) (error, []attribute_option.AttributeOption) {
+	q := r.URL.Query()
+	include := q.Get(c.Include)
+	attributeTypeID := q.Get("attribute_type_id")
+	sortBy := q.Get(c.SortBy)
+	sortOrder := q.Get(c.SortOrder)
+
+	attributeOptions, err := service.GetAllAttributeOptions(include, showDeleted, attributeTypeID, sortBy, sortOrder)
+	if err != nil {
+		return errors.New("failed to get all attribute options"), nil
+	}
+
+	return nil, attributeOptions
+}
+
+func validateCreateAttributeOptionRequest(req *attribute_option.CreateAttributeOptionRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.AttributeTypeID, "attribute_type_id"),
 		validator.ValidateRequired(req.AttributeOptionName, "attribute_option_name"),
@@ -153,7 +125,7 @@ func (h *AttributeOptionHandler) validateCreateAttributeOptionRequest(req *attri
 	)
 }
 
-func (h *AttributeOptionHandler) validateUpdateAttributeOptionRequest(req *attribute_option.UpdateAttributeOptionRequest) validator.ValidationErrors {
+func validateUpdateAttributeOptionRequest(req *attribute_option.UpdateAttributeOptionRequest) validator.ValidationErrors {
 	errors := validator.MergeValidationErrors(
 		validator.ValidateRequired(req.AttributeOptionName, "attribute_option_name"),
 		validator.ValidateMinLength(req.AttributeOptionName, "attribute_option_name", 2),
@@ -165,34 +137,4 @@ func (h *AttributeOptionHandler) validateUpdateAttributeOptionRequest(req *attri
 	}
 
 	return errors
-}
-
-func (h *AttributeOptionHandler) getAllAttributeOptionsData(r *http.Request, showDeleted *bool) (error, []attribute_option.AttributeOption) {
-	q := r.URL.Query()
-	include := q.Get(c.Include)
-	attributeTypeID := q.Get("attribute_type_id")
-	sortBy := q.Get(c.SortBy)
-	sortOrder := q.Get(c.SortOrder)
-
-	attributeOptions, err := h.attributeOptionUseCase.GetAllAttributeOptions(include, showDeleted, attributeTypeID, sortBy, sortOrder)
-	if err != nil {
-		return errors.New("failed to get all attribute options"), nil
-	}
-
-	return nil, attributeOptions
-}
-
-func (h *AttributeOptionHandler) getAttributeOptionDataById(r *http.Request, showDeleted *bool) (error, *attribute_option.AttributeOption) {
-	id, err := utils.ParseUint(r.PathValue(c.FieldID))
-	if err != nil || id == nil || *id == 0 {
-		return errors.New("invalid attribute option ID"), nil
-	}
-
-	include := r.URL.Query().Get(c.Include)
-	attributeOption, err := h.attributeOptionUseCase.GetAttributeOptionByID(*id, include, showDeleted)
-	if err != nil {
-		return errors.New("attribute option not found"), nil
-	}
-
-	return nil, attributeOption
 }

@@ -1,13 +1,18 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	n "github.com/easy-comerce/backend/internal/feature/notification"
 	"github.com/easy-comerce/backend/internal/handler"
 	"github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
 func RegisterNotificationRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewNotificationHandler()
+	fcmService := n.NewFCMService()
+	repo := n.NewNotificationRepository(db.GetDB())
+	service := n.NewNotificationService(repo, fcmService)
+	h := handler.NewNotificationHandler(service)
 
 	r.GET("/notifications", h.GetNotifications).Use(
 		pm.RequireAuthUserStatus(),

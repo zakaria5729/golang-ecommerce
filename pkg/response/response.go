@@ -4,32 +4,19 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/easy-comerce/backend/pkg/models"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
 type Response struct {
-	Success bool   `json:"success"`
-	Data    any    `json:"data,omitempty"`
-	Error   *Error `json:"error,omitempty"`
+	Success bool    `json:"success"`
+	Data    *any    `json:"data,omitempty"`
+	Message *string `json:"message,omitempty"`
+	Error   *Error  `json:"error,omitempty"`
 }
 
 type Error struct {
 	Details []validator.ValidationError `json:"details,omitempty"`
-	Message string                      `json:"message"`
-	Code    string                      `json:"code,omitempty"`
-}
-
-func SendSuccessJSON(w http.ResponseWriter, data any, statusCode ...int) {
-	code := http.StatusOK
-	if len(statusCode) > 0 {
-		code = statusCode[0]
-	}
-	response := Response{
-		Success: true,
-		Data:    data,
-	}
-	sendJSON(w, response, code)
 }
 
 func SendErrorJSON(w http.ResponseWriter, message string, statusCode ...int) {
@@ -39,37 +26,7 @@ func SendErrorJSON(w http.ResponseWriter, message string, statusCode ...int) {
 	}
 	response := Response{
 		Success: false,
-		Error: &Error{
-			Message: message,
-		},
-	}
-	sendJSON(w, response, code)
-}
-
-func SendDeleteJSON(w http.ResponseWriter, message string, statusCode ...int) {
-	code := http.StatusOK
-	if len(statusCode) > 0 {
-		code = statusCode[0]
-	}
-	response := Response{
-		Success: true,
-		Data: map[string]string{
-			"message": message,
-		},
-	}
-	sendJSON(w, response, code)
-}
-
-func SendCommonResponseJSON(w http.ResponseWriter, message string, statusCode ...int) {
-	code := http.StatusOK
-	if len(statusCode) > 0 {
-		code = statusCode[0]
-	}
-	response := Response{
-		Success: true,
-		Data: models.CommonResponse{
-			Message: message,
-		},
+		Message: &message,
 	}
 	sendJSON(w, response, code)
 }
@@ -81,8 +38,8 @@ func SendValidationErrorJSON(w http.ResponseWriter, message string, validationEr
 	}
 	response := Response{
 		Success: false,
+		Message: &message,
 		Error: &Error{
-			Message: message,
 			Details: validationErrors,
 		},
 	}
@@ -94,11 +51,43 @@ func SendResponse(w http.ResponseWriter, result any, err error, errorStatusCode 
 		SendErrorJSON(w, err.Error(), errorStatusCode)
 		return
 	}
+
+	if result != nil {
+		if successMsg, ok := result.(string); ok && successMsg != "" {
+			SendSuccessMsgJSON(w, successMsg)
+			return
+		}
+	}
+
 	SendSuccessJSON(w, result)
 }
 
+func SendSuccessJSON(w http.ResponseWriter, data any, statusCode ...int) {
+	code := http.StatusOK
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := Response{
+		Success: true,
+		Data:    &data,
+	}
+	sendJSON(w, response, code)
+}
+
+func SendSuccessMsgJSON(w http.ResponseWriter, message string, statusCode ...int) {
+	code := http.StatusOK
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := Response{
+		Success: true,
+		Message: &message,
+	}
+	sendJSON(w, response, code)
+}
+
 func sendJSON(w http.ResponseWriter, response Response, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(c.ContentType, "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(response)
 }

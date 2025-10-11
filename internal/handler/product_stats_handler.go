@@ -57,12 +57,7 @@ func (h *ProductStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *htt
 	}
 
 	err := h.service.IncreaseProductStats(r.Context(), &req)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to increase product stats", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, "Product stats increased successfully")
+	response.SendResponse(w, "Product stats increased successfully", err, http.StatusInternalServerError)
 }
 
 func validateProductStatsRequest(req *product_stats.IncreaseProductStatsRequest) validator.ValidationErrors {

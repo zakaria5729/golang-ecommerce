@@ -2,9 +2,7 @@ package wishlist
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -15,18 +13,16 @@ type WishlistRepository struct {
 	db *gorm.DB
 }
 
-func NewWishlistRepository() *WishlistRepository {
+func NewWishlistRepository(db *gorm.DB) *WishlistRepository {
 	return &WishlistRepository{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 
-func (r *WishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, include []string, page, pageSize int, sortBy, sortOrder string) ([]Wishlist, int, error) {
+func (r *WishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]Wishlist, int, error) {
 	var wishlists []Wishlist
 	var total int64
-
-	selectFields := r.getSelectableFields(include)
-	query := r.db.Select(strings.Join(selectFields, ", "))
+	query := r.db.Model(&Wishlist{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -44,14 +40,14 @@ func (r *WishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID 
 		query = query.Order(orderClause)
 	}
 
-	if err := query.Model(&Wishlist{}).Count(&total).Error; err != nil {
-		logger.Logger.Error("Failed to count wishlists", "method", "GetAllWishlistsPaginated", "error", err, "userID", userID, "include", include, "page", page, "pageSize", pageSize, "productID", productID, "sortBy", sortBy, "sortOrder", sortOrder)
+	if err := query.Count(&total).Error; err != nil {
+		logger.Logger.Error("Failed to count wishlists", "method", "GetAllWishlistsPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "productID", productID, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&wishlists).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch wishlists paginated", "method", "GetAllWishlistsPaginated", "error", err, "userID", userID, "include", include, "page", page, "pageSize", pageSize, "productID", productID, "sortBy", sortOrder, "sortOrder", sortOrder)
+		logger.Logger.Error("Failed to fetch wishlists paginated", "method", "GetAllWishlistsPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "productID", productID, "sortBy", sortOrder, "sortOrder", sortOrder)
 	}
 
 	return wishlists, int(total), err
@@ -135,10 +131,4 @@ func (r *WishlistRepository) GetWishlistCount(userID uint) (int64, error) {
 		logger.Logger.Error("Failed to get wishlist count", "method", "GetWishlistCount", "error", err, "userID", userID)
 	}
 	return count, err
-}
-
-func (r *WishlistRepository) getSelectableFields(include []string) []string {
-	defaultFields := []string{c.FieldID, c.WishlistUserID, c.WishlistProductID, c.FieldCreatedAt, c.FieldUpdatedAt}
-	optionalFields := []string{}
-	return utils.BuildSelectFields(defaultFields, optionalFields, include)
 }

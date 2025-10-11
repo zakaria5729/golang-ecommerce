@@ -23,17 +23,12 @@ func NewUserHandler(service *user.UserService) *UserHandler {
 
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := m.GetUserFromContext(r.Context())
-	if err != nil {
-		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-
-	response.SendSuccessJSON(w, currentUser.ToResponse())
+	response.SendResponse(w, currentUser, err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -43,19 +38,14 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors := h.validateUpdateProfileRequest(&req)
+	validationErrors := validateUpdateProfileRequest(&req)
 	if validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
 	err = h.service.UpdateProfile(*userID, &req)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Profile updated successfully")
+	response.SendResponse(w, "Profile updated successfully", err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
@@ -70,17 +60,13 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateChangePasswordRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateChangePasswordRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	if err := h.service.ChangePassword(currentUser.ID, currentUser.Password, &req); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Password changed successfully")
+	err = h.service.ChangePassword(currentUser.ID, currentUser.Password, &req)
+	response.SendResponse(w, "Password changed successfully", err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +75,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateCreateUserRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateCreateUserRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
@@ -101,7 +87,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	authUserID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || authUserID == nil || *authUserID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -117,18 +103,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateUpdateUserRequest(&req); validationErrors.HasErrors() {
+	if validationErrors := validateUpdateUserRequest(&req); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
 	err = h.service.UpdateUser(*authUserID, *updateUserID, &req)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Update user info successfully")
+	response.SendResponse(w, "Update user info successfully", err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
@@ -164,12 +145,8 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteUser(r.Context(), *id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "User deleted successfully")
+	err = h.service.DeleteUser(r.Context(), *id)
+	response.SendResponse(w, "User deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
@@ -179,15 +156,11 @@ func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UndoDeletedUser(r.Context(), *id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Undo user deleted successfully")
+	err = h.service.UndoDeletedUser(r.Context(), *id)
+	response.SendResponse(w, "Undo user deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) validateUpdateProfileRequest(req *user.UpdateProfileRequest) validator.ValidationErrors {
+func validateUpdateProfileRequest(req *user.UpdateProfileRequest) validator.ValidationErrors {
 	errors := validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 	)
@@ -195,7 +168,7 @@ func (h *UserHandler) validateUpdateProfileRequest(req *user.UpdateProfileReques
 	return errors
 }
 
-func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) validator.ValidationErrors {
+func validateCreateUserRequest(req *user.CreateUserRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateRequired(req.Email, "email"),
@@ -205,13 +178,13 @@ func (h *UserHandler) validateCreateUserRequest(req *user.CreateUserRequest) val
 	)
 }
 
-func (h *UserHandler) validateUpdateUserRequest(req *user.UpdateUserRequest) validator.ValidationErrors {
+func validateUpdateUserRequest(req *user.UpdateUserRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 	)
 }
 
-func (h *UserHandler) validateChangePasswordRequest(req *user.ChangePasswordRequest) validator.ValidationErrors {
+func validateChangePasswordRequest(req *user.ChangePasswordRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.CurrentPassword, "current_password"),
 		validator.ValidatePassword(req.NewPassword, "new_password"),

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	m "github.com/easy-comerce/backend/pkg/middleware"
@@ -17,9 +16,9 @@ type ReviewRepository struct {
 	db *gorm.DB
 }
 
-func NewReviewRepository() *ReviewRepository {
+func NewReviewRepository(db *gorm.DB) *ReviewRepository {
 	return &ReviewRepository{
-		db: db.GetDB(),
+		db: db,
 	}
 }
 

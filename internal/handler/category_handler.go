@@ -110,12 +110,8 @@ func (h *CategoryHandler) DeleteCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.service.DeleteCategory(r.Context(), *id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Category deleted successfully")
+	err = h.service.DeleteCategory(r.Context(), *id)
+	response.SendResponse(w, "Category deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Request) {
@@ -125,12 +121,8 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.service.UndoDeletedCategory(r.Context(), *id); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Undo category deleted successfully")
+	err = h.service.UndoDeletedCategory(r.Context(), *id)
+	response.SendResponse(w, "Undo category deleted successfully", err, http.StatusInternalServerError)
 }
 
 func getAllCategoriesData(r *http.Request, service *category.CategoryService, showDeleted *bool) ([]category.CategoryResponse, error) {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/easy-comerce/backend/internal/feature/review"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -17,61 +16,40 @@ import (
 )
 
 type ReviewHandler struct {
-	useCase *review.ReviewUseCase
+	service *review.ReviewService
 }
 
-func NewReviewHandler() *ReviewHandler {
+func NewReviewHandler(service *review.ReviewService) *ReviewHandler {
 	return &ReviewHandler{
-		useCase: review.NewReviewUseCase(),
+		service: service,
 	}
 }
 
 func (h *ReviewHandler) GetAllReviewsPaginatedPublic(w http.ResponseWriter, r *http.Request) {
-	err, paginatedResponse := h.getAllReviewsPaginatedData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	err, paginatedResponse := getAllReviewsPaginatedData(r, nil, h.service)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetReviewByIdPublic(w http.ResponseWriter, r *http.Request) {
-	err, review := h.getReviewDataByID(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, review)
+	err, review := getReviewDataByID(r, nil, h.service)
+	response.SendResponse(w, review, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetAllReviewsPaginated(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, paginatedResponse := h.getAllReviewsPaginatedData(r, showDeleted)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	err, paginatedResponse := getAllReviewsPaginatedData(r, showDeleted, h.service)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetReviewByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, review := h.getReviewDataByID(r, showDeleted)
-
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, review)
+	err, review := getReviewDataByID(r, showDeleted, h.service)
+	response.SendResponse(w, review, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -81,114 +59,73 @@ func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationErrors := h.validateReviewRequest(req.Rating, req.Comment); validationErrors.HasErrors() {
+	if validationErrors := validateReviewRequest(req.Rating, req.Comment); validationErrors.HasErrors() {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	review, err := h.useCase.CreateReview(*userID, req.ProductID, req.Rating, req.Comment)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, review, http.StatusCreated)
+	review, err := h.service.CreateReview(*userID, req.ProductID, req.Rating, req.Comment)
+	response.SendResponse(w, review, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) UpdateReviewByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	err, validationErrors := h.updateReviewData(r, userID)
+	err, validationErrors := updateReviewData(r, userID, h.service)
 	if validationErrors != nil {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Review updated successfully")
+	response.SendResponse(w, "Review updated successfully", err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
-	err, validationErrors := h.updateReviewData(r, nil)
+	err, validationErrors := updateReviewData(r, nil, h.service)
 	if validationErrors != nil {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendCommonResponseJSON(w, "Review updated successfully")
+	response.SendResponse(w, "Review updated successfully", err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue(c.FieldID)
-	err := h.useCase.DeleteReview(r.Context(), idStr, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Review deleted successfully")
+	err := h.service.DeleteReview(r.Context(), idStr, nil)
+	response.SendResponse(w, "Review deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) DeleteReviewByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
 	idStr := r.PathValue(c.FieldID)
-	err = h.useCase.DeleteReview(r.Context(), idStr, userID)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Review deleted successfully")
+	err = h.service.DeleteReview(r.Context(), idStr, userID)
+	response.SendResponse(w, "Review deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) UndoDeletedReview(w http.ResponseWriter, r *http.Request) {
-	err := h.useCase.UndoDeletedReview(r.Context(), r.PathValue(c.FieldID))
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Undo review deleted successfully")
+	err := h.service.UndoDeletedReview(r.Context(), r.PathValue(c.FieldID))
+	response.SendResponse(w, "Undo review deleted successfully", err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetReviewsByProductPublic(w http.ResponseWriter, r *http.Request) {
-	err, reviews := h.getReviewsByProductData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, reviews)
+	err, reviews := getReviewsByProductData(r, nil, h.service)
+	response.SendResponse(w, reviews, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetReviewsByProduct(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, reviews := h.getReviewsByProductData(r, showDeleted)
-
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, reviews)
+	err, reviews := getReviewsByProductData(r, showDeleted, h.service)
+	response.SendResponse(w, reviews, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request) {
@@ -207,53 +144,36 @@ func (h *ReviewHandler) GetReviewsByUser(w http.ResponseWriter, r *http.Request)
 	sortOrder := q.Get(c.SortOrder)
 	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 
-	paginatedResponse, err := h.useCase.GetReviewsByUser(*userID, showDeleted, productIDFilter, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch reviews", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := h.service.GetReviewsByUser(*userID, showDeleted, productIDFilter, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetProductRatingStatsPublic(w http.ResponseWriter, r *http.Request) {
-	err, stats := h.getProductRatingStatsData(r, nil)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, stats)
+	err, stats := getProductRatingStatsData(r, nil, h.service)
+	response.SendResponse(w, stats, err, http.StatusInternalServerError)
 }
 
 func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
-	err, stats := h.getProductRatingStatsData(r, showDeleted)
-
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, stats)
+	err, stats := getProductRatingStatsData(r, showDeleted, h.service)
+	response.SendResponse(w, stats, err, http.StatusInternalServerError)
 }
 
-func (h *ReviewHandler) getReviewDataByID(r *http.Request, showDeleted *bool) (error, *review.Review) {
+func getReviewDataByID(r *http.Request, showDeleted *bool, service *review.ReviewService) (error, *review.Review) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid review ID"), nil
 	}
 
-	review, err := h.useCase.GetReviewByID(*id, showDeleted)
+	review, err := service.GetReviewByID(*id, showDeleted)
 	if err != nil {
-		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id)
 		return errors.New("review not found"), nil
 	}
 
 	return nil, review
 }
 
-func (h *ReviewHandler) getAllReviewsPaginatedData(r *http.Request, showDeleted *bool) (error, *models.PaginatedResponse) {
+func getAllReviewsPaginatedData(r *http.Request, showDeleted *bool, service *review.ReviewService) (error, *models.PaginatedResponse) {
 	q := r.URL.Query()
 
 	pageStr := q.Get(c.Page)
@@ -265,7 +185,7 @@ func (h *ReviewHandler) getAllReviewsPaginatedData(r *http.Request, showDeleted 
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	paginatedResponse, err := h.useCase.GetAllReviewsPaginated(showDeleted, productIDFilter, userIDFilter, ratingFromFilter, ratingToFilter, pageStr, pageSizeStr, sortBy, sortOrder)
+	paginatedResponse, err := service.GetAllReviewsPaginated(showDeleted, productIDFilter, userIDFilter, ratingFromFilter, ratingToFilter, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		return errors.New("failed to fetch reviews"), nil
 	}
@@ -273,7 +193,7 @@ func (h *ReviewHandler) getAllReviewsPaginatedData(r *http.Request, showDeleted 
 	return nil, paginatedResponse
 }
 
-func (h *ReviewHandler) getReviewsByProductData(r *http.Request, showDeleted *bool) (error, *models.PaginatedResponse) {
+func getReviewsByProductData(r *http.Request, showDeleted *bool, service *review.ReviewService) (error, *models.PaginatedResponse) {
 	productID, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
 		return errors.New("invalid product ID"), nil
@@ -286,7 +206,7 @@ func (h *ReviewHandler) getReviewsByProductData(r *http.Request, showDeleted *bo
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	reviews, err := h.useCase.GetReviewsByProduct(*productID, showDeleted, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
+	reviews, err := service.GetReviewsByProduct(*productID, showDeleted, ratingFilter, pageStr, pageSizeStr, sortBy, sortOrder)
 	if err != nil {
 		return errors.New("failed to fetch reviews"), nil
 	}
@@ -294,13 +214,13 @@ func (h *ReviewHandler) getReviewsByProductData(r *http.Request, showDeleted *bo
 	return nil, reviews
 }
 
-func (h *ReviewHandler) getProductRatingStatsData(r *http.Request, showDeleted *bool) (error, *review.ProductRatingStatsResponse) {
+func getProductRatingStatsData(r *http.Request, showDeleted *bool, service *review.ReviewService) (error, *review.ProductRatingStatsResponse) {
 	productID, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
 		return errors.New("invalid product ID"), nil
 	}
 
-	stats, err := h.useCase.GetProductRatingStats(*productID, showDeleted)
+	stats, err := service.GetProductRatingStats(*productID, showDeleted)
 	if err != nil {
 		return errors.New("failed to fetch rating statistics"), nil
 	}
@@ -308,7 +228,7 @@ func (h *ReviewHandler) getProductRatingStatsData(r *http.Request, showDeleted *
 	return nil, stats
 }
 
-func (h *ReviewHandler) updateReviewData(r *http.Request, userID *uint) (error, validator.ValidationErrors) {
+func updateReviewData(r *http.Request, userID *uint, service *review.ReviewService) (error, validator.ValidationErrors) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil {
 		return errors.New("Invalid review ID"), nil
@@ -319,12 +239,12 @@ func (h *ReviewHandler) updateReviewData(r *http.Request, userID *uint) (error, 
 		return errors.New("Invalid request body"), nil
 	}
 
-	validationErrors := h.validateReviewRequest(req.Rating, req.Comment)
+	validationErrors := validateReviewRequest(req.Rating, req.Comment)
 	if validationErrors.HasErrors() {
 		return errors.New("Invalid review ID"), validationErrors
 	}
 
-	err = h.useCase.UpdateReview(r.Context(), *id, userID, req.Rating, req.Comment)
+	err = service.UpdateReview(r.Context(), *id, userID, req.Rating, req.Comment)
 	if err != nil {
 		return err, nil
 	}
@@ -332,7 +252,7 @@ func (h *ReviewHandler) updateReviewData(r *http.Request, userID *uint) (error, 
 	return nil, nil
 }
 
-func (h *ReviewHandler) validateReviewRequest(rating int, comment string) validator.ValidationErrors {
+func validateReviewRequest(rating int, comment string) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
 	if rating < 1 || rating > 5 {

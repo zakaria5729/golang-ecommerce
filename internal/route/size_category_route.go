@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	sc "github.com/easy-comerce/backend/internal/feature/size_category"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterSizeCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewSizeCategoryHandler()
+	repo := sc.NewSizeCategoryRepository(db.GetDB())
+	service := sc.NewSizeCategoryService(repo)
+	h := handler.NewSizeCategoryHandler(service)
 
 	r.GET("/size-categories/public", h.GetAllSizeCategoriesPublic).Register()
 

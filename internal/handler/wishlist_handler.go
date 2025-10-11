@@ -11,42 +11,36 @@ import (
 )
 
 type WishlistHandler struct {
-	useCase *wishlist.WishlistUseCase
+	service *wishlist.WishlistService
 }
 
-func NewWishlistHandler() *WishlistHandler {
+func NewWishlistHandler(service *wishlist.WishlistService) *WishlistHandler {
 	return &WishlistHandler{
-		useCase: wishlist.NewWishlistUseCase(),
+		service: service,
 	}
 }
 
 func (h *WishlistHandler) GetAllWishlistsPaginatedByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
 	q := r.URL.Query()
 	productID, _ := utils.ParseUint(q.Get(c.WishlistProductID))
-	includeStr := q.Get(c.Include)
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	paginatedResponse, err := h.useCase.GetAllWishlistsPaginated(nil, userID, productID, includeStr, pageStr, pageSizeStr, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch wishlists", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := h.service.GetAllWishlistsPaginated(nil, userID, productID, pageStr, pageSizeStr, sortBy, sortOrder)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -57,18 +51,13 @@ func (h *WishlistHandler) AddToWishlistsByUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = h.useCase.AddToWishlistsByUser(*userID, *productID)
-	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, "Product added to wishlist successfully")
+	err = h.service.AddToWishlistsByUser(*userID, *productID)
+	response.SendResponse(w, "Product added to wishlist successfully", err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) RemoveFromWishlistByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -79,27 +68,19 @@ func (h *WishlistHandler) RemoveFromWishlistByUser(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if err := h.useCase.RemoveFromWishlistByUser(*userID, *productID); err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Product removed from wishlist successfully")
+	err = h.service.RemoveFromWishlistByUser(*userID, *productID)
+	response.SendResponse(w, "Product removed from wishlist successfully", err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) ClearUserWishlist(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.useCase.ClearUserWishlist(*userID); err != nil {
-		response.SendErrorJSON(w, "Failed to clear wishlist", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Wishlist cleared successfully")
+	err = h.service.ClearUserWishlist(*userID)
+	response.SendResponse(w, "Wishlist cleared successfully", err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) DeleteWishlistById(w http.ResponseWriter, r *http.Request) {
@@ -109,12 +90,8 @@ func (h *WishlistHandler) DeleteWishlistById(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.useCase.DeleteWishlistById(*id); err != nil {
-		response.SendErrorJSON(w, "Failed to delete wishlist", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Wishlist delete successfully")
+	err = h.service.DeleteWishlistById(*id)
+	response.SendResponse(w, "Wishlist delete successfully", err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) UndoDeleteWishlistById(w http.ResponseWriter, r *http.Request) {
@@ -124,17 +101,12 @@ func (h *WishlistHandler) UndoDeleteWishlistById(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if err := h.useCase.UndoDeleteWishlistById(*id); err != nil {
-		response.SendErrorJSON(w, "Failed to delete wishlist", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendDeleteJSON(w, "Wishlist delete successfully")
+	err = h.service.UndoDeleteWishlistById(*id)
+	response.SendResponse(w, "Wishlist delete successfully", err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) GetAllWishlistsPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	includeStr := q.Get(c.Include)
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
 	sortBy := q.Get(c.SortBy)
@@ -143,27 +115,17 @@ func (h *WishlistHandler) GetAllWishlistsPaginated(w http.ResponseWriter, r *htt
 	productIDFilter, _ := utils.ParseUint(q.Get(c.WishlistProductID))
 	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 
-	paginatedResponse, err := h.useCase.GetAllWishlistsPaginated(showDeleted, userIDFilter, productIDFilter, includeStr, pageStr, pageSizeStr, sortBy, sortOrder)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to fetch wishlists", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, paginatedResponse)
+	paginatedResponse, err := h.service.GetAllWishlistsPaginated(showDeleted, userIDFilter, productIDFilter, pageStr, pageSizeStr, sortBy, sortOrder)
+	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
 func (h *WishlistHandler) GetWishlistCountByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := m.GetUserIDFromContext(r.Context())
-	if err != nil || userID == nil || *userID == 0 {
+	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 
-	count, err := h.useCase.GetWishlistCount(*userID)
-	if err != nil {
-		response.SendErrorJSON(w, "Failed to get wishlist count", http.StatusInternalServerError)
-		return
-	}
-
-	response.SendSuccessJSON(w, map[string]int64{"count": count})
+	count, err := h.service.GetWishlistCount(*userID)
+	response.SendResponse(w, map[string]int64{"count": count}, err, http.StatusInternalServerError)
 }

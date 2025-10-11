@@ -1,6 +1,8 @@
 package route
 
 import (
+	"github.com/easy-comerce/backend/db"
+	b "github.com/easy-comerce/backend/internal/feature/brand"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,9 @@ import (
 )
 
 func RegisterBrandRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewBrandHandler()
+	repo := b.NewBrandRepository(db.GetDB())
+	service := b.NewBrandService(repo)
+	h := handler.NewBrandHandler(service)
 
 	r.GET("/brands/public", h.GetAllBrandsPublic).Register()
 

@@ -1,6 +1,8 @@
 package route
 
 import (
+	ao "github.com/easy-comerce/backend/internal/feature/attribute_option"
+	at "github.com/easy-comerce/backend/internal/feature/attribute_type"
 	"github.com/easy-comerce/backend/internal/handler"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/middleware"
@@ -8,7 +10,10 @@ import (
 )
 
 func RegisterAttributeOptionRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
-	h := handler.NewAttributeOptionHandler()
+	typeRepo := at.NewAttributeTypeRepository()
+	optionRepo := ao.NewAttributeOptionRepository()
+	service := ao.NewAttributeOptionService(optionRepo, typeRepo)
+	h := handler.NewAttributeOptionHandler(service)
 
 	r.GET("/attribute-options/public", h.GetAllAttributeOptionsPublic).Register()
 
