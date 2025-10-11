@@ -18,17 +18,17 @@ var (
 	once sync.Once
 )
 
-func GetDB() *gorm.DB {
-	if db == nil {
-		panic("database not initialized. Call InitDB() first")
-	}
-	return db
-}
-
 func InitializeDB() *gorm.DB {
 	once.Do(func() {
 		db = loadDB()
 	})
+	return db
+}
+
+func GetDB() *gorm.DB {
+	if db == nil {
+		panic("database not initialized. Call InitDB() first")
+	}
 	return db
 }
 

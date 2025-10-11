@@ -50,6 +50,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, loginResponse, err, http.StatusOK)
 }
 
+func (h *AuthHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
+	var req auth.SocialLoginRequest
+	if !utils.DecodeJSON(w, r, &req, "SocialLogin") {
+		return
+	}
+
+	if validationErrors := validateSocialLoginRequest(&req); len(validationErrors) > 0 {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	loginResponse, err := h.service.SocialLogin(&req)
+	response.SendResponse(w, loginResponse, err, http.StatusOK)
+}
+
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req auth.RegisterRequest
 	if !utils.DecodeJSON(w, r, &req, "Register") {
@@ -130,6 +145,17 @@ func validateLoginRequest(req *auth.LoginRequest) validator.ValidationErrors {
 		validator.ValidateRequired(req.Email, "email"),
 		validator.ValidateRequired(req.Password, "password"),
 	)
+}
+
+func validateSocialLoginRequest(req *auth.SocialLoginRequest) validator.ValidationErrors {
+	var validationErrors validator.ValidationErrors
+	switch req.AuthType {
+	case c.AuthTypeGoogle:
+		validationErrors = validator.ValidateRequired(req.IdToken, "id_token")
+	case c.AuthTypeFacebook:
+		validationErrors = validator.ValidateRequired(req.AccessToken, "access_token")
+	}
+	return validationErrors
 }
 
 func validateRegisterRequest(req *auth.RegisterRequest) validator.ValidationErrors {

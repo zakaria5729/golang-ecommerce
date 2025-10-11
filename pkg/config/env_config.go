@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/joho/godotenv"
 )
 
@@ -17,13 +17,6 @@ var (
 	once sync.Once
 )
 
-func GetConfig() *Config {
-	if cfg == nil {
-		panic("config not initialized. Call InitConfig() first")
-	}
-	return cfg
-}
-
 func InitConfig() *Config {
 	once.Do(func() {
 		cfg = loadConfig()
@@ -31,8 +24,15 @@ func InitConfig() *Config {
 	return cfg
 }
 
+func GetConfig() *Config {
+	if cfg == nil {
+		panic("config not initialized. Call InitConfig() first")
+	}
+	return cfg
+}
+
 func GetActiveProfile() string {
-	return getEnv(c.EnvActiveProfile, c.EnvStage)
+	return getEnv(c.EnvActiveProfile, c.EnvDev)
 }
 
 func loadConfig() *Config {
@@ -48,6 +48,7 @@ func loadConfig() *Config {
 		c.EnvKeyJWTSecret,
 		c.EnvKeyFcmServerKey,
 		c.EnvKeyFcmUrl,
+		c.EnvKeyGoogleClientID,
 		c.EnvKeyObjStoreRegion,
 		c.EnvKeyObjStoreBucketName,
 		c.EnvKeyObjStoreAccountID,
@@ -74,7 +75,7 @@ func loadConfig() *Config {
 	envPath := filepath.Join(projectRoot, envFileName)
 	err := godotenv.Load(envPath)
 	if err != nil {
-		logger.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
+		l.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
 	}
 
 	config := &Config{
@@ -89,6 +90,8 @@ func loadConfig() *Config {
 		JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
 		FcmServerKey:       getEnv(c.EnvKeyJWTSecret, ""),
 		FcmUrl:             getEnv(c.EnvKeyJWTSecret, ""),
+		GoogleClientID:     getEnv(c.EnvKeyGoogleClientID, ""),
+		FacebookAppID:      getEnv(c.EnvKeyFacebookAppID, ""),
 		SuperAdminEmail:    getEnvWithPanic(c.EnvSuperAdminEmail),
 		SuperAdminPassword: getEnvWithPanic(c.EnvSuperAdminPassword),
 		ObjStore: ObjectStoreConfig{
@@ -101,7 +104,7 @@ func loadConfig() *Config {
 		},
 	}
 
-	logger.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
+	l.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
 	return config
 }
 

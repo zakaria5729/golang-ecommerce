@@ -21,6 +21,8 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 
 	r.POST("/auth/login", h.Login).Register()
 
+	r.POST("/auth/social-login", h.SocialLogin).Register()
+
 	r.POST("/auth/register", h.Register).Register()
 
 	r.POST("/auth/logout/user/{user_id}", h.Logout).Register()
@@ -30,4 +32,7 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	r.POST("/auth/reset-password", h.ResetPassword).Register()
 
 	r.POST("/auth/forgot-password", h.ForgotPassword).Register()
+
+	r.GET("/auth/google", auth.HandleGoogleLogin).Register()
+	r.GET("/auth/google/callback", auth.HandleGoogleCallback).Register()
 }

@@ -14,6 +14,8 @@ type Config struct {
 	SuperAdminPassword string
 	FcmServerKey       string
 	FcmUrl             string
+	GoogleClientID     string
+	FacebookAppID      string
 	ObjStore           ObjectStoreConfig
 }
 

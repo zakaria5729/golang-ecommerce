@@ -3,45 +3,21 @@ package constants
 type stringKey string
 
 const (
-	UserContextKey      stringKey = "user"
-	UserIDContextKey    stringKey = "user_id"
-	ObjStoreProviderR2  string    = "cloudflare_r2"
-	ProjectName         string    = "easy-comerce"
-	AppHealthCheckToken string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
+	UserContextKey             stringKey = "user"
+	UserIDContextKey           stringKey = "user_id"
+	ObjStoreProviderR2         string    = "cloudflare_r2"
+	ProjectName                string    = "easy-comerce"
+	AppHealthCheckToken        string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
+	SocialLoginDefaultPassword string    = "social@login#password"
 )
 
 const (
-	StatusMessageOK               string = "Success"
-	StatusMessageCreated          string = "Resource created successfully"
-	StatusMessageUpdated          string = "Resource updated successfully"
-	StatusMessageDeleted          string = "Resource deleted successfully"
-	StatusMessageValidationFailed string = "Validation failed"
-	StatusMessageNotFound         string = "Resource not found"
-	StatusMessageConflict         string = "Resource conflict"
-	StatusMessageInternalError    string = "Internal server error"
-	StatusMessageBadRequest       string = "Bad request"
-	StatusMessageUnauthorized     string = "Unauthorized"
-	StatusMessageForbidden        string = "Forbidden"
-	StatusMessageTooManyRequests  string = "Too many requests"
-)
-
-const (
-	ValidationMessageRequired        string = "Field is required"
-	ValidationMessageMinLength       string = "Field must be at least %d characters long"
-	ValidationMessageMaxLength       string = "Field must not exceed %d characters"
-	ValidationMessageInvalidFormat   string = "Field has invalid format"
-	ValidationMessageInvalidURL      string = "Field must be a valid URL"
-	ValidationMessageInvalidEmail    string = "Field must be a valid email address"
-	ValidationMessageInvalidPhone    string = "Field must be a valid phone number"
-	ValidationMessageInvalidUUID     string = "Field must be a valid UUID"
-	ValidationMessagePositiveInteger string = "Field must be a positive integer"
-)
-
-const (
-	EnvKeyJWTSecret    string = "JWT_SECRET"
-	EnvKeyFcmServerKey string = "FCM_SERVER_KEY"
-	EnvKeyFcmUrl       string = "FCM_URL"
-	EnvActiveProfile   string = "ACTIVE_PROFILE"
+	EnvActiveProfile     string = "ACTIVE_PROFILE"
+	EnvKeyJWTSecret      string = "JWT_SECRET"
+	EnvKeyFcmUrl         string = "FCM_URL"
+	EnvKeyFcmServerKey   string = "FCM_SERVER_KEY"
+	EnvKeyGoogleClientID string = "GOOGLE_CLIENT_ID"
+	EnvKeyFacebookAppID  string = "FACEBOOK_APP_ID"
 )
 
 const (
@@ -76,6 +52,11 @@ const (
 	EnvKeyObjStoreAccessKeyID     string = "OBJ_STORE_ACCESS_KEY_ID"
 	EnvKeyObjStoreAccessKeySecret string = "OBJ_STORE_ACCESS_KEY_SECRET"
 	EnvKeyObjStorePublicDomain    string = "OBJ_STORE_PUBLIC_DOMAIN"
+)
+
+const (
+	AuthTypeGoogle   string = "google"
+	AuthTypeFacebook string = "facebook"
 )
 
 const (

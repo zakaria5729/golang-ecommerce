@@ -34,6 +34,12 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type SocialLoginRequest struct {
+	IdToken     string `json:"id_token"`
+	AccessToken string `json:"access_token"`
+	AuthType    string `json:"auth_type"`
+}
+
 func (r *LoginRequest) Sanitize() {
 	if r.Email != "" {
 		r.Email = utils.Trim(strings.ToLower(r.Email))

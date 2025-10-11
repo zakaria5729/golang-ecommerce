@@ -33,7 +33,7 @@ type Validator interface {
 	Validate() ValidationErrors
 }
 
-func ValidateRequired(value, fieldName string) ValidationErrors {
+func ValidateRequired(value string, fieldName string) ValidationErrors {
 	var errors ValidationErrors
 	if strings.TrimSpace(value) == "" {
 		errors.AddError(fieldName, fmt.Sprintf("%s is required", fieldName))
