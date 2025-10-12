@@ -9,19 +9,20 @@ import (
 
 type ObjectStorage interface {
 	Upload(ctx context.Context, req *StorageUploadRequest) (*StorageUploadResponse, error)
+	UploadRaw(ctx context.Context, req *StorageUploadRawRequest) (*StorageUploadResponse, error)
 	Delete(ctx context.Context, req *StorageDeleteRequest) error
 	Exists(ctx context.Context, key string) (bool, error)
 }
 
-func NewObjectStorage(provider string) (ObjectStorage, error) {
+func NewObjectStorage() (ObjectStorage, error) {
 	var err error
 	var storage ObjectStorage
 
-	switch provider {
+	switch c.EnvActiveObjectStorage {
 	case c.ObjStoreProviderR2:
 		storage, err = NewCloudflareR2Client()
 	default:
-		err = fmt.Errorf("unsupported object storage provider: %s", provider)
+		err = fmt.Errorf("unsupported object storage provider: %s", c.EnvActiveObjectStorage)
 	}
 
 	return storage, err

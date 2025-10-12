@@ -1,59 +1,24 @@
--- Add created_by column to all tables that don't have it
+-- Make created_by nullable for all relevant tables
+ALTER TABLE IF EXISTS users       ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS roles       ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS categories  ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS addresses   ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS brands      ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS colors      ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS products    ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS product_stats ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS browsing_histories ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS reviews     ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS wishlists   ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS attribute_types ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS permissions ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS size_options ALTER COLUMN created_by DROP NOT NULL;
+ALTER TABLE IF EXISTS size_categories ALTER COLUMN created_by DROP NOT NULL;
 
--- Users table
-ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Roles table
-ALTER TABLE roles ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Categories table
-ALTER TABLE categories ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Addresses table
-ALTER TABLE addresses ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Brands table
-ALTER TABLE brands ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Colors table
-ALTER TABLE colors ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Products table
-ALTER TABLE products ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Product_stats table
-ALTER TABLE product_stats ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Browsing_histories table
-ALTER TABLE browsing_histories ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Reviews table
-ALTER TABLE reviews ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Wishlists table
-ALTER TABLE wishlists ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Attribute_types table
-ALTER TABLE attribute_types ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Size_options table
-ALTER TABLE size_options ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Size_categories table
-ALTER TABLE size_categories ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Note: user_roles and role_permissions are junction tables and typically don't need created_by
--- as they represent many-to-many relationships rather than user-created entities
-
--- Size_options table
-ALTER TABLE size_options ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
--- Size_categories table
-ALTER TABLE size_categories ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+-- Update permissions table timestamp and other metadata columns
+ALTER TABLE IF EXISTS permissions
+    ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP,
+    ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP,
+    ALTER COLUMN updated_by DROP NOT NULL,
+    ALTER COLUMN deleted_by DROP NOT NULL,
+    ALTER COLUMN deleted_at DROP NOT NULL;

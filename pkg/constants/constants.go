@@ -12,7 +12,11 @@ const (
 )
 
 const (
-	EnvActiveProfile     string = "ACTIVE_PROFILE"
+	EnvKeyActiveProfile    string = "ACTIVE_PROFILE"
+	EnvActiveObjectStorage string = ObjStoreProviderR2
+)
+
+const (
 	EnvKeyJWTSecret      string = "JWT_SECRET"
 	EnvKeyFcmUrl         string = "FCM_URL"
 	EnvKeyFcmServerKey   string = "FCM_SERVER_KEY"

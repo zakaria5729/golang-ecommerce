@@ -13,3 +13,10 @@ type StorageUploadRequest struct {
 	Folder      string                `json:"folder"`
 	ContentType string                `json:"content_type"`
 }
+
+type StorageUploadRawRequest struct {
+	FileData    []byte `json:"file_data"`
+	FileName    string `json:"file_name"`
+	Folder      string `json:"folder"`
+	ContentType string `json:"content_type"`
+}

@@ -18,6 +18,10 @@ func (r *FileStorageRepository) Upload(ctx context.Context, req *StorageUploadRe
 	return r.client.Upload(ctx, req)
 }
 
+func (r *FileStorageRepository) UploadRaw(ctx context.Context, req *StorageUploadRawRequest) (*StorageUploadResponse, error) {
+	return r.client.UploadRaw(ctx, req)
+}
+
 func (r *FileStorageRepository) Delete(ctx context.Context, req *StorageDeleteRequest) error {
 	return r.client.Delete(ctx, req)
 }

@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/easy-comerce/backend/db"
+	"github.com/easy-comerce/backend/internal/feature/file_storage"
 	"github.com/easy-comerce/backend/internal/feature/role"
 	"github.com/easy-comerce/backend/internal/feature/user"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -61,30 +64,28 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 }
 
 func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, error) {
-	payload, err := idtoken.Validate(context.Background(), req.IdToken, config.GetConfig().GoogleClientID)
+	var err error
+	var name string
+	var email string
+	var imageUrl *string
+
+	switch req.AuthType {
+	case c.AuthTypeGoogle:
+		name, email, imageUrl, err = getUserInfoFromGoogle(req.IdToken)
+	case c.AuthTypeFacebook:
+		// name, email, imageUrl, err = getUserInfoFromFacebook(req.IdToken)
+	default:
+		err = errors.New("invalid auth type")
+	}
+
 	if err != nil {
-		return nil, errors.New("invalid id token")
+		return nil, err
 	}
-
-	email, ok := payload.Claims[c.UserEmail].(string)
-	if !ok {
-		return nil, errors.New("email not found")
-	}
-
-	name, ok := payload.Claims[c.UserName].(string)
-	if !ok {
-		name = "New User"
-	}
-
-	name = utils.Trim(name)
-	email = utils.Trim(strings.ToLower(email))
 
 	loginUser, err := s.userRepo.GetFullUserByEmail(email)
 	if loginUser != nil {
 		return createLoginResponse(loginUser, s.userRepo, s.jwtSecret)
 	}
-
-	// picture, ok := payload.Claims["picture"].(string)
 
 	newUser := &user.User{
 		Email:    email,
@@ -92,7 +93,10 @@ func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, erro
 		Name:     name,
 		Verified: true,
 		Banned:   false,
-		// PathKey: ,
+	}
+
+	if imageUrl != nil && *imageUrl != "" {
+		newUser.PathKey = getProfilePicPathKeyFromImageUrl(context.Background(), *imageUrl)
 	}
 
 	newUser, err = createRegisterResponse(newUser, s.userRepo, s.roleRepo)
@@ -285,60 +289,94 @@ func createRegisterResponse(user *user.User, userRepo *user.UserRepository, role
 	return createdUser, nil
 }
 
-// func getMultipartFileFromImageUrl(url string) (*multipart.FileHeader, error) {
-// 	fieldName := "file"
-// 	fileName := "google_profile_pic.jpg"
+func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl *string, err error) {
+	payload, err := idtoken.Validate(context.Background(), idToken, config.GetConfig().GoogleClientID)
+	if err != nil {
+		return "", "", nil, errors.New("invalid id token")
+	}
 
-// 	resp, err := http.Get(url)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer resp.Body.Close()
+	email, ok := payload.Claims[c.UserEmail].(string)
+	if !ok {
+		return "", "", nil, errors.New("email not found")
+	}
 
-// 	imgData, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	name, ok = payload.Claims[c.UserName].(string)
+	if !ok {
+		name = "New User"
+	}
 
-// 	body := &bytes.Buffer{}
-// 	writer := multipart.NewWriter(body)
+	name = utils.Trim(name)
+	email = utils.Trim(strings.ToLower(email))
 
-// 	part, err := writer.CreateFormFile(fieldName, fileName)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	picture, ok := payload.Claims["picture"].(string)
+	if ok {
+		picture = strings.Replace(picture, "s96-c", "s512-c", 1)
+		imageUrl = &picture
+	}
 
-// 	_, err = part.Write(imgData)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	writer.Close()
+	return name, email, imageUrl, nil
+}
 
-// 	fileHeader := &multipart.FileHeader{
-// 		Filename: fileName,
-// 		Size:     int64(len(imgData)),
-// 		Header: map[string][]string{
-// 			c.ContentType: {http.DetectContentType(imgData)},
-// 		},
-// 	}
+func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *string {
+	if imageUrl == "" {
+		l.Logger.Error("Failed to create object storage client", "error", "empty image url", "method", "getProfilePicPathKeyFromImageUrl")
+		return nil
+	}
 
-// 	storageURL := fmt.Sprintf("http://localhost:%s/files/upload", config.GetConfig().Port)
-// 	storageReq, err := http.NewRequest(http.MethodPost, storageURL, body)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to create storage upload request: %w", err)
-// 	}
-// 	storageReq.Header.Set(c.ContentType, writer.FormDataContentType())
-// 	storageRes, err := http.DefaultClient.Do(storageReq)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to upload profile picture to storage: %w", err)
-// 	}
-// 	defer storageRes.Body.Close()
-// 	if storageRes.StatusCode != http.StatusOK {
-// 		return nil, fmt.Errorf("failed to upload profile picture to storage: %s", storageRes.Status)
-// 	}
-// }
+	storage, err := file_storage.NewObjectStorage()
+	if err != nil {
+		l.Logger.Error("Failed to create object storage client", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		return nil
+	}
 
-func HandleGoogleCallback(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get(imageUrl)
+	if err != nil {
+		l.Logger.Error("Failed to get image from url", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		return nil
+	}
+	defer resp.Body.Close()
+
+	imgData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		l.Logger.Error("Failed to read image from url", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		return nil
+	}
+
+	uploadReq := file_storage.StorageUploadRawRequest{
+		FileData:    imgData,
+		FileName:    "social_user_profile_pic.png",
+		Folder:      c.FolderUser,
+		ContentType: http.DetectContentType(imgData),
+	}
+
+	repo := file_storage.NewFileStorageRepository(storage)
+	response, err := repo.UploadRaw(ctx, &uploadReq)
+	if err != nil {
+		l.Logger.Error("Failed to upload image", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		return nil
+	}
+
+	l.Logger.Info("Image uploaded successfully", "path_key", response.PathKey, "method", "getProfilePicPathKeyFromImageUrl")
+	return &response.PathKey
+}
+
+// TODO: remove this after google login is implemented in frontend
+func HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
+	if config.GetActiveProfile() == c.EnvDev {
+		conf := &oauth2.Config{
+			ClientID:     config.GetConfig().GoogleClientID,
+			ClientSecret: "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",
+			RedirectURL:  "http://localhost:8080/auth/google/callback",
+			Scopes:       []string{"openid", "email", "profile"},
+			Endpoint:     google.Endpoint,
+		}
+
+		url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func HandleGoogleCallbackTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() == c.EnvDev {
 		code := r.URL.Query().Get("code")
 		if code == "" {
@@ -370,20 +408,5 @@ func HandleGoogleCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprintf(w, "ID Token: %s", idToken)
-	}
-}
-
-func HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
-	if config.GetActiveProfile() == c.EnvDev {
-		conf := &oauth2.Config{
-			ClientID:     config.GetConfig().GoogleClientID,
-			ClientSecret: "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",
-			RedirectURL:  "http://localhost:8080/auth/google/callback",
-			Scopes:       []string{"openid", "email", "profile"},
-			Endpoint:     google.Endpoint,
-		}
-
-		url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
 }

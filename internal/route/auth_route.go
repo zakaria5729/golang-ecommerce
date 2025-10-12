@@ -33,6 +33,7 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 
 	r.POST("/auth/forgot-password", h.ForgotPassword).Register()
 
-	r.GET("/auth/google", auth.HandleGoogleLogin).Register()
-	r.GET("/auth/google/callback", auth.HandleGoogleCallback).Register()
+	// TODO: remove this after google login is implemented in frontend
+	r.GET("/auth/google", auth.HandleGoogleLoginTemp).Register()
+	r.GET("/auth/google/callback", auth.HandleGoogleCallbackTemp).Register()
 }
