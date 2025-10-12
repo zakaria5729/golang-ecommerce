@@ -23,15 +23,12 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 func CorsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		l.Logger.Info("CORS Middleware111--------", "path", r.URL.Path, "method", r.Method)
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
 		if r.Method == http.MethodOptions {
-			l.Logger.Info("CORS Middleware222--------", "path", r.URL.Path, "method", r.Method)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
