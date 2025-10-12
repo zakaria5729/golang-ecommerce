@@ -29,9 +29,9 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 
 	r.POST("/auth/refresh-token", h.RefreshToken).Register()
 
-	r.POST("/auth/reset-password", h.ResetPassword).Register()
-
 	r.POST("/auth/forgot-password", h.ForgotPassword).Register()
+
+	r.POST("/auth/reset-password", h.ResetPassword).Register()
 
 	// TODO: remove this after google login is implemented in frontend
 	r.GET("/auth/google", auth.HandleGoogleLoginTemp).Register()

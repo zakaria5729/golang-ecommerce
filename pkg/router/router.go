@@ -5,9 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
 	t "github.com/easy-comerce/backend/pkg/types"
 )
 
@@ -23,16 +21,19 @@ type Route struct {
 type Router struct {
 	mux               *http.ServeMux
 	globalMiddlewares []t.MiddlewareHandler
-	registeredRoutes  map[string]bool
+	routeMiddlewares  []t.MiddlewareHandler
+	handlers          map[string]http.Handler
 }
 
 func New(mux *http.ServeMux) *Router {
 	return &Router{
 		mux:               mux,
 		globalMiddlewares: make([]t.MiddlewareHandler, 0),
-		registeredRoutes:  make(map[string]bool),
+		routeMiddlewares:  make([]t.MiddlewareHandler, 0),
+		handlers:          make(map[string]http.Handler),
 	}
 }
+
 func (r *Router) GET(path string, handler t.HandlerFunc) *Route {
 	return r.addRoute(http.MethodGet, path, handler)
 }
@@ -70,8 +71,18 @@ func (route *Route) Version(version string) *Route {
 	return route
 }
 
-func (r *Router) Use(middlewares ...t.MiddlewareHandler) {
+func (r *Router) Use(middlewares ...t.MiddlewareHandler) http.Handler {
 	r.globalMiddlewares = append(r.globalMiddlewares, middlewares...)
+
+	var handler http.Handler = r.mux
+	for i := len(r.globalMiddlewares) - 1; i >= 0; i-- {
+		handler = r.globalMiddlewares[i](handler)
+	}
+	return handler
+}
+
+func (r *Router) GetGlobalMiddlewares() []t.MiddlewareHandler {
+	return r.globalMiddlewares
 }
 
 func (route *Route) Use(middlewares ...t.MiddlewareHandler) *Route {
@@ -85,10 +96,9 @@ func (route *Route) Register() {
 	allMiddlewares = append(allMiddlewares, route.routeMiddlewares...)
 
 	var finalHandler http.Handler = http.HandlerFunc(route.handler)
-	for i := 0; i < len(allMiddlewares); i++ {
+	for i := len(allMiddlewares) - 1; i >= 0; i-- {
 		finalHandler = allMiddlewares[i](finalHandler)
 	}
-
 	route.registerHandler(finalHandler)
 }
 
@@ -96,14 +106,38 @@ func (route *Route) registerHandler(handler http.Handler) {
 	finalPath := route.buildFinalPathWithVersion()
 	routeKey := route.method + " " + finalPath
 
-	if route.router.registeredRoutes[routeKey] {
-		if config.GetActiveProfile() != c.EnvProd {
-			panic(fmt.Sprintf("Duplicate route detected: %s", routeKey))
-		}
-		logger.Logger.Warn("WARNING: Duplicate route detected. Overwriting existing route", "routeKey", routeKey)
+	if _, exists := route.router.handlers[routeKey]; exists {
+		panic(fmt.Sprintf("❌ DUPLICATE ROUTE DETECTED: %s", routeKey))
 	}
-	route.router.registeredRoutes[routeKey] = true
-	route.router.mux.Handle(routeKey, handler)
+
+	route.router.handlers[routeKey] = handler
+	dispatcherNotYetRegistered := true
+
+	for key := range route.router.handlers {
+		if strings.HasPrefix(key, route.method+" "+finalPath) || strings.HasSuffix(key, " "+finalPath) {
+			parts := strings.Split(key, " ")
+
+			if len(parts) == 2 && parts[1] == finalPath && parts[0] != route.method {
+				dispatcherNotYetRegistered = false
+				break
+			}
+		}
+	}
+
+	if dispatcherNotYetRegistered {
+		dispatcher := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerKey := r.Method + " " + finalPath
+			methodHandler, exists := route.router.handlers[handlerKey]
+
+			if !exists {
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			methodHandler.ServeHTTP(w, r)
+		})
+
+		route.router.mux.Handle(finalPath, dispatcher)
+	}
 }
 
 func (route *Route) buildFinalPathWithVersion() string {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/internal/feature/auth"
+	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -91,8 +92,12 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.ForgotPassword(&req)
-	response.SendResponse(w, "Password reset email sent", err, http.StatusInternalServerError)
+	token, err := h.service.ForgotPassword(&req)
+	msg := "Password reset email sent"
+	if token != "" && config.GetActiveProfile() != c.EnvProd {
+		msg += " with token: " + token
+	}
+	response.SendResponse(w, msg, err, http.StatusInternalServerError)
 }
 
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {

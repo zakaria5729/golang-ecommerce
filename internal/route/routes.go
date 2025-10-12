@@ -1,21 +1,12 @@
 package route
 
 import (
-	"net/http"
-
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterAllRoutes(mux *http.ServeMux) {
+func RegisterAllRoutes(r *router.Router) {
 	pm := m.NewPermissionMiddleware()
-	r := router.New(mux)
-	r.Use(
-		m.RecoveryMiddleware,
-		m.LoggingMiddleware,
-		m.CorsMiddleware,
-	)
-
 	RegisterAuthRoute(r, pm)
 	RegisterUserRoute(r, pm)
 	RegisterRoleRoute(r, pm)

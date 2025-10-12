@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/easy-comerce/backend/pkg/logger"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
@@ -14,10 +14,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID, _ := tokenutil.GenerateNewToken(true)
 		start := timeutil.NowUTC()
-		logger.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path, "method", r.Method)
+		l.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path, "method", r.Method)
 
 		next.ServeHTTP(w, r)
-		logger.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "path", "request_id", requestID, r.URL.Path, "method", r.Method, "duration", time.Since(start).String())
+		l.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "request_id", requestID, "path", r.URL.Path, "method", r.Method, "duration", time.Since(start).String())
 	})
 }
 
@@ -41,7 +41,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				logger.Logger.Error("Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
+				l.Logger.Error("Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
 				w.Header().Set("Content-Type", "application/json")
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
 			}

@@ -134,25 +134,25 @@ func (s *AuthService) Register(req *RegisterRequest) (*user.UserResponse, error)
 	return createdUser.ToResponse(), nil
 }
 
-func (s *AuthService) ForgotPassword(req *ForgotPasswordRequest) error {
+func (s *AuthService) ForgotPassword(req *ForgotPasswordRequest) (string, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
 	userID, err := s.userRepo.GetUserIdByEmail(req.Email)
 	if err != nil || userID == nil {
-		return nil
+		return "", nil
 	}
 
 	token, err := tokenutil.GenerateNewToken()
 	if err != nil {
-		return fmt.Errorf("failed to generate reset token: %w", err)
+		return "", fmt.Errorf("failed to generate reset token: %w", err)
 	}
 
 	expiresAt := timeutil.AddHoursUTC(c.PasswordResetTokenExpiryHours)
 	if err := s.userRepo.SetPasswordResetToken(*userID, token, expiresAt); err != nil {
-		return fmt.Errorf("failed to set reset token: %w", err)
+		return "", fmt.Errorf("failed to set reset token: %w", err)
 	}
 
-	return nil
+	return token, nil
 }
 
 func (s *AuthService) ResetPassword(req *ResetPasswordRequest) error {
