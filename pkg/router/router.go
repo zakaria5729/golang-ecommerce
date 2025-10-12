@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/logger"
 	t "github.com/easy-comerce/backend/pkg/types"
 )
 
@@ -130,6 +131,8 @@ func (route *Route) registerHandler(handler http.Handler) {
 			methodHandler, exists := route.router.handlers[handlerKey]
 
 			if !exists {
+				logger.Logger.Info("CORS router--------", "path", r.URL.Path, "method", r.Method)
+
 				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 				return
 			}
