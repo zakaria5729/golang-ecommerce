@@ -91,77 +91,273 @@ const (
 	PermissionSizeOptionUndoDelete string = "size_option.undo_delete"
 )
 
-var PermissionMap = map[string]string{
-	PermissionGeneralUser: "General User",
+type PermissionDetails struct {
+	Desc      string
+	GroupName string
+}
 
-	PermissionPermissionRead:   "Read Permission",
-	PermissionProductStatsRead: "Read Product Stats",
+var PermissionMap = map[string]PermissionDetails{
+	// General
+	PermissionGeneralUser: {
+		Desc:      "General User",
+		GroupName: "General",
+	},
 
-	PermissionUserCreate:     "Create User",
-	PermissionUserRead:       "Read User",
-	PermissionUserUpdate:     "Update User",
-	PermissionUserDelete:     "Delete User",
-	PermissionUserUndoDelete: "Undo Delete User",
+	// User
+	PermissionUserCreate: {
+		Desc:      "Create User",
+		GroupName: "User",
+	},
+	PermissionUserRead: {
+		Desc:      "Read User",
+		GroupName: "User",
+	},
+	PermissionUserUpdate: {
+		Desc:      "Update User",
+		GroupName: "User",
+	},
+	PermissionUserDelete: {
+		Desc:      "Delete User",
+		GroupName: "User",
+	},
+	PermissionUserUndoDelete: {
+		Desc:      "Undo Delete User",
+		GroupName: "User",
+	},
 
-	PermissionRoleCreate:           "Create Role",
-	PermissionRoleRead:             "Read Role",
-	PermissionRoleUpdate:           "Update Role",
-	PermissionRoleDelete:           "Delete Role",
-	PermissionRoleAssign:           "Assign Role",
-	PermissionRoleToAddPermissions: "Add Permissions to Role",
-	PermissionRoleUndoDelete:       "Undo Delete Role",
+	// Permission
+	PermissionPermissionRead: {
+		Desc:      "Read Permission",
+		GroupName: "Permission",
+	},
+	PermissionProductStatsRead: {
+		Desc:      "Read Product Stats",
+		GroupName: "Product Stats",
+	},
 
-	PermissionCategoryCreate:     "Create Category",
-	PermissionCategoryRead:       "Read Category",
-	PermissionCategoryUpdate:     "Update Category",
-	PermissionCategoryDelete:     "Delete Category",
-	PermissionCategoryUndoDelete: "Undo Delete Category",
+	// Role
+	PermissionRoleCreate: {
+		Desc:      "Create Role",
+		GroupName: "Role",
+	},
+	PermissionRoleRead: {
+		Desc:      "Read Role",
+		GroupName: "Role",
+	},
+	PermissionRoleUpdate: {
+		Desc:      "Update Role",
+		GroupName: "Role",
+	},
+	PermissionRoleDelete: {
+		Desc:      "Delete Role",
+		GroupName: "Role",
+	},
+	PermissionRoleAssign: {
+		Desc:      "Assign Role",
+		GroupName: "Role",
+	},
+	PermissionRoleToAddPermissions: {
+		Desc:      "Add Permissions to Role",
+		GroupName: "Role",
+	},
+	PermissionRoleUndoDelete: {
+		Desc:      "Undo Delete Role",
+		GroupName: "Role",
+	},
 
-	PermissionAddressRead:       "Read Address",
-	PermissionAddressDelete:     "Delete Address",
-	PermissionAddressUndoDelete: "Undo Delete Address",
+	// Category
+	PermissionCategoryCreate: {
+		Desc:      "Create Category",
+		GroupName: "Category",
+	},
+	PermissionCategoryRead: {
+		Desc:      "Read Category",
+		GroupName: "Category",
+	},
+	PermissionCategoryUpdate: {
+		Desc:      "Update Category",
+		GroupName: "Category",
+	},
+	PermissionCategoryDelete: {
+		Desc:      "Delete Category",
+		GroupName: "Category",
+	},
+	PermissionCategoryUndoDelete: {
+		Desc:      "Undo Delete Category",
+		GroupName: "Category",
+	},
 
-	PermissionReviewRead:       "Read Review",
-	PermissionReviewDelete:     "Delete Review",
-	PermissionReviewUndoDelete: "Undo Delete Review",
+	// Address
+	PermissionAddressRead: {
+		Desc:      "Read Address",
+		GroupName: "Address",
+	},
+	PermissionAddressDelete: {
+		Desc:      "Delete Address",
+		GroupName: "Address",
+	},
+	PermissionAddressUndoDelete: {
+		Desc:      "Undo Delete Address",
+		GroupName: "Address",
+	},
 
-	PermissionWishlistRead:       "Read Wishlist",
-	PermissionWishlistDelete:     "Delete Wishlist",
-	PermissionWishlistUndoDelete: "Undo Delete Wishlist",
+	// Review
+	PermissionReviewRead: {
+		Desc:      "Read Review",
+		GroupName: "Review",
+	},
+	PermissionReviewDelete: {
+		Desc:      "Delete Review",
+		GroupName: "Review",
+	},
+	PermissionReviewUndoDelete: {
+		Desc:      "Undo Delete Review",
+		GroupName: "Review",
+	},
 
-	PermissionBrandCreate:     "Create Brand",
-	PermissionBrandRead:       "Read Brand",
-	PermissionBrandUpdate:     "Update Brand",
-	PermissionBrandDelete:     "Delete Brand",
-	PermissionBrandUndoDelete: "Undo Delete Brand",
+	// Wishlist
+	PermissionWishlistRead: {
+		Desc:      "Read Wishlist",
+		GroupName: "Wishlist",
+	},
+	PermissionWishlistDelete: {
+		Desc:      "Delete Wishlist",
+		GroupName: "Wishlist",
+	},
+	PermissionWishlistUndoDelete: {
+		Desc:      "Undo Delete Wishlist",
+		GroupName: "Wishlist",
+	},
 
-	PermissionColorCreate:     "Create Color",
-	PermissionColorRead:       "Read Color",
-	PermissionColorUpdate:     "Update Color",
-	PermissionColorDelete:     "Delete Color",
-	PermissionColorUndoDelete: "Undo Delete Color",
+	// Brand
+	PermissionBrandCreate: {
+		Desc:      "Create Brand",
+		GroupName: "Brand",
+	},
+	PermissionBrandRead: {
+		Desc:      "Read Brand",
+		GroupName: "Brand",
+	},
+	PermissionBrandUpdate: {
+		Desc:      "Update Brand",
+		GroupName: "Brand",
+	},
+	PermissionBrandDelete: {
+		Desc:      "Delete Brand",
+		GroupName: "Brand",
+	},
+	PermissionBrandUndoDelete: {
+		Desc:      "Undo Delete Brand",
+		GroupName: "Brand",
+	},
 
-	PermissionAttributeTypeCreate:     "Create Attribute Type",
-	PermissionAttributeTypeRead:       "Read Attribute Type",
-	PermissionAttributeTypeUpdate:     "Update Attribute Type",
-	PermissionAttributeTypeDelete:     "Delete Attribute Type",
-	PermissionAttributeTypeUndoDelete: "Undo Delete Attribute Type",
+	// Color
+	PermissionColorCreate: {
+		Desc:      "Create Color",
+		GroupName: "Color",
+	},
+	PermissionColorRead: {
+		Desc:      "Read Color",
+		GroupName: "Color",
+	},
+	PermissionColorUpdate: {
+		Desc:      "Update Color",
+		GroupName: "Color",
+	},
+	PermissionColorDelete: {
+		Desc:      "Delete Color",
+		GroupName: "Color",
+	},
+	PermissionColorUndoDelete: {
+		Desc:      "Undo Delete Color",
+		GroupName: "Color",
+	},
 
-	PermissionAttributeOptionCreate:     "Create Attribute Option",
-	PermissionAttributeOptionRead:       "Read Attribute Option",
-	PermissionAttributeOptionUpdate:     "Update Attribute Option",
-	PermissionAttributeOptionDelete:     "Delete Attribute Option",
-	PermissionAttributeOptionUndoDelete: "Undo Delete Attribute Option",
+	// Attribute Type
+	PermissionAttributeTypeCreate: {
+		Desc:      "Create Attribute Type",
+		GroupName: "Attribute Type",
+	},
+	PermissionAttributeTypeRead: {
+		Desc:      "Read Attribute Type",
+		GroupName: "Attribute Type",
+	},
+	PermissionAttributeTypeUpdate: {
+		Desc:      "Update Attribute Type",
+		GroupName: "Attribute Type",
+	},
+	PermissionAttributeTypeDelete: {
+		Desc:      "Delete Attribute Type",
+		GroupName: "Attribute Type",
+	},
+	PermissionAttributeTypeUndoDelete: {
+		Desc:      "Undo Delete Attribute Type",
+		GroupName: "Attribute Type",
+	},
 
-	PermissionSizeCategoryCreate:     "Create Size Category",
-	PermissionSizeCategoryRead:       "Read Size Category",
-	PermissionSizeCategoryUpdate:     "Update Size Category",
-	PermissionSizeCategoryDelete:     "Delete Size Category",
-	PermissionSizeCategoryUndoDelete: "Undo Delete Size Category",
+	// Attribute Option
+	PermissionAttributeOptionCreate: {
+		Desc:      "Create Attribute Option",
+		GroupName: "Attribute Option",
+	},
+	PermissionAttributeOptionRead: {
+		Desc:      "Read Attribute Option",
+		GroupName: "Attribute Option",
+	},
+	PermissionAttributeOptionUpdate: {
+		Desc:      "Update Attribute Option",
+		GroupName: "Attribute Option",
+	},
+	PermissionAttributeOptionDelete: {
+		Desc:      "Delete Attribute Option",
+		GroupName: "Attribute Option",
+	},
+	PermissionAttributeOptionUndoDelete: {
+		Desc:      "Undo Delete Attribute Option",
+		GroupName: "Attribute Option",
+	},
 
-	PermissionSizeOptionCreate:     "Create Size Option",
-	PermissionSizeOptionRead:       "Read Size Option",
-	PermissionSizeOptionUpdate:     "Update Size Option",
-	PermissionSizeOptionDelete:     "Delete Size Option",
-	PermissionSizeOptionUndoDelete: "Undo Delete Size Option",
+	// Size Category
+	PermissionSizeCategoryCreate: {
+		Desc:      "Create Size Category",
+		GroupName: "Size Category",
+	},
+	PermissionSizeCategoryRead: {
+		Desc:      "Read Size Category",
+		GroupName: "Size Category",
+	},
+	PermissionSizeCategoryUpdate: {
+		Desc:      "Update Size Category",
+		GroupName: "Size Category",
+	},
+	PermissionSizeCategoryDelete: {
+		Desc:      "Delete Size Category",
+		GroupName: "Size Category",
+	},
+	PermissionSizeCategoryUndoDelete: {
+		Desc:      "Undo Delete Size Category",
+		GroupName: "Size Category",
+	},
+
+	// Size Option
+	PermissionSizeOptionCreate: {
+		Desc:      "Create Size Option",
+		GroupName: "Size Option",
+	},
+	PermissionSizeOptionRead: {
+		Desc:      "Read Size Option",
+		GroupName: "Size Option",
+	},
+	PermissionSizeOptionUpdate: {
+		Desc:      "Update Size Option",
+		GroupName: "Size Option",
+	},
+	PermissionSizeOptionDelete: {
+		Desc:      "Delete Size Option",
+		GroupName: "Size Option",
+	},
+	PermissionSizeOptionUndoDelete: {
+		Desc:      "Undo Delete Size Option",
+		GroupName: "Size Option",
+	},
 }

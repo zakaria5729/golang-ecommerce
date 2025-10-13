@@ -17,6 +17,10 @@ func RegisterPermissionRoute(r *router.Router, pm *middleware.PermissionMiddlewa
 		pm.RequirePermission(c.PermissionPermissionRead),
 	).Register()
 
+	r.GET("/permissions-group", h.GetAllPermissionsGroup).Use(
+		pm.RequirePermission(c.PermissionPermissionRead),
+	).Register()
+
 	r.GET("/permissions/{id}", h.GetPermissionByID).Use(
 		pm.RequirePermission(c.PermissionPermissionRead),
 	).Register()

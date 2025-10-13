@@ -27,6 +27,15 @@ func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Req
 	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
 }
 
+func (h *PermissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	sortBy := q.Get(c.SortBy)
+	sortOrder := q.Get(c.SortOrder)
+
+	permissions, err := h.service.GetAllPermissionsGroup(sortBy, sortOrder)
+	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
+}
+
 func (h *PermissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {

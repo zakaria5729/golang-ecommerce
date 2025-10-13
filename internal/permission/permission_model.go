@@ -9,6 +9,7 @@ import (
 type Permission struct {
 	models.BaseModel
 	Description *string `json:"description,omitempty" gorm:"column:description"`
+	GroupName   *string `json:"group_name,omitempty" gorm:"column:group_name"`
 	Name        string  `json:"name" gorm:"not null; column:name"`
 }
 
@@ -23,5 +24,9 @@ func (p *Permission) Sanitize() {
 	if p.Description != nil && *p.Description != "" {
 		sanitized := utils.Trim(*p.Description)
 		p.Description = &sanitized
+	}
+	if p.GroupName != nil && *p.GroupName != "" {
+		sanitized := utils.Trim(*p.GroupName)
+		p.GroupName = &sanitized
 	}
 }

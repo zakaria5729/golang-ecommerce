@@ -18,6 +18,10 @@ func (s *PermissionService) GetAllPermissions(sortBy string, sortOrder string) (
 	return s.repo.GetAllPermissions(sortBy, sortOrder, nil)
 }
 
+func (s *PermissionService) GetAllPermissionsGroup(sortBy string, sortOrder string) ([]PermissionGroup, error) {
+	return s.repo.GetAllPermissionsGroup(sortBy, sortOrder, nil)
+}
+
 func (s *PermissionService) GetPermissionByID(id uint) (*Permission, error) {
 	return s.repo.GetPermissionByID(id)
 }

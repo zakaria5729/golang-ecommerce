@@ -101,6 +101,7 @@ const (
 const (
 	PermissionName        string = "name"
 	PermissionDescription string = "description"
+	PermissionGroupName   string = "group_name"
 )
 
 const (

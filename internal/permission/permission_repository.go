@@ -40,13 +40,14 @@ func (r *PermissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 	var toCreatePermissions []Permission
 	for _, name := range permissionNames {
 		if !existingNamesMap[name] {
-			desc := c.PermissionMap[name]
+			value := c.PermissionMap[name]
 
 			toCreatePermissions = append(
 				toCreatePermissions,
 				Permission{
 					Name:        name,
-					Description: &desc,
+					Description: &value.Desc,
+					GroupName:   &value.GroupName,
 				},
 			)
 		}
@@ -80,7 +81,7 @@ func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string
 		query = query.Unscoped()
 	}
 
-	filters := []string{c.PermissionName, c.PermissionDescription}
+	filters := []string{c.PermissionName, c.PermissionDescription, c.PermissionGroupName}
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &filters); orderClause != "" {
 		query = query.Order(orderClause)
 	}
@@ -90,6 +91,88 @@ func (r *PermissionRepository) GetAllPermissions(sortBy string, sortOrder string
 		l.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return permissions, err
+}
+
+func (r *PermissionRepository) GetAllPermissionsGroup(sortBy string, sortOrder string, showDeleted *bool) ([]PermissionGroup, error) {
+	// var permissions []Permission
+	// query := r.db.Model(&Permission{})
+
+	// if showDeleted != nil && *showDeleted {
+	// 	query = query.Unscoped()
+	// }
+
+	// filters := []string{c.PermissionName, c.PermissionDescription, c.PermissionGroupName}
+	// if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &filters); orderClause != "" {
+	// 	query = query.Order(orderClause)
+	// }
+
+	// err := query.Select(c.FieldID, c.PermissionName, c.PermissionDescription, c.PermissionGroupName).Find(&permissions).Error
+	// if err != nil {
+	// 	l.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+	// }
+
+	// groupMap := make(map[string][]Permission)
+	// for i := range permissions {
+	// 	key := permissions[i].GroupName
+	// 	if key != nil && *key != "" {
+	// 		groupMap[*key] = append(groupMap[*key], permissions[i])
+	// 	}
+	// }
+
+	// result := make([]PermissionGroup, 0, len(groupMap))
+	// for groupName, permissions := range groupMap {
+	// 	result = append(result, PermissionGroup{
+	// 		GroupName:   groupName,
+	// 		Permissions: permissions,
+	// 	})
+	// }
+
+	// return result, nil
+
+	var permissions []Permission
+
+	query := r.db.Model(&Permission{})
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	filters := []string{c.PermissionName, c.PermissionDescription, c.PermissionGroupName}
+	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, &filters); orderClause != "" {
+		query = query.Order(orderClause)
+	}
+
+	err := query.Select(c.FieldID, c.PermissionName, c.PermissionDescription, c.PermissionGroupName).Find(&permissions).Error
+	if err != nil {
+		l.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissionsGroupMemory", "error", err)
+		return nil, err
+	}
+
+	groupOrder := make([]string, 0, len(permissions))
+	groupMap := make(map[string][]Permission, len(permissions))
+
+	for _, p := range permissions {
+		if p.GroupName == nil || *p.GroupName == "" {
+			continue
+		}
+
+		key := *p.GroupName
+		if _, exists := groupMap[key]; !exists {
+			groupOrder = append(groupOrder, key)
+		}
+
+		groupMap[key] = append(groupMap[key], p)
+	}
+
+	result := make([]PermissionGroup, 0, len(groupMap))
+	for _, groupName := range groupOrder {
+		result = append(result, PermissionGroup{
+			GroupName:   groupName,
+			Permissions: groupMap[groupName],
+		})
+	}
+
+	return result, nil
 }
 
 func (r *PermissionRepository) GetPermissionByID(id uint) (*Permission, error) {
