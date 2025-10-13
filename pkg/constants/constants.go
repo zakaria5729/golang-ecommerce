@@ -1,10 +1,10 @@
 package constants
 
-type stringKey string
+type StringKey string
 
 const (
-	UserContextKey             stringKey = "user"
-	UserIDContextKey           stringKey = "user_id"
+	UserContextKey             StringKey = "user"
+	UserIDContextKey           StringKey = "user_id"
 	ObjStoreProviderR2         string    = "cloudflare_r2"
 	ProjectName                string    = "easy-comerce"
 	AppHealthCheckToken        string    = "abc3WZ29@ld!43~r3_ew*qT#yz"

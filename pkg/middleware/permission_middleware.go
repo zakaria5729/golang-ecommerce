@@ -2,66 +2,55 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
-	"github.com/easy-comerce/backend/db"
-	p "github.com/easy-comerce/backend/internal/feature/permission"
-	"github.com/easy-comerce/backend/internal/feature/role"
-	"github.com/easy-comerce/backend/internal/feature/user"
-	"github.com/easy-comerce/backend/pkg/config"
+	p "github.com/easy-comerce/backend/internal/permission"
+	"github.com/easy-comerce/backend/internal/user"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
-	t "github.com/easy-comerce/backend/pkg/types"
 )
+
+type MiddlewareHandler func(http.Handler) http.Handler
+
+type HandlerFunc func(http.ResponseWriter, *http.Request)
 
 type PermissionMiddleware struct {
 	permissionService *p.PermissionService
-	userService       *user.UserService
+	userRepo          *user.UserRepository
 	jwtSecret         string
 }
 
-func NewPermissionMiddleware() *PermissionMiddleware {
-	db := db.GetDB()
-	cfg := config.GetConfig()
-	roleRepo := role.NewRoleRepository(db)
-	userRepo := user.NewUserRepository(db)
-	permissionRepo := p.NewPermissionRepository(db)
-
+func NewPermissionMiddleware(
+	jwtSecret string,
+	userRepo *user.UserRepository,
+	permissionRepo *p.PermissionRepository,
+) *PermissionMiddleware {
 	return &PermissionMiddleware{
 		permissionService: p.NewPermissionService(permissionRepo),
-		userService:       user.NewUserService(userRepo, roleRepo),
-		jwtSecret:         cfg.JWTSecret,
+		userRepo:          userRepo,
+		jwtSecret:         jwtSecret,
 	}
 }
 
-func (pm *PermissionMiddleware) RequireAuthUserStatus() t.MiddlewareHandler {
+func (pm *PermissionMiddleware) RequireAuthUserStatus() MiddlewareHandler {
 	return loadAuthUser(pm, false, false, false)
 }
 
-func (pm *PermissionMiddleware) RequireAuthUser() t.MiddlewareHandler {
-	return loadAuthUser(pm, true, false, false)
-}
-
-func (pm *PermissionMiddleware) RequireAuthWithRolePermission() t.MiddlewareHandler {
+func (pm *PermissionMiddleware) RequireAuthUserWithRolePermission() MiddlewareHandler {
 	return loadAuthUser(pm, true, true, true)
 }
 
-func (pm *PermissionMiddleware) RequirePermission(permission string) t.MiddlewareHandler {
+func (pm *PermissionMiddleware) RequirePermission(permission string) MiddlewareHandler {
 	return loadPermissionsStatus(pm, []string{permission}, "RequirePermission")
 }
 
-func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) t.MiddlewareHandler {
+func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) MiddlewareHandler {
 	return loadPermissionsStatus(pm, permissions, "RequireAnyPermission")
 }
 
-func (pm *PermissionMiddleware) GetJWTSecret() string {
-	return pm.jwtSecret
-}
-
-func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, methodName string) t.MiddlewareHandler {
+func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, methodName string) MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -90,18 +79,7 @@ func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, metho
 				return
 			}
 
-			if refreshToken == nil {
-				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
-				return
-			}
-
-			if banned {
-				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
-				return
-			}
-
-			if !verified {
-				response.SendErrorJSON(w, "Account not verified", http.StatusUnauthorized)
+			if !isUserActionValid(w, refreshToken, banned, verified) {
 				return
 			}
 
@@ -116,7 +94,7 @@ func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, metho
 	}
 }
 
-func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool, includePermissions bool) t.MiddlewareHandler {
+func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool, includePermissions bool) MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -133,9 +111,9 @@ func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool
 			var user *user.User
 
 			if !loadFullUser {
-				banned, verified, refreshToken, err = pm.userService.GetAuthUserStatusByID(claims.UserID)
+				banned, verified, refreshToken, err = pm.userRepo.GetAuthUserStatusByID(claims.UserID)
 			} else {
-				user, err = pm.userService.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
+				user, err = pm.userRepo.GetAuthUserByID(claims.UserID, includeRoles, includePermissions)
 				if user != nil {
 					banned = user.Banned
 					verified = user.Verified
@@ -149,18 +127,7 @@ func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool
 				return
 			}
 
-			if refreshToken == nil {
-				response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
-				return
-			}
-
-			if !verified {
-				response.SendErrorJSON(w, "Account not verified yet", http.StatusUnauthorized)
-				return
-			}
-
-			if banned {
-				response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
+			if !isUserActionValid(w, refreshToken, banned, verified) {
 				return
 			}
 
@@ -173,26 +140,21 @@ func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool
 	}
 }
 
-func GetUserFromContext(ctx context.Context) (*user.User, error) {
-	user, ok := ctx.Value(c.UserContextKey).(*user.User)
-	if !ok || user == nil {
-		return nil, errors.New("user not found in context")
+func isUserActionValid(w http.ResponseWriter, refreshToken *string, banned bool, verified bool) bool {
+	if refreshToken == nil {
+		response.SendErrorJSON(w, "Invalid access/refresh token", http.StatusUnauthorized)
+		return false
 	}
-	return user, nil
-}
 
-func GetUserIDFromContext(ctx context.Context) (*uint, error) {
-	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
-	if !ok || userID == 0 {
-		return nil, errors.New("user ID not found or invalid type in context")
+	if banned {
+		response.SendErrorJSON(w, "Account is banned", http.StatusUnauthorized)
+		return false
 	}
-	return &userID, nil
-}
 
-func GetUserIdOnlyFromContext(ctx context.Context) *uint {
-	userID, ok := ctx.Value(c.UserIDContextKey).(uint)
-	if !ok || userID == 0 {
-		return nil
+	if !verified {
+		response.SendErrorJSON(w, "Account not verified", http.StatusUnauthorized)
+		return false
 	}
-	return &userID
+
+	return true
 }

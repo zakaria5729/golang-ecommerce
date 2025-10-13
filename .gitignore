@@ -1,8 +1,11 @@
 __debug_bin*
 *.log
 api-doc/*
+docs/*
 postman/*
 main
 *.exe
 *.bin
 easy_api
+easy-commerce
+.DS_Store

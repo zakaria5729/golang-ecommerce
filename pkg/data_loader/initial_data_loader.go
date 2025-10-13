@@ -4,9 +4,9 @@ import (
 	"errors"
 
 	"github.com/easy-comerce/backend/db"
-	p "github.com/easy-comerce/backend/internal/feature/permission"
-	"github.com/easy-comerce/backend/internal/feature/role"
-	"github.com/easy-comerce/backend/internal/feature/user"
+	p "github.com/easy-comerce/backend/internal/permission"
+	"github.com/easy-comerce/backend/internal/role"
+	"github.com/easy-comerce/backend/internal/user"
 	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	c "github.com/easy-comerce/backend/pkg/constants"

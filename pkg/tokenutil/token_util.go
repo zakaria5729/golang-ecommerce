@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/easy-comerce/backend/internal/feature/user"
+	"github.com/easy-comerce/backend/internal/user"
 	"github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/logger"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/golang-jwt/jwt/v5"
@@ -41,6 +41,7 @@ func GenerateNewRefreshToken() (string, time.Time, error) {
 func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &models.JwtClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			l.Logger.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(jwtSecret), nil
@@ -56,7 +57,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 	}
 
 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-		logger.Logger.Error("❌ Jwt Token expired", "method", "VerifyToken", "error", err)
+		l.Logger.Error("❌ Jwt Token expired", "method", "VerifyJwtToken", "error", err)
 		return nil, errors.New("jwt token expired")
 	}
 

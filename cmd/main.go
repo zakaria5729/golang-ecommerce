@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	"github.com/easy-comerce/backend/db"
-	"github.com/easy-comerce/backend/internal/route"
 	c "github.com/easy-comerce/backend/pkg/config"
 	dl "github.com/easy-comerce/backend/pkg/data_loader"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
+	"github.com/easy-comerce/backend/route"
 )
 
 func main() {

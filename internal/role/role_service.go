@@ -1,0 +1,214 @@
+package role
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/easy-comerce/backend/internal/permission"
+	c "github.com/easy-comerce/backend/pkg/constants"
+	cu "github.com/easy-comerce/backend/pkg/contextutil"
+	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/utils"
+)
+
+type RoleService struct {
+	roleRepo       *RoleRepository
+	permissionRepo *permission.PermissionRepository
+}
+
+func NewRoleService(roleRepo *RoleRepository, permissionRepo *permission.PermissionRepository) *RoleService {
+	return &RoleService{
+		roleRepo:       roleRepo,
+		permissionRepo: permissionRepo,
+	}
+}
+
+func (s *RoleService) GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]Role, error) {
+	include := utils.ParseCommaSeparatedString(includeStr)
+	showDeleted := utils.ParseBoolPtr(showDeletedStr)
+
+	if roleTypeFilter != "" {
+		if !isValidRoleType(roleTypeFilter) {
+			return nil, errors.New("invalid role type")
+		}
+	}
+
+	roles, err := s.roleRepo.GetAllRoles(include, showDeleted, &roleTypeFilter, sortBy, sortOrder)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch roles: %w", err)
+	}
+
+	return roles, nil
+}
+
+func (s *RoleService) GetRoleByID(id uint, includeStr string, showDeletedStr string) (*Role, error) {
+	include := utils.ParseCommaSeparatedString(includeStr)
+	showDeleted := utils.ParseBoolPtr(showDeletedStr)
+
+	role, err := s.roleRepo.GetRoleByID(id, include, showDeleted)
+	if err != nil {
+		return nil, fmt.Errorf("role not found: %w", err)
+	}
+
+	return role, nil
+}
+
+func (s *RoleService) CreateRole(ctx context.Context, req *CreateRoleRequest) (*Role, error) {
+	req.Sanitize()
+
+	if !isValidRoleType(req.RoleType) {
+		return nil, errors.New("invalid role type")
+	}
+
+	if req.RoleType == c.RoleTypeSuperAdmin {
+		return nil, errors.New("Super admin role already exists, you can't create role with this role type")
+	}
+
+	exists, err := s.roleRepo.RoleExistsByName(req.RoleName)
+	if exists {
+		return nil, errors.New("role with this name already exists")
+	}
+
+	role := &Role{
+		RoleName:    req.RoleName,
+		RoleType:    req.RoleType,
+		Description: req.Description,
+	}
+
+	userID, _ := cu.GetUserIDFromContext(ctx)
+	role.CreatedBy = userID
+
+	permissions, err := s.permissionRepo.GetPermissionsByIDs(req.PermissionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch permissions: %w", err)
+	}
+	if len(permissions) == 0 {
+		return nil, fmt.Errorf("no permission found with this permission_ids: %w", err)
+	}
+	role.Permissions = permissions
+
+	if role, err := s.roleRepo.CreateRole(role); err != nil {
+		logger.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
+		return nil, fmt.Errorf("failed to create role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (s *RoleService) UpdateRole(ctx context.Context, id uint, req *UpdateRoleRequest) (*Role, error) {
+	req.Sanitize()
+
+	existingRole, err := s.roleRepo.GetRoleByID(id, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("role not found: %w", err)
+	}
+
+	if existingRole.RoleType == c.RoleTypeSuperAdmin {
+		return nil, errors.New("cannot update super admin role")
+	}
+
+	if req.RoleName != "" && req.RoleName != existingRole.RoleName {
+		exists, err := s.roleRepo.RoleExistsByName(req.RoleName, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check role name: %w", err)
+		}
+		if exists {
+			return nil, errors.New("role with this name already exists")
+		}
+		existingRole.RoleName = req.RoleName
+	}
+
+	if req.Description != nil {
+		existingRole.Description = req.Description
+	}
+
+	userID, _ := cu.GetUserIDFromContext(ctx)
+	existingRole.CreatedBy = userID
+
+	if len(req.PermissionIDs) > 0 {
+		permissions, err := s.permissionRepo.GetPermissionsByIDs(req.PermissionIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch permissions: %w", err)
+		}
+		if len(permissions) == 0 {
+			return nil, fmt.Errorf("no permission found with this permission_ids: %w", err)
+		}
+		existingRole.Permissions = permissions
+
+		if err := s.roleRepo.UpdateRole(existingRole); err != nil {
+			return nil, fmt.Errorf("failed to update role: %w", err)
+		}
+	} else {
+		if err := s.roleRepo.UpdateRoleWithoutPermissions(existingRole); err != nil {
+			return nil, fmt.Errorf("failed to update role without permissions: %w", err)
+		}
+	}
+
+	return existingRole, nil
+}
+
+func (s *RoleService) DeleteRole(ctx context.Context, id uint) error {
+	role, err := s.roleRepo.GetRoleByID(id, nil, nil)
+	if err != nil {
+		return fmt.Errorf("role not found: %w", err)
+	}
+
+	if role.RoleType == c.RoleTypeSuperAdmin {
+		return errors.New("cannot delete super admin role")
+	}
+
+	if err := s.roleRepo.DeleteRole(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete role: %w", err)
+	}
+
+	return nil
+}
+
+func (s *RoleService) UndoDeletedRole(ctx context.Context, id uint) error {
+	showDeleted := true
+	exists, err := s.roleRepo.RoleExists(id, &showDeleted)
+	if err != nil || !exists {
+		return fmt.Errorf("role not found: %w", err)
+	}
+
+	if err := s.roleRepo.UndoDeletedRole(ctx, id); err != nil {
+		return fmt.Errorf("failed to undo deleted role: %w", err)
+	}
+
+	return nil
+}
+
+func (s *RoleService) AssignRoleToUser(userID uint, req *AssignRoleRequest) error {
+	if err := s.roleRepo.AssignRoleToUser(userID, req.RoleId); err != nil {
+		return fmt.Errorf("failed to assign role to user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *RoleService) AddPermissionsToRole(roleID uint, req *AddPermissionsToRoleRequest) error {
+	if err := s.roleRepo.AddPermissionsToRoleByIds(roleID, req.PermissionIds, nil); err != nil {
+		return fmt.Errorf("failed to add permissions to role: %w", err)
+	}
+
+	return nil
+}
+
+func (s *RoleService) GetRoleByType(roleType string) (*Role, error) {
+	role, err := s.roleRepo.GetRoleByType(roleType, nil)
+	if err != nil {
+		return nil, errors.New("role not found")
+	}
+
+	return role, nil
+}
+
+func isValidRoleType(roleType string) bool {
+	switch roleType {
+	case c.RoleTypeSuperAdmin, c.RoleTypeAdmin, c.RoleTypeMaintainer, c.RoleTypeSeller, c.RoleTypeUser:
+		return true
+	default:
+		return false
+	}
+}

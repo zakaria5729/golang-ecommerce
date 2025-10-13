@@ -1,0 +1,30 @@
+package role
+
+import (
+	"github.com/easy-comerce/backend/internal/permission"
+	"github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/models"
+	"github.com/easy-comerce/backend/pkg/utils"
+)
+
+type Role struct {
+	models.BaseModel
+	Description *string                 `json:"description" gorm:"column:description"`
+	Permissions []permission.Permission `json:"permissions,omitempty" gorm:"many2many:role_permissions;"`
+	RoleName    string                  `json:"role_name" gorm:"not null; column:role_name"`
+	RoleType    string                  `json:"role_type" gorm:"not null; column:role_type"`
+}
+
+func (Role) TableName() string {
+	return constants.TableRole
+}
+
+func (r *Role) Sanitize() {
+	if r.RoleName != "" {
+		r.RoleName = utils.Trim(r.RoleName)
+	}
+	if r.Description != nil && *r.Description != "" {
+		sanitized := utils.Trim(*r.Description)
+		r.Description = &sanitized
+	}
+}

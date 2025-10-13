@@ -6,60 +6,60 @@ import (
 	"strings"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
-	t "github.com/easy-comerce/backend/pkg/types"
+	m "github.com/easy-comerce/backend/pkg/middleware"
 )
 
 type Route struct {
 	method           string
 	version          *string
 	path             string
-	handler          t.HandlerFunc
-	routeMiddlewares []t.MiddlewareHandler
+	handler          m.HandlerFunc
+	routeMiddlewares []m.MiddlewareHandler
 	router           *Router
 }
 
 type Router struct {
 	mux               *http.ServeMux
-	globalMiddlewares []t.MiddlewareHandler
-	routeMiddlewares  []t.MiddlewareHandler
+	globalMiddlewares []m.MiddlewareHandler
+	routeMiddlewares  []m.MiddlewareHandler
 	handlers          map[string]http.Handler
 }
 
 func New(mux *http.ServeMux) *Router {
 	return &Router{
 		mux:               mux,
-		globalMiddlewares: make([]t.MiddlewareHandler, 0),
-		routeMiddlewares:  make([]t.MiddlewareHandler, 0),
+		globalMiddlewares: make([]m.MiddlewareHandler, 0),
+		routeMiddlewares:  make([]m.MiddlewareHandler, 0),
 		handlers:          make(map[string]http.Handler),
 	}
 }
 
-func (r *Router) GET(path string, handler t.HandlerFunc) *Route {
+func (r *Router) GET(path string, handler m.HandlerFunc) *Route {
 	return r.addRoute(http.MethodGet, path, handler)
 }
 
-func (r *Router) POST(path string, handler t.HandlerFunc) *Route {
+func (r *Router) POST(path string, handler m.HandlerFunc) *Route {
 	return r.addRoute(http.MethodPost, path, handler)
 }
 
-func (r *Router) PUT(path string, handler t.HandlerFunc) *Route {
+func (r *Router) PUT(path string, handler m.HandlerFunc) *Route {
 	return r.addRoute(http.MethodPut, path, handler)
 }
 
-func (r *Router) DELETE(path string, handler t.HandlerFunc) *Route {
+func (r *Router) DELETE(path string, handler m.HandlerFunc) *Route {
 	return r.addRoute(http.MethodDelete, path, handler)
 }
 
-func (r *Router) PATCH(path string, handler t.HandlerFunc) *Route {
+func (r *Router) PATCH(path string, handler m.HandlerFunc) *Route {
 	return r.addRoute(http.MethodPatch, path, handler)
 }
 
-func (r *Router) addRoute(method, path string, handler t.HandlerFunc) *Route {
+func (r *Router) addRoute(method, path string, handler m.HandlerFunc) *Route {
 	route := &Route{
 		method:           method,
 		path:             path,
 		handler:          handler,
-		routeMiddlewares: make([]t.MiddlewareHandler, 0),
+		routeMiddlewares: make([]m.MiddlewareHandler, 0),
 		router:           r,
 	}
 
@@ -71,7 +71,7 @@ func (route *Route) Version(version string) *Route {
 	return route
 }
 
-func (r *Router) Use(middlewares ...t.MiddlewareHandler) http.Handler {
+func (r *Router) Use(middlewares ...m.MiddlewareHandler) http.Handler {
 	r.globalMiddlewares = append(r.globalMiddlewares, middlewares...)
 
 	var handler http.Handler = r.mux
@@ -81,17 +81,17 @@ func (r *Router) Use(middlewares ...t.MiddlewareHandler) http.Handler {
 	return handler
 }
 
-func (r *Router) GetGlobalMiddlewares() []t.MiddlewareHandler {
+func (r *Router) GetGlobalMiddlewares() []m.MiddlewareHandler {
 	return r.globalMiddlewares
 }
 
-func (route *Route) Use(middlewares ...t.MiddlewareHandler) *Route {
+func (route *Route) Use(middlewares ...m.MiddlewareHandler) *Route {
 	route.routeMiddlewares = append(route.routeMiddlewares, middlewares...)
 	return route
 }
 
 func (route *Route) Register() {
-	allMiddlewares := make([]t.MiddlewareHandler, 0, len(route.router.globalMiddlewares)+len(route.routeMiddlewares))
+	allMiddlewares := make([]m.MiddlewareHandler, 0, len(route.router.globalMiddlewares)+len(route.routeMiddlewares))
 	allMiddlewares = append(allMiddlewares, route.router.globalMiddlewares...)
 	allMiddlewares = append(allMiddlewares, route.routeMiddlewares...)
 
