@@ -50,7 +50,7 @@ func (r *CategoryRepository) GetAllCategories(showDeleted *bool, parentID *uint,
 
 	err := query.Find(&categories).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch categories", "method", "GetAllCategories", "error", err, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch categories", "method", "GetAllCategories", "error", err, "parentID", parentID, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return categories, err
 }
@@ -82,13 +82,13 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parent
 	}
 
 	if err := query.Count(&total).Error; err != nil {
-		l.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&categories).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return categories, int(total), err
@@ -103,7 +103,7 @@ func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*Categ
 	}
 
 	if err := query.First(&category).Error; err != nil {
-		l.Logger.Error("Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to fetch category by ID", "method", "GetCategoryByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -113,7 +113,7 @@ func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*Categ
 func (r *CategoryRepository) CreateCategory(category *Category) (*Category, error) {
 	err := r.db.Create(category).Error
 	if err != nil {
-		l.Logger.Error("Failed to create category", "method", "CreateCategory", "error", err, "category", category)
+		l.Logger.Error("❌ Failed to create category", "method", "CreateCategory", "error", err, "category", category)
 		return nil, err
 	}
 	return category, nil
@@ -122,7 +122,7 @@ func (r *CategoryRepository) CreateCategory(category *Category) (*Category, erro
 func (r *CategoryRepository) UpdateCategory(category *Category) (*Category, error) {
 	err := r.db.Model(&Category{}).Updates(category).Error
 	if err != nil {
-		l.Logger.Error("Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
+		l.Logger.Error("❌ Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (r *CategoryRepository) CategoryExists(id uint, showDeleted *bool) (bool, e
 
 	err := query.Select(c.FieldID).Take(&category).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if category exists", "method", "CategoryExists", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to check if category exists", "method", "CategoryExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -165,7 +165,7 @@ func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint
 
 	err := query.Select(c.FieldID).Take(&category).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		l.Logger.Error("Failed to check if category exists by title", "method", "CategoryExistsByTitle", "error", err, "title", title, "excludeID", excludeID)
+		l.Logger.Error("❌ Failed to check if category exists by title", "method", "CategoryExistsByTitle", "error", err, "title", title, "excludeID", excludeID)
 		return false, err
 	}
 
@@ -177,7 +177,7 @@ func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
 	err := r.db.Model(&Category{}).Where(c.CategoryParentID+" = ?", parentID).Select(c.FieldID).Take(&category).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to check if category has children", "method", "HasChildren", "error", err, "parentID", parentID)
+		l.Logger.Error("❌ Failed to check if category has children", "method", "HasChildren", "error", err, "parentID", parentID)
 		return false, err
 	}
 
@@ -198,7 +198,7 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 		return result.Error
 	})
 	if err != nil {
-		l.Logger.Error("Failed to increment priority", "method", "IncrementPriority", "error", err, "categoryID", categoryID)
+		l.Logger.Error("❌ Failed to increment priority", "method", "IncrementPriority", "error", err, "categoryID", categoryID)
 	}
 	return err
 }
@@ -258,7 +258,7 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
 	).Scan(&categories).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to fetch nested categories", "method", "GetNestedCategories", "error", err)
+		l.Logger.Error("❌ Failed to fetch nested categories", "method", "GetNestedCategories", "error", err)
 		return nil, err
 	}
 
@@ -349,7 +349,7 @@ func deleteOrUndoCategory(ctx context.Context, db *gorm.DB, id uint, isUndo *boo
 
 		var idsToDelete []uint
 		if err := tx.Raw(queryR, id).Scan(&idsToDelete).Error; err != nil {
-			l.Logger.Error("Failed to fetch category hierarchy", "method", "deleteOrUndoCategory", "error", err, "id", id, "isUndo", isUndo)
+			l.Logger.Error("❌ Failed to fetch category hierarchy", "method", "deleteOrUndoCategory", "error", err, "id", id, "isUndo", isUndo)
 			return err
 		}
 
@@ -367,7 +367,7 @@ func deleteOrUndoCategory(ctx context.Context, db *gorm.DB, id uint, isUndo *boo
 
 		if err := query.Select(c.FieldDeletedAt, c.FieldDeletedBy).
 			Where("id IN ?", idsToDelete).Updates(category).Error; err != nil {
-			l.Logger.Error("Failed to delete categories", "method", "deleteOrUndoCategory", "error", err, "ids", idsToDelete, "isUndo", isUndo)
+			l.Logger.Error("❌ Failed to delete categories", "method", "deleteOrUndoCategory", "error", err, "ids", idsToDelete, "isUndo", isUndo)
 			return err
 		}
 

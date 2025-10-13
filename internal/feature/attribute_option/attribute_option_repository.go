@@ -40,7 +40,7 @@ func (r *AttributeOptionRepository) GetAllAttributeOptions(include []string, sho
 
 	err := query.Find(&attributeOptions).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch attribute options", "method", "GetAllAttributeOptions", "error", err, "include", include, "attributeTypeID", attributeTypeID, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch attribute options", "method", "GetAllAttributeOptions", "error", err, "include", include, "attributeTypeID", attributeTypeID, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return attributeOptions, err
@@ -59,7 +59,7 @@ func (r *AttributeOptionRepository) GetAttributeOptionByID(id uint, include []st
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&attributeOption).Error; err != nil {
-		l.Logger.Error("Failed to fetch attribute option by ID", "method", "GetAttributeOptionByID", "error", err, "id", id, "include", include)
+		l.Logger.Error("❌ Failed to fetch attribute option by ID", "method", "GetAttributeOptionByID", "error", err, "id", id, "include", include)
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func (r *AttributeOptionRepository) GetAttributeOptionByID(id uint, include []st
 func (r *AttributeOptionRepository) CreateAttributeOption(attributeOption *AttributeOption) (*AttributeOption, error) {
 	err := r.db.Create(attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to create attribute option", "method", "CreateAttributeOption", "error", err, "attributeOption", attributeOption)
+		l.Logger.Error("❌ Failed to create attribute option", "method", "CreateAttributeOption", "error", err, "attributeOption", attributeOption)
 		return nil, err
 	}
 
@@ -79,7 +79,7 @@ func (r *AttributeOptionRepository) CreateAttributeOption(attributeOption *Attri
 func (r *AttributeOptionRepository) UpdateAttributeOption(attributeOption *AttributeOption) error {
 	err := r.db.Save(attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to update attribute option", "method", "UpdateAttributeOption", "error", err, "attributeOption", attributeOption)
+		l.Logger.Error("❌ Failed to update attribute option", "method", "UpdateAttributeOption", "error", err, "attributeOption", attributeOption)
 	}
 
 	return err
@@ -88,7 +88,7 @@ func (r *AttributeOptionRepository) UpdateAttributeOption(attributeOption *Attri
 func (r *AttributeOptionRepository) DeleteAttributeOption(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeOption{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete attribute option", "method", "DeleteAttributeOption", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to delete attribute option", "method", "DeleteAttributeOption", "error", err, "id", id)
 	}
 
 	return err
@@ -98,14 +98,14 @@ func (r *AttributeOptionRepository) UndoDeletedAttributeOption(id uint) error {
 	var attributeOption AttributeOption
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to find deleted attribute option", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to find deleted attribute option", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
 		return err
 	}
 
 	attributeOption.DeletedAt = nil
 	err = r.db.Unscoped().Save(&attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted attribute option", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to undo deleted attribute option", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
 	}
 
 	return err
@@ -121,7 +121,7 @@ func (r *AttributeOptionRepository) AttributeOptionExists(id uint, showDeleted *
 
 	err := query.Select(c.FieldID).Take(&attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if attribute option exists", "method", "AttributeOptionExists", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to check if attribute option exists", "method", "AttributeOptionExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -138,7 +138,7 @@ func (r *AttributeOptionRepository) AttributeOptionExistsByNameAndType(attribute
 
 	err := query.Select(c.FieldID).Take(&attributeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if attribute option exists by name and type", "method", "AttributeOptionExistsByNameAndType", "error", err, "attributeOptionName", attributeOptionName, "attributeTypeID", attributeTypeID)
+		l.Logger.Error("❌ Failed to check if attribute option exists by name and type", "method", "AttributeOptionExistsByNameAndType", "error", err, "attributeOptionName", attributeOptionName, "attributeTypeID", attributeTypeID)
 		return false, err
 	}
 

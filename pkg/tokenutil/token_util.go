@@ -56,7 +56,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 	}
 
 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-		logger.Logger.Error("Jwt Token expired", "method", "VerifyToken", "error", err)
+		logger.Logger.Error("❌ Jwt Token expired", "method", "VerifyToken", "error", err)
 		return nil, errors.New("jwt token expired")
 	}
 

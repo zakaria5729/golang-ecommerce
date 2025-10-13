@@ -31,7 +31,7 @@ func (r *ColorRepository) GetAllColors(showDeleted *bool, sortBy, sortOrder stri
 
 	err := query.Find(&colors).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch colors", "method", "GetAllColors", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch colors", "method", "GetAllColors", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return colors, err
@@ -46,7 +46,7 @@ func (r *ColorRepository) GetColorByID(id uint, showDeleted *bool) (*Color, erro
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&color).Error; err != nil {
-		l.Logger.Error("Failed to fetch color by ID", "method", "GetColorByID", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to fetch color by ID", "method", "GetColorByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func (r *ColorRepository) GetColorByID(id uint, showDeleted *bool) (*Color, erro
 func (r *ColorRepository) CreateColor(color *Color) (*Color, error) {
 	err := r.db.Create(color).Error
 	if err != nil {
-		l.Logger.Error("Failed to create color", "method", "CreateColor", "error", err, "color", color)
+		l.Logger.Error("❌ Failed to create color", "method", "CreateColor", "error", err, "color", color)
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func (r *ColorRepository) CreateColor(color *Color) (*Color, error) {
 func (r *ColorRepository) UpdateColor(color *Color) error {
 	err := r.db.Save(color).Error
 	if err != nil {
-		l.Logger.Error("Failed to update color", "method", "UpdateColor", "error", err, "color", color)
+		l.Logger.Error("❌ Failed to update color", "method", "UpdateColor", "error", err, "color", color)
 	}
 
 	return err
@@ -75,7 +75,7 @@ func (r *ColorRepository) UpdateColor(color *Color) error {
 func (r *ColorRepository) DeleteColor(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Color{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete color", "method", "DeleteColor", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to delete color", "method", "DeleteColor", "error", err, "id", id)
 	}
 
 	return err
@@ -84,7 +84,7 @@ func (r *ColorRepository) DeleteColor(id uint) error {
 func (r *ColorRepository) UndoDeletedColor(id uint) error {
 	err := r.db.Unscoped().Model(&Color{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted color", "method", "UndoDeletedColor", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to undo deleted color", "method", "UndoDeletedColor", "error", err, "id", id)
 	}
 
 	return err
@@ -100,7 +100,7 @@ func (r *ColorRepository) ColorExists(id uint, showDeleted *bool) (bool, error) 
 
 	err := query.Select(c.FieldID).Take(&color).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if color exists", "method", "ColorExists", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to check if color exists", "method", "ColorExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -117,7 +117,7 @@ func (r *ColorRepository) ColorExistsByName(name string, excludeID ...uint) (boo
 
 	err := query.Select(c.FieldID).Take(&color).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if color exists by name", "method", "ColorExistsByName", "error", err, "name", name)
+		l.Logger.Error("❌ Failed to check if color exists by name", "method", "ColorExistsByName", "error", err, "name", name)
 		return false, err
 	}
 

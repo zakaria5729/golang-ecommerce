@@ -37,7 +37,7 @@ func NewCloudflareR2Client() (*CloudflareR2Client, error) {
 	)
 
 	if err != nil {
-		l.Logger.Error("Failed to create AWS config", "error", err)
+		l.Logger.Error("❌ Failed to create AWS config", "error", err)
 		return nil, fmt.Errorf("failed to create Cloudflare R2 config: %w", err)
 	}
 
@@ -57,14 +57,14 @@ func NewCloudflareR2Client() (*CloudflareR2Client, error) {
 func (r *CloudflareR2Client) Upload(ctx context.Context, req *StorageUploadRequest) (*StorageUploadResponse, error) {
 	file, err := req.File.Open()
 	if err != nil {
-		l.Logger.Error("Failed to open file", "error", err, "method", "Upload")
+		l.Logger.Error("❌ Failed to open file", "error", err, "method", "Upload")
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		l.Logger.Error("Failed to read file content", "error", err, "method", "Upload")
+		l.Logger.Error("❌ Failed to read file content", "error", err, "method", "Upload")
 		return nil, fmt.Errorf("failed to read file content: %w", err)
 	}
 
@@ -81,7 +81,7 @@ func (r *CloudflareR2Client) Delete(ctx context.Context, req *StorageDeleteReque
 		Key:    &req.PathKey,
 	})
 	if err != nil {
-		l.Logger.Error("Failed to delete file from Cloudflare R2", "error", err, "key", req.PathKey, "method", "Delete")
+		l.Logger.Error("❌ Failed to delete file from Cloudflare R2", "error", err, "key", req.PathKey, "method", "Delete")
 		return fmt.Errorf("failed to delete file from Cloudflare R2: %w", err)
 	}
 
@@ -97,7 +97,7 @@ func (r *CloudflareR2Client) Exists(ctx context.Context, key string) (bool, erro
 		if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "NoSuchKey") {
 			return false, nil
 		}
-		l.Logger.Error("Failed to check if file exists in Cloudflare R2", "error", err, "key", key, "method", "Exists")
+		l.Logger.Error("❌ Failed to check if file exists in Cloudflare R2", "error", err, "key", key, "method", "Exists")
 		return false, fmt.Errorf("failed to check if file exists in Cloudflare R2: %w", err)
 	}
 
@@ -106,7 +106,7 @@ func (r *CloudflareR2Client) Exists(ctx context.Context, key string) (bool, erro
 
 func generatePresignedUploadURL(ctx context.Context, r2 *CloudflareR2Client, pathKey string, contentType string, expiresIn time.Duration) (string, error) {
 	if r2.presignClient == nil {
-		l.Logger.Error("presignClient is nil", "method", "generatePresignedUploadURL")
+		l.Logger.Error("❌ presignClient is nil", "method", "generatePresignedUploadURL")
 		return "", fmt.Errorf("presignClient is nil")
 	}
 
@@ -134,7 +134,7 @@ func generatePresignedUploadURL(ctx context.Context, r2 *CloudflareR2Client, pat
 func uploadFile(ctx context.Context, r2 *CloudflareR2Client, folderName string, fileName string, contentType string, fileBytes []byte) (*StorageUploadResponse, error) {
 	fileUUID, _ := tokenutil.GenerateNewToken(true)
 	if fileUUID == "" {
-		l.Logger.Error("Failed to generate file UUID", "method", "Upload")
+		l.Logger.Error("❌ Failed to generate file UUID", "method", "Upload")
 		return nil, fmt.Errorf("failed to generate file UUID")
 	}
 
@@ -159,7 +159,7 @@ func uploadFile(ctx context.Context, r2 *CloudflareR2Client, folderName string, 
 	expiresIn := 2 * time.Minute
 	presignedURL, presignErr := generatePresignedUploadURL(ctx, r2, pathKey, contentType, expiresIn)
 	if presignErr != nil {
-		l.Logger.Error("Failed to generate presigned URL", "error", presignErr, "pathKey", pathKey, "method", "Upload")
+		l.Logger.Error("❌ Failed to generate presigned URL", "error", presignErr, "pathKey", pathKey, "method", "Upload")
 		return nil, fmt.Errorf("direct upload failed and fallback to presigned URL failed: %w", presignErr)
 	}
 

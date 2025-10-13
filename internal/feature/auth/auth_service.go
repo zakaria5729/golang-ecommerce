@@ -290,7 +290,12 @@ func createRegisterResponse(user *user.User, userRepo *user.UserRepository, role
 }
 
 func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl *string, err error) {
-	payload, err := idtoken.Validate(context.Background(), idToken, config.GetConfig().GoogleClientID)
+	googleClientId := config.GetConfig().GoogleClientID
+	if googleClientId == "" {
+		return "", "", nil, errors.New("Social login is not enabled")
+	}
+
+	payload, err := idtoken.Validate(context.Background(), idToken, googleClientId)
 	if err != nil {
 		return "", "", nil, errors.New("invalid id token")
 	}
@@ -360,53 +365,69 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 	return &response.PathKey
 }
 
-// TODO: remove this after google login is implemented in frontend
-func HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
-	if config.GetActiveProfile() == c.EnvDev {
-		conf := &oauth2.Config{
-			ClientID:     config.GetConfig().GoogleClientID,
-			ClientSecret: "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",
-			RedirectURL:  "http://localhost:8080/auth/google/callback",
-			Scopes:       []string{"openid", "email", "profile"},
-			Endpoint:     google.Endpoint,
-		}
+func HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request) {
+	if config.GetActiveProfile() != c.EnvProd {
+		authType := r.URL.Query().Get("auth_type")
 
-		url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		switch authType {
+		case c.AuthTypeGoogle:
+			conf := &oauth2.Config{
+				ClientID:     config.GetConfig().GoogleClientID,
+				ClientSecret: "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",
+				RedirectURL:  fmt.Sprintf("http://localhost:8080/auth/social-flow/callback?auth_type=%s", authType),
+				Scopes:       []string{"openid", "email", "profile"},
+				Endpoint:     google.Endpoint,
+			}
+
+			url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+		case c.AuthTypeFacebook:
+
+		}
 	}
 }
 
-func HandleGoogleCallbackTemp(w http.ResponseWriter, r *http.Request) {
-	if config.GetActiveProfile() == c.EnvDev {
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			http.Error(w, "Missing authorization code", http.StatusBadRequest)
-			return
-		}
+func HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *http.Request) {
+	if config.GetActiveProfile() != c.EnvProd {
+		authType := r.URL.Query().Get("auth_type")
 
-		clientID := "437959137905-1oo0b6bj64tq4ji57hkb52l5epc29729.apps.googleusercontent.com"
-		clientSecret := "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"
-		redirectURL := "http://localhost:8080/auth/google/callback"
+		switch authType {
+		case c.AuthTypeGoogle:
 
-		conf := &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
-			Scopes:       []string{"openid", "email", "profile"},
-			Endpoint:     google.Endpoint,
-		}
+			code := r.URL.Query().Get("code")
+			if code == "" {
+				http.Error(w, "Missing authorization code", http.StatusBadRequest)
+				return
+			}
 
-		token, err := conf.Exchange(context.Background(), code)
-		if err != nil {
-			http.Error(w, "Token exchange failed: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+			clientID := "437959137905-1oo0b6bj64tq4ji57hkb52l5epc29729.apps.googleusercontent.com"
+			clientSecret := "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"
+			redirectURL := fmt.Sprintf("http://localhost:8080/auth/social-flow/callback?auth_type=%s", authType)
 
-		idToken, ok := token.Extra("id_token").(string)
-		if !ok {
-			http.Error(w, "No ID token in response", http.StatusInternalServerError)
-			return
+			conf := &oauth2.Config{
+				ClientID:     clientID,
+				ClientSecret: clientSecret,
+				RedirectURL:  redirectURL,
+				Scopes:       []string{"openid", "email", "profile"},
+				Endpoint:     google.Endpoint,
+			}
+
+			token, err := conf.Exchange(context.Background(), code)
+			if err != nil {
+				http.Error(w, "Token exchange failed: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			idToken, ok := token.Extra("id_token").(string)
+			if !ok {
+				http.Error(w, "No ID token in response", http.StatusInternalServerError)
+				return
+			}
+			fmt.Fprintf(w, "ID Token: %s", idToken)
+
+		case c.AuthTypeFacebook:
+
 		}
-		fmt.Fprintf(w, "ID Token: %s", idToken)
 	}
 }

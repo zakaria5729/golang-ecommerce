@@ -31,7 +31,7 @@ func (r *BrandRepository) GetAllBrands(showDeleted *bool, sortBy, sortOrder stri
 
 	err := query.Find(&brands).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch brands", "method", "GetAllBrands", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch brands", "method", "GetAllBrands", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return brands, err
@@ -46,7 +46,7 @@ func (r *BrandRepository) GetBrandByID(id uint, showDeleted *bool) (*Brand, erro
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&brand).Error; err != nil {
-		l.Logger.Error("Failed to fetch brand by ID", "method", "GetBrandByID", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to fetch brand by ID", "method", "GetBrandByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func (r *BrandRepository) GetBrandByID(id uint, showDeleted *bool) (*Brand, erro
 func (r *BrandRepository) CreateBrand(brand *Brand) (*Brand, error) {
 	err := r.db.Create(brand).Error
 	if err != nil {
-		l.Logger.Error("Failed to create brand", "method", "CreateBrand", "error", err, "brand", brand)
+		l.Logger.Error("❌ Failed to create brand", "method", "CreateBrand", "error", err, "brand", brand)
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func (r *BrandRepository) CreateBrand(brand *Brand) (*Brand, error) {
 func (r *BrandRepository) UpdateBrand(brand *Brand) error {
 	err := r.db.Save(brand).Error
 	if err != nil {
-		l.Logger.Error("Failed to update brand", "method", "UpdateBrand", "error", err, "brand", brand)
+		l.Logger.Error("❌ Failed to update brand", "method", "UpdateBrand", "error", err, "brand", brand)
 	}
 
 	return err
@@ -75,7 +75,7 @@ func (r *BrandRepository) UpdateBrand(brand *Brand) error {
 func (r *BrandRepository) DeleteBrand(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Brand{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete brand", "method", "DeleteBrand", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to delete brand", "method", "DeleteBrand", "error", err, "id", id)
 	}
 
 	return err
@@ -84,7 +84,7 @@ func (r *BrandRepository) DeleteBrand(id uint) error {
 func (r *BrandRepository) UndoDeletedBrand(id uint) error {
 	err := r.db.Unscoped().Model(&Brand{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted brand", "method", "UndoDeletedBrand", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to undo deleted brand", "method", "UndoDeletedBrand", "error", err, "id", id)
 	}
 
 	return err
@@ -100,7 +100,7 @@ func (r *BrandRepository) BrandExists(id uint, showDeleted *bool) (bool, error) 
 
 	err := query.Select(c.FieldID).Take(&brand).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if brand exists", "method", "BrandExists", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to check if brand exists", "method", "BrandExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -117,7 +117,7 @@ func (r *BrandRepository) BrandExistsByName(name string, excludeID ...uint) (boo
 
 	err := query.Select(c.FieldID).Take(&brand).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if brand exists by name", "method", "BrandExistsByName", "error", err, "name", name)
+		l.Logger.Error("❌ Failed to check if brand exists by name", "method", "BrandExistsByName", "error", err, "name", name)
 		return false, err
 	}
 

@@ -7,17 +7,20 @@ import (
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/timeutil"
-	"github.com/easy-comerce/backend/pkg/tokenutil"
 )
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID, _ := tokenutil.GenerateNewToken(true)
+		if isExcludedPath(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		start := timeutil.NowUTC()
-		l.Logger.Info("🚀🚀🚀 START REQUEST 🚀🚀🚀", "request_id", requestID, "path", r.URL.Path, "method", r.Method)
+		l.Logger.Info("🟢 START-REQUEST 🟢", "path", r.URL.Path, "http-method", r.Method)
 
 		next.ServeHTTP(w, r)
-		l.Logger.Info("✅✅✅ END REQUEST ✅✅✅", "request_id", requestID, "path", r.URL.Path, "method", r.Method, "duration", time.Since(start).String())
+		l.Logger.Info("✅ END-REQUEST ✅", "path", r.URL.Path, "http-method", r.Method, "duration", time.Since(start).String())
 	})
 }
 
@@ -41,7 +44,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				l.Logger.Error("Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
+				l.Logger.Error("❌ Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
 				w.Header().Set("Content-Type", "application/json")
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
 			}
@@ -49,4 +52,20 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isExcludedPath(path string) bool {
+	for _, excludedPath := range []string{
+		"/favicon.ico",
+		"/app-health",
+		"/metrics",
+		"/auth/social-flow",
+		"/auth/social-flow/callback",
+	} {
+		if path == excludedPath {
+			return true
+		}
+	}
+
+	return false
 }

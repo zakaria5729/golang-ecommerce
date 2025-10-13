@@ -58,7 +58,7 @@ func loadDB() *gorm.DB {
 	})
 
 	if err != nil {
-		logger.Logger.Error("Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
+		logger.Logger.Error("❌ Failed to connect to database", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 		panic(err)
 	}
 

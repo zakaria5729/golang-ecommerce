@@ -32,7 +32,7 @@ func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy
 
 	err := query.Find(&attributeTypes).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch attribute types", "method", "GetAllAttributeTypes", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Logger.Error("❌ Failed to fetch attribute types", "method", "GetAllAttributeTypes", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return attributeTypes, err
@@ -47,7 +47,7 @@ func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *boo
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&attributeType).Error; err != nil {
-		l.Logger.Error("Failed to fetch attribute type by ID", "method", "GetAttributeTypeByID", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to fetch attribute type by ID", "method", "GetAttributeTypeByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *boo
 func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeType) (*AttributeType, error) {
 	err := r.db.Create(attributeType).Error
 	if err != nil {
-		l.Logger.Error("Failed to create attribute type", "method", "CreateAttributeType", "error", err, "attributeType", attributeType)
+		l.Logger.Error("❌ Failed to create attribute type", "method", "CreateAttributeType", "error", err, "attributeType", attributeType)
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeTy
 func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeType) error {
 	err := r.db.Save(attributeType).Error
 	if err != nil {
-		l.Logger.Error("Failed to update attribute type", "method", "UpdateAttributeType", "error", err, "attributeType", attributeType)
+		l.Logger.Error("❌ Failed to update attribute type", "method", "UpdateAttributeType", "error", err, "attributeType", attributeType)
 	}
 
 	return err
@@ -76,7 +76,7 @@ func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeTy
 func (r *AttributeTypeRepository) DeleteAttributeType(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeType{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete attribute type", "method", "DeleteAttributeType", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to delete attribute type", "method", "DeleteAttributeType", "error", err, "id", id)
 	}
 
 	return err
@@ -87,14 +87,14 @@ func (r *AttributeTypeRepository) UndoDeletedAttributeType(id uint) error {
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&attributeType).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to find deleted attribute type", "method", "UndoDeletedAttributeType", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to find deleted attribute type", "method", "UndoDeletedAttributeType", "error", err, "id", id)
 		return err
 	}
 
 	attributeType.DeletedAt = nil
 	err = r.db.Unscoped().Save(&attributeType).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted attribute type", "method", "UndoDeletedAttributeType", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to undo deleted attribute type", "method", "UndoDeletedAttributeType", "error", err, "id", id)
 	}
 
 	return err
@@ -110,7 +110,7 @@ func (r *AttributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool
 
 	err := query.Select(c.FieldID).Take(&attributeType).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if attribute type exists", "method", "AttributeTypeExists", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to check if attribute type exists", "method", "AttributeTypeExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -127,7 +127,7 @@ func (r *AttributeTypeRepository) AttributeTypeExistsByName(name string, exclude
 
 	err := query.Select(c.FieldID).Take(&attributeType).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if attribute type exists by name", "method", "AttributeTypeExistsByName", "error", err, "name", name)
+		l.Logger.Error("❌ Failed to check if attribute type exists by name", "method", "AttributeTypeExistsByName", "error", err, "name", name)
 		return false, err
 	}
 

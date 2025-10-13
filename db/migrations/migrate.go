@@ -26,7 +26,7 @@ func RunMigrations() error {
 			logger.Logger.Info("Running migration", "file", file.Name())
 
 			if err := executeSQLFile(database, filePath); err != nil {
-				logger.Logger.Error("Failed to execute migration", "error", err, "file", file.Name())
+				logger.Logger.Error("❌ Failed to execute migration", "error", err, "file", file.Name())
 				return fmt.Errorf("failed to execute migration %s: %w", file.Name(), err)
 			}
 
