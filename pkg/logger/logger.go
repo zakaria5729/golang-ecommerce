@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -38,7 +39,7 @@ func init() {
 }
 
 func getLogFileName() string {
-	today := timeutil.NowUTC().Format("2006-01-02")
+	today := timeutil.NowUTC().Format(c.LogFileFormat)
 	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
 	return filepath.Join(logsDir, fmt.Sprintf("app-%s.log", today))
 }

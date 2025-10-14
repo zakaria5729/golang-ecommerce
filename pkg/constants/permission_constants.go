@@ -1,25 +1,13 @@
 package constants
 
 const (
-	RoleTypeSuperAdmin string = "SUPER_ADMIN"
-	RoleTypeAdmin      string = "ADMIN"
-	RoleTypeMaintainer string = "MAINTAINER"
-	RoleTypeSeller     string = "SELLER"
-	RoleTypeUser       string = "USER"
-)
-
-const (
-	RoleNameSuperAdmin string = "Super Admin"
-	RoleNameAdmin      string = "Admin"
-	RoleNameMaintainer string = "Maintainer"
-	RoleNameSeller     string = "Seller"
-	RoleNameUser       string = "User"
-)
-
-const (
 	PermissionGeneralUser      string = "general.user"
 	PermissionPermissionRead   string = "permission.read"
 	PermissionProductStatsRead string = "product_stats.read"
+
+	PermissionSystemLogRead     string = "system_log.read"
+	PermissionSystemLogDownload string = "system_log.download"
+	PermissionSystemLogDelete   string = "system_log.delete"
 
 	PermissionUserCreate     string = "user.create"
 	PermissionUserRead       string = "user.read"
@@ -101,6 +89,20 @@ var PermissionMap = map[string]PermissionDetails{
 	PermissionGeneralUser: {
 		Desc:      "General User",
 		GroupName: "General",
+	},
+
+	// System Log
+	PermissionSystemLogRead: {
+		Desc:      "Read System Log",
+		GroupName: "System Log",
+	},
+	PermissionSystemLogDownload: {
+		Desc:      "Download System Log",
+		GroupName: "System Log",
+	},
+	PermissionSystemLogDelete: {
+		Desc:      "Delete System Log",
+		GroupName: "System Log",
 	},
 
 	// User

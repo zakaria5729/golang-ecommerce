@@ -5,3 +5,9 @@ type SystemHealthResponse struct {
 	DBStatus     string `json:"db_status"`
 	Timestamp    string `json:"timestamp"`
 }
+
+type SystemLogFileResponse struct {
+	FileName   string `json:"file_name"`
+	Size       string `json:"size"`
+	ModifiedAt string `json:"modified_at"`
+}

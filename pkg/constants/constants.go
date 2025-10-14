@@ -17,12 +17,14 @@ const (
 )
 
 const (
-	EnvKeyDomainURL      string = "DOMAIN_URL"
-	EnvKeyJWTSecret      string = "JWT_SECRET"
-	EnvKeyFcmUrl         string = "FCM_URL"
-	EnvKeyFcmServerKey   string = "FCM_SERVER_KEY"
-	EnvKeyGoogleClientID string = "GOOGLE_CLIENT_ID"
-	EnvKeyFacebookAppID  string = "FACEBOOK_APP_ID"
+	EnvSuperAdminEmail    string = "SUPER_ADMIN_EMAIL"
+	EnvSuperAdminPassword string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyDomainURL       string = "DOMAIN_URL"
+	EnvKeyJWTSecret       string = "JWT_SECRET"
+	EnvKeyFcmUrl          string = "FCM_URL"
+	EnvKeyFcmServerKey    string = "FCM_SERVER_KEY"
+	EnvKeyGoogleClientID  string = "GOOGLE_CLIENT_ID"
+	EnvKeyFacebookAppID   string = "FACEBOOK_APP_ID"
 )
 
 const (
@@ -43,6 +45,7 @@ const (
 	SizeInMB          int64  = 1024 * 1024 // 1MB
 	AllowedImageTypes string = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
 	AllowedDocTypes   string = "application/pdf"
+	LogFileFormat     string = "2006-01-02"
 )
 
 const (
@@ -58,6 +61,22 @@ const (
 	EnvKeyObjStoreAccessKeyID     string = "OBJ_STORE_ACCESS_KEY_ID"
 	EnvKeyObjStoreAccessKeySecret string = "OBJ_STORE_ACCESS_KEY_SECRET"
 	EnvKeyObjStorePublicDomain    string = "OBJ_STORE_PUBLIC_DOMAIN"
+)
+
+const (
+	RoleTypeSuperAdmin string = "SUPER_ADMIN"
+	RoleTypeAdmin      string = "ADMIN"
+	RoleTypeMaintainer string = "MAINTAINER"
+	RoleTypeSeller     string = "SELLER"
+	RoleTypeUser       string = "USER"
+)
+
+const (
+	RoleNameSuperAdmin string = "Super Admin"
+	RoleNameAdmin      string = "Admin"
+	RoleNameMaintainer string = "Maintainer"
+	RoleNameSeller     string = "Seller"
+	RoleNameUser       string = "User"
 )
 
 const (

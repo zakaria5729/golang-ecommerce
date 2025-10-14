@@ -1,16 +1,14 @@
 package constants
 
 const (
-	EnvKeyPort            string = "PORT"
-	EnvKeyDBHost          string = "DB_HOST"
-	EnvKeyDBPort          string = "DB_PORT"
-	EnvKeyDBUser          string = "DB_USER"
-	EnvKeyDBPassword      string = "DB_PASSWORD"
-	EnvKeyDBName          string = "DB_NAME"
-	EnvKeyDBSSLMode       string = "DB_SSL_MODE"
-	EnvKeyDBShowLog       string = "DB_SHOW_LOG"
-	EnvSuperAdminEmail    string = "SUPER_ADMIN_EMAIL"
-	EnvSuperAdminPassword string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyPort       string = "PORT"
+	EnvKeyDBHost     string = "DB_HOST"
+	EnvKeyDBPort     string = "DB_PORT"
+	EnvKeyDBUser     string = "DB_USER"
+	EnvKeyDBPassword string = "DB_PASSWORD"
+	EnvKeyDBName     string = "DB_NAME"
+	EnvKeyDBSSLMode  string = "DB_SSL_MODE"
+	EnvKeyDBShowLog  string = "DB_SHOW_LOG"
 )
 
 const (

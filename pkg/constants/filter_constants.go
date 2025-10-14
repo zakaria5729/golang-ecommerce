@@ -22,4 +22,5 @@ const (
 	ContentType     string = "Content-Type"
 	Folder          string = "folder"
 	File            string = "file"
+	FileName        string = "file_name"
 )

@@ -2,13 +2,19 @@ package system
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/timeutil"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -43,6 +49,73 @@ func (s *SystemService) SystemHealthCheck(ctx context.Context) *SystemHealthResp
 		DBStatus:     dbStatus,
 		Timestamp:    time.Now().UTC().Format(time.RFC3339),
 	}
+}
+
+func (s *SystemService) GetSystemLogFiles(fileName string) ([]SystemLogFileResponse, error) {
+	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
+	files, err := os.ReadDir(logsDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read logs directory: %v", err)
+	}
+
+	var logFiles []SystemLogFileResponse
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".log") {
+			if fileName != "" && !strings.Contains(file.Name(), fileName) {
+				continue
+			}
+
+			info, err := file.Info()
+			if err != nil {
+				continue
+			}
+
+			logFiles = append(logFiles, SystemLogFileResponse{
+				FileName:   file.Name(),
+				Size:       fmt.Sprintf("%.2f kb", float64(info.Size())/1024.0),
+				ModifiedAt: info.ModTime().Format(time.RFC3339),
+			})
+		}
+	}
+
+	return logFiles, nil
+}
+
+func (s *SystemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
+	if !strings.HasSuffix(fileName, ".log") {
+		return nil, fmt.Errorf("invalid log file name")
+	}
+
+	logPath := filepath.Join(utils.GetProjectRootPath(), "logs", fileName)
+	content, err := os.ReadFile(logPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load log file: %v", err)
+	}
+
+	return content, nil
+}
+
+func (s *SystemService) DeleteSystemLogFile(fileName string) error {
+	if !strings.HasSuffix(fileName, ".log") {
+		return fmt.Errorf("invalid log file name")
+	}
+
+	logFileTime, err := time.Parse(c.LogFileFormat, strings.TrimSuffix(strings.TrimPrefix(fileName, "app-"), ".log"))
+	if err != nil {
+		return fmt.Errorf("failed to parse log file name: %v", err)
+	}
+
+	if logFileTime.After(timeutil.AddDaysUTC(-1)) {
+		return errors.New("you can not delete today and yesterday's log files")
+	}
+
+	logPath := filepath.Join(utils.GetProjectRootPath(), "logs", fileName)
+	err = os.Remove(logPath)
+	if err != nil {
+		return fmt.Errorf("failed to delete log file: %v", err)
+	}
+
+	return nil
 }
 
 func (s *SystemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
