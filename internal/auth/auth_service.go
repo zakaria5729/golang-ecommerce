@@ -7,9 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/easy-comerce/backend/db"
 	"github.com/easy-comerce/backend/internal/file_storage"
 	"github.com/easy-comerce/backend/internal/role"
 	"github.com/easy-comerce/backend/internal/user"
@@ -19,8 +17,6 @@ import (
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
 	"gorm.io/gorm"
 )
@@ -127,11 +123,20 @@ func (s *AuthService) Register(req *RegisterRequest) (*user.UserResponse, error)
 		Banned:   false,
 	}
 
+	user.Sanitize()
 	createdUser, err := createRegisterResponse(user, s.userRepo, s.roleRepo)
 	if err != nil {
 		return nil, err
 	}
-	return createdUser.ToResponse(), nil
+
+	verificationToken, _ := setVerificationToken(createdUser.ID, s.userRepo)
+	userResponse := createdUser.ToResponse()
+	if config.GetActiveProfile() != c.EnvProd {
+		link := config.GetConfig().DomainURL + "/auth/verify-account?verification_token=" + verificationToken
+		userResponse.VerificationLink = &link
+	}
+
+	return userResponse, nil
 }
 
 func (s *AuthService) ForgotPassword(req *ForgotPasswordRequest) (string, error) {
@@ -197,7 +202,7 @@ func (s *AuthService) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, er
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewRefreshToken()
+	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.RefreshTokenExpiryHours)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -220,26 +225,37 @@ func (s *AuthService) Logout(userID uint) error {
 	return nil
 }
 
-func (s *AuthService) HealthCheck(ctx context.Context) *HealthResponse {
-	dbStatus := "healthy"
+func (s *AuthService) VerifyEmail(token string) error {
+	userID, err := s.userRepo.GetUserByVerificationToken(token)
+	if err != nil || userID == nil {
+		return errors.New("invalid or expired verification token")
+	}
 
-	sqlDB, err := db.GetDB().DB()
-	if err != nil {
-		dbStatus = "unhealthy"
-	} else {
-		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-		defer cancel()
+	if err := s.userRepo.SetVerifiedAndVerificationToken(*userID, true, nil, nil); err != nil {
+		return errors.New("failed to verify user")
+	}
 
-		if err := sqlDB.PingContext(pingCtx); err != nil {
-			dbStatus = "unhealthy"
+	return nil
+}
+
+func (s *AuthService) ResendVerifyLink(req *ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
+	userID, verified, err := s.userRepo.GetUserIdAndVerifiedByEmail(req.Email, nil)
+	if err != nil || userID == nil {
+		return "", false, err
+	}
+
+	if !verified {
+		verificationToken, err := setVerificationToken(*userID, s.userRepo)
+		if err != nil {
+			return "", false, err
+		}
+
+		if config.GetActiveProfile() != c.EnvProd {
+			return config.GetConfig().DomainURL + "/auth/verify-account?verification_token=" + verificationToken, false, nil
 		}
 	}
 
-	return &HealthResponse{
-		ServerStatus: "healthy",
-		DBStatus:     dbStatus,
-		Timestamp:    time.Now().UTC().Format(time.RFC3339),
-	}
+	return "", verified, nil
 }
 
 func createLoginResponse(user *user.User, userRepo *user.UserRepository, jwtSecret string) (*LoginResponse, error) {
@@ -252,7 +268,7 @@ func createLoginResponse(user *user.User, userRepo *user.UserRepository, jwtSecr
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewRefreshToken()
+	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.RefreshTokenExpiryHours)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -287,6 +303,23 @@ func createRegisterResponse(user *user.User, userRepo *user.UserRepository, role
 	}
 
 	return createdUser, nil
+}
+
+func setVerificationToken(userID uint, userRepo *user.UserRepository) (string, error) {
+	verificationToken, expiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.VerificationTokenExpiryHours)
+	if err != nil {
+		l.Logger.Error("❌ Failed to generate verification token", "method", "Register", "error", err, "userID", userID)
+		return "", errors.New("Failed to generate verification token")
+	}
+
+	if verificationToken != "" {
+		if err := userRepo.SetVerifiedAndVerificationToken(userID, false, &verificationToken, &expiresAt); err != nil {
+			l.Logger.Error("❌ Failed to set verification token", "method", "Register", "error", err, "userID", userID)
+			return "", errors.New("Failed to set verification token")
+		}
+	}
+
+	return verificationToken, nil
 }
 
 func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl *string, err error) {
@@ -363,71 +396,4 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 
 	l.Logger.Info("Image uploaded successfully", "path_key", response.PathKey, "method", "getProfilePicPathKeyFromImageUrl")
 	return &response.PathKey
-}
-
-func HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request) {
-	if config.GetActiveProfile() != c.EnvProd {
-		authType := r.URL.Query().Get("auth_type")
-
-		switch authType {
-		case c.AuthTypeGoogle:
-			conf := &oauth2.Config{
-				ClientID:     config.GetConfig().GoogleClientID,
-				ClientSecret: "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",
-				RedirectURL:  fmt.Sprintf("http://localhost:8080/auth/social-flow/callback?auth_type=%s", authType),
-				Scopes:       []string{"openid", "email", "profile"},
-				Endpoint:     google.Endpoint,
-			}
-
-			url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
-			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-
-		case c.AuthTypeFacebook:
-
-		}
-	}
-}
-
-func HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *http.Request) {
-	if config.GetActiveProfile() != c.EnvProd {
-		authType := r.URL.Query().Get("auth_type")
-
-		switch authType {
-		case c.AuthTypeGoogle:
-
-			code := r.URL.Query().Get("code")
-			if code == "" {
-				http.Error(w, "Missing authorization code", http.StatusBadRequest)
-				return
-			}
-
-			clientID := "437959137905-1oo0b6bj64tq4ji57hkb52l5epc29729.apps.googleusercontent.com"
-			clientSecret := "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"
-			redirectURL := fmt.Sprintf("http://localhost:8080/auth/social-flow/callback?auth_type=%s", authType)
-
-			conf := &oauth2.Config{
-				ClientID:     clientID,
-				ClientSecret: clientSecret,
-				RedirectURL:  redirectURL,
-				Scopes:       []string{"openid", "email", "profile"},
-				Endpoint:     google.Endpoint,
-			}
-
-			token, err := conf.Exchange(context.Background(), code)
-			if err != nil {
-				http.Error(w, "Token exchange failed: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			idToken, ok := token.Extra("id_token").(string)
-			if !ok {
-				http.Error(w, "No ID token in response", http.StatusInternalServerError)
-				return
-			}
-			fmt.Fprintf(w, "ID Token: %s", idToken)
-
-		case c.AuthTypeFacebook:
-
-		}
-	}
 }

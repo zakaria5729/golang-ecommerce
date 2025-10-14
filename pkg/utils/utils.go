@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -293,8 +294,7 @@ func ExtractPathParam(path, prefix string) string {
 	return ""
 }
 
-func BuildFullImageURL(pathKey *string) *string {
-	publicDomain := config.GetPublicDomain()
+func BuildFullImageURL(publicDomain string, pathKey *string) *string {
 	if pathKey == nil || *pathKey == "" || publicDomain == "" {
 		return nil
 	}
@@ -331,4 +331,9 @@ func HashPassword(password string) (error, string) {
 func CheckPassword(password string, hashedPassword string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
+}
+
+func GetProjectRootPath() string {
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(filename), "..", "..")
 }

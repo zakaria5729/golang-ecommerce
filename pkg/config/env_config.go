@@ -32,7 +32,7 @@ func GetConfig() *Config {
 }
 
 func GetActiveProfile() string {
-	return getEnv(c.EnvKeyActiveProfile, c.EnvStage)
+	return getEnv(c.EnvKeyActiveProfile, c.EnvDev)
 }
 
 func loadConfig() *Config {
@@ -46,6 +46,7 @@ func loadConfig() *Config {
 		c.EnvKeyDBSSLMode,
 		c.EnvKeyDBShowLog,
 		c.EnvKeyJWTSecret,
+		c.EnvKeyDomainURL,
 		c.EnvKeyFcmServerKey,
 		c.EnvKeyFcmUrl,
 		c.EnvKeyGoogleClientID,
@@ -88,6 +89,7 @@ func loadConfig() *Config {
 		DBSSLMode:          getEnvWithPanic(c.EnvKeyDBSSLMode),
 		DBShowLog:          getEnvWithPanic(c.EnvKeyDBShowLog),
 		JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
+		DomainURL:          getEnv(c.EnvKeyDomainURL, ""),
 		FcmServerKey:       getEnv(c.EnvKeyJWTSecret, ""),
 		FcmUrl:             getEnv(c.EnvKeyJWTSecret, ""),
 		GoogleClientID:     getEnv(c.EnvKeyGoogleClientID, ""),
@@ -108,9 +110,8 @@ func loadConfig() *Config {
 	return config
 }
 
-func GetPublicDomain() string {
-	config := GetConfig()
-	publicDomain := config.ObjStore.PublicDomain
+func GetStorageDomain() string {
+	publicDomain := GetConfig().ObjStore.PublicDomain
 	if publicDomain == "" {
 		publicDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
 	}

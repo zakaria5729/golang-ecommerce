@@ -65,6 +65,8 @@ const (
 	UsersCapitalized                string = "Users"
 	UserPurchaseCount               string = "purchase_count"
 	UserTotalSpent                  string = "total_spent"
+	UserVerificationToken           string = "verification_token"
+	UserVerificationExpires         string = "verification_expires"
 )
 
 const (

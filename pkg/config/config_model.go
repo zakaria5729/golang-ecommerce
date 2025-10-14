@@ -12,6 +12,7 @@ type Config struct {
 	JWTSecret          string
 	SuperAdminEmail    string
 	SuperAdminPassword string
+	DomainURL          string
 	FcmServerKey       string
 	FcmUrl             string
 	GoogleClientID     string

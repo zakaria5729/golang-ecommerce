@@ -1,6 +1,7 @@
 package category
 
 import (
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -39,6 +40,6 @@ func (c *Category) ToResponse() *CategoryResponse {
 		SubTitle:  c.SubTitle,
 		ParentID:  c.ParentID,
 		Priority:  c.Priority,
-		ImageURL:  utils.BuildFullImageURL(c.PathKey),
+		ImageURL:  utils.BuildFullImageURL(config.GetStorageDomain(), c.PathKey),
 	}
 }

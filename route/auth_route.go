@@ -18,8 +18,6 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 	service := auth.NewAuthService(cfg.JWTSecret, userRepo, roleRepo)
 	h := auth.NewAuthHandler(service)
 
-	r.POST("/app-health", h.AppHealthCheck).Register()
-
 	r.POST("/auth/login", h.Login).Register()
 
 	r.POST("/auth/social-login", h.SocialLogin).Register()
@@ -28,12 +26,13 @@ func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
 
 	r.POST("/auth/logout/user/{user_id}", h.Logout).Register()
 
-	r.POST("/auth/refresh-token", h.RefreshToken).Register()
-
 	r.POST("/auth/forgot-password", h.ForgotPassword).Register()
 
 	r.POST("/auth/reset-password", h.ResetPassword).Register()
 
-	r.GET("/auth/social-flow", auth.HandleSocialFlowTemp).Register()
-	r.GET("/auth/social-flow/callback", auth.HandleSocialFlowCallbackTemp).Register()
+	r.POST("/auth/refresh-token", h.RefreshToken).Register()
+
+	r.POST("/auth/resend-verify-link", h.ResendVerifyLink).Register()
+
+	r.GET("/auth/verify-account", h.VerifyAccount).Register()
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/easy-comerce/backend/internal/role"
+	"github.com/easy-comerce/backend/pkg/config"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -14,9 +15,11 @@ import (
 type User struct {
 	models.BaseModel
 	PasswordResetExpires *time.Time  `gorm:"column:password_reset_expires"`
+	VerificationExpires  *time.Time  `gorm:"column:verification_expires"`
 	RefreshTokenExpires  *time.Time  `gorm:"column:refresh_token_expires"`
 	LastLoginAt          *time.Time  `gorm:"column:last_login_at"`
 	PasswordResetToken   *string     `gorm:"column:password_reset_token"`
+	VerificationToken    *string     `gorm:"column:verification_token"`
 	RefreshToken         *string     `gorm:"column:refresh_token"`
 	PathKey              *string     `gorm:"column:path_key"`
 	Roles                []role.Role `gorm:"many2many:user_roles;"`
@@ -62,7 +65,7 @@ func (u *User) ToResponse() *UserResponse {
 	return &UserResponse{
 		BaseModel:     u.BaseModel,
 		LastLoginAt:   u.LastLoginAt,
-		ImageURL:      utils.BuildFullImageURL(u.PathKey),
+		ImageURL:      utils.BuildFullImageURL(config.GetStorageDomain(), u.PathKey),
 		Roles:         u.Roles,
 		Email:         u.Email,
 		Name:          u.Name,

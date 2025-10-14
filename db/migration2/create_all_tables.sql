@@ -1,3 +1,6 @@
+ALTER DATABASE easy_commerce SET timezone TO 'UTC';
+SHOW timezone;
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     verified BOOLEAN DEFAULT FALSE,

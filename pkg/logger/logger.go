@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	"github.com/easy-comerce/backend/pkg/timeutil"
+	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 
 func init() {
 	once.Do(func() {
-		logsDir := getProjectRoot() + "/logs"
+		logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
 		if err := os.MkdirAll(logsDir, 0755); err != nil {
 			panic(fmt.Sprintf("Failed to create log directory: %v", err))
 		}
@@ -39,12 +39,6 @@ func init() {
 
 func getLogFileName() string {
 	today := timeutil.NowUTC().Format("2006-01-02")
-	logsDir := getProjectRoot() + "/logs"
+	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
 	return filepath.Join(logsDir, fmt.Sprintf("app-%s.log", today))
-}
-
-func getProjectRoot() string {
-	_, filename, _, _ := runtime.Caller(0)
-	// Go up from pkg/logger/logger.go to project root
-	return filepath.Join(filepath.Dir(filename), "..", "..")
 }

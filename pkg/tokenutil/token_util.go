@@ -28,13 +28,13 @@ func GenerateNewToken(isFallback ...bool) (string, error) {
 	return fmt.Sprintf("%x%x", ts, randBytes), nil
 }
 
-func GenerateNewRefreshToken() (string, time.Time, error) {
+func GenerateNewTokenWithExpiryTime(expiryHours int) (string, time.Time, error) {
 	token, err := GenerateNewToken(true)
 	if err != nil {
 		return "", time.Time{}, err
 	}
 
-	expiresAt := timeutil.AddHoursUTC(constants.RefreshTokenExpiryHours)
+	expiresAt := timeutil.AddHoursUTC(expiryHours)
 	return token, expiresAt, nil
 }
 

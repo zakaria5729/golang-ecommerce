@@ -6,7 +6,7 @@ const (
 	UserContextKey             StringKey = "user"
 	UserIDContextKey           StringKey = "user_id"
 	ObjStoreProviderR2         string    = "cloudflare_r2"
-	ProjectName                string    = "easy-comerce"
+	ProjectName                string    = "Easy-Commerce"
 	AppHealthCheckToken        string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
 	SocialLoginDefaultPassword string    = "social@login#password"
 )
@@ -17,6 +17,7 @@ const (
 )
 
 const (
+	EnvKeyDomainURL      string = "DOMAIN_URL"
 	EnvKeyJWTSecret      string = "JWT_SECRET"
 	EnvKeyFcmUrl         string = "FCM_URL"
 	EnvKeyFcmServerKey   string = "FCM_SERVER_KEY"
@@ -27,6 +28,7 @@ const (
 const (
 	AccessTokenExpiryHours        int = 24
 	RefreshTokenExpiryHours       int = 48
+	VerificationTokenExpiryHours  int = 6
 	PasswordResetTokenExpiryHours int = 6
 )
 

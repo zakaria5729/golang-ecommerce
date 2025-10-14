@@ -9,13 +9,14 @@ import (
 
 type UserResponse struct {
 	models.BaseModel
-	LastLoginAt   *time.Time  `json:"last_login_at"`
-	ImageURL      *string     `json:"image_url"`
-	Roles         []role.Role `json:"roles"`
-	Email         string      `json:"email"`
-	Name          string      `json:"name"`
-	Verified      bool        `json:"verified"`
-	Banned        bool        `json:"banned"`
-	PurchaseCount uint        `json:"purchase_count"`
-	TotalSpent    float64     `json:"total_spent"`
+	LastLoginAt      *time.Time  `json:"last_login_at"`
+	ImageURL         *string     `json:"image_url"`
+	Roles            []role.Role `json:"roles"`
+	Email            string      `json:"email"`
+	Name             string      `json:"name"`
+	Verified         bool        `json:"verified"`
+	Banned           bool        `json:"banned"`
+	PurchaseCount    uint        `json:"purchase_count"`
+	TotalSpent       float64     `json:"total_spent"`
+	VerificationLink *string     `json:"verification_link,omitempty"`
 }

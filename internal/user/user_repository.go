@@ -296,6 +296,23 @@ func (r *UserRepository) GetUserEmail(id uint, showDeleted *bool) (*string, erro
 	return &user.Email, nil
 }
 
+func (r *UserRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *bool) (*uint, bool, error) {
+	var user User
+	query := r.db.Model(&User{}).Where(c.UserEmail+" = ?", email)
+
+	if showDeleted != nil && *showDeleted {
+		query = query.Unscoped()
+	}
+
+	err := query.Select(c.FieldID, c.UserEmail, c.UserVerified).Take(&user).Error
+	if err != nil {
+		l.Logger.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "email", email)
+		return nil, false, err
+	}
+
+	return &user.ID, user.Verified, nil
+}
+
 func (r *UserRepository) IsUserExists(email string) (bool, error) {
 	var user User
 
@@ -391,15 +408,54 @@ func (r *UserRepository) SetRefreshToken(userID uint, token *string, expiresAt *
 	if err != nil {
 		l.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
 	}
+
 	return err
 }
 
-func (r *UserRepository) GetUserByRefreshToken(token string) (*User, error) {
+func (r *UserRepository) SetVerifiedAndVerificationToken(userID uint, verified bool, token *string, expiresAt *time.Time) error {
+	user := &User{
+		VerificationToken:   token,
+		VerificationExpires: expiresAt,
+		Verified:            verified,
+	}
+
+	err := r.db.Model(&User{}).Select(c.UserVerificationToken, c.UserVerificationExpires, c.UserVerified).Where(c.FieldID+" = ?", userID).Updates(user).Error
+	if err != nil {
+		l.Logger.Error("Failed to set verified and verification token", "method", "SetVerifiedAndVerificationToken", "error", err, "userID", userID, "verified", verified)
+	}
+
+	return err
+}
+
+func (r *UserRepository) GetUserByVerificationToken(token string) (*uint, error) {
+	if token == "" {
+		return nil, errors.New("verification token is required")
+	}
+
 	var user User
+	expiry := timeutil.AddHoursUTC(c.VerificationTokenExpiryHours)
 
 	if err := r.db.Model(&User{}).
-		Preload(c.UserRolesCapitalized).
-		Where(c.UserRefreshToken+" = ? AND "+c.UserRefreshTokenExpires+" > ?", token, timeutil.NowUTC()).
+		Select(c.FieldID).
+		Where(c.UserVerificationToken+" = ? AND "+c.UserVerificationExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
+		First(&user).Error; err != nil {
+		l.Logger.Error("❌ Failed to fetch user by verification token", "method", "GetUserByVerificationToken", "error", err, "token", token)
+		return nil, err
+	}
+
+	return &user.ID, nil
+}
+
+func (r *UserRepository) GetUserByRefreshToken(token string) (*User, error) {
+	if token == "" {
+		return nil, errors.New("refresh token is required")
+	}
+
+	var user User
+	expiry := timeutil.AddHoursUTC(c.RefreshTokenExpiryHours)
+
+	if err := r.db.Model(&User{}).Preload(c.UserRolesCapitalized).
+		Where(c.UserRefreshToken+" = ? AND "+c.UserRefreshTokenExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
 		First(&user).Error; err != nil {
 		l.Logger.Error("❌ Failed to fetch user by refresh token", "method", "GetUserByRefreshToken", "error", err, "token", token)
 		return nil, err

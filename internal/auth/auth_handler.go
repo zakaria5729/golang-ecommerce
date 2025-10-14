@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"html/template"
 	"net/http"
+	"path/filepath"
 
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -18,21 +21,6 @@ func NewAuthHandler(service *AuthService) *AuthHandler {
 	return &AuthHandler{
 		service: service,
 	}
-}
-
-func (h *AuthHandler) AppHealthCheck(w http.ResponseWriter, r *http.Request) {
-	var req AppHealthRequest
-	if !utils.DecodeJSON(w, r, &req, "AppHealthCheck") {
-		return
-	}
-
-	if req.HealthToken != nil && *req.HealthToken == c.AppHealthCheckToken {
-		healthResponse := h.service.HealthCheck(r.Context())
-		response.SendResponse(w, healthResponse, nil, http.StatusOK)
-		return
-	}
-
-	response.SendErrorJSON(w, "Invalid health token", http.StatusForbidden)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -76,8 +64,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.Register(&req)
-	response.SendResponse(w, user, err, http.StatusCreated)
+	userResponse, err := h.service.Register(&req)
+	var msg string
+
+	if err == nil {
+		msg = "Account created. We sent a verification link to your email to verify your account."
+	}
+	if userResponse.VerificationLink != nil {
+		msg += " Verification link: " + *userResponse.VerificationLink
+	}
+	response.SendResponse(w, msg, err, http.StatusInternalServerError)
 }
 
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +136,72 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Logged out successfully", err, http.StatusInternalServerError)
 }
 
+func (h *AuthHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
+	var req ResendVerifyLinkRequest
+	if !utils.DecodeJSON(w, r, &req, "ResendVerifyLink") {
+		return
+	}
+
+	if validationErrors := validateResendVerifyLinkRequest(&req); len(validationErrors) > 0 {
+		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
+		return
+	}
+
+	verificationLink, verified, err := h.service.ResendVerifyLink(&req)
+	if verified {
+		response.SendErrorJSON(w, "Account already verified!", http.StatusBadRequest)
+		return
+	}
+
+	var msg string
+	if err == nil {
+		msg = " We sent a verification link to your email to verify your account."
+	}
+
+	if verificationLink != "" {
+		msg += " Verification link: " + verificationLink
+	}
+	response.SendResponse(w, msg, err, http.StatusInternalServerError)
+}
+
+func (h *AuthHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
+	verificationToken := r.URL.Query().Get(c.UserVerificationToken)
+	if verificationToken == "" {
+		renderVerificationTemplate(w, false, "Verification token is required")
+		return
+	}
+
+	err := h.service.VerifyEmail(verificationToken)
+	if err != nil {
+		renderVerificationTemplate(w, false, "Invalid or expired verification token")
+		return
+	}
+
+	renderVerificationTemplate(w, true, "Your account is verified! You can now login.")
+}
+
+func renderVerificationTemplate(w http.ResponseWriter, success bool, message string) {
+	templatePath := filepath.Join(utils.GetProjectRootPath(), "templates", "account_verification.html")
+	tmpl, err := template.ParseFiles(templatePath)
+	if err != nil {
+		l.Logger.Error("❌ Failed to parse template", "method", "renderVerificationTemplate", "error", err, "templatePath", templatePath)
+		http.Error(w, "Error loading template", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]any{
+		"Success":     success,
+		"Message":     message,
+		"ProjectName": c.ProjectName,
+	}
+
+	w.Header().Set(c.ContentType, "text/html")
+	if err := tmpl.Execute(w, data); err != nil {
+		l.Logger.Error("❌ Failed to execute template", "method", "renderVerificationTemplate", "error", err)
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+	}
+}
+
 func validateRefreshTokenRequest(req *RefreshTokenRequest) validator.ValidationErrors {
 	return validator.ValidateRequired(req.RefreshToken, "refresh_token")
 }
@@ -178,5 +240,9 @@ func validateResetPasswordRequest(req *ResetPasswordRequest) validator.Validatio
 }
 
 func validateForgotPasswordRequest(req *ForgotPasswordRequest) validator.ValidationErrors {
+	return validator.ValidateRequired(req.Email, "email")
+}
+
+func validateResendVerifyLinkRequest(req *ResendVerifyLinkRequest) validator.ValidationErrors {
 	return validator.ValidateRequired(req.Email, "email")
 }
