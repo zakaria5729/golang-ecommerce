@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -32,7 +32,7 @@ func GetConfig() *Config {
 }
 
 func GetActiveProfile() string {
-	return getEnv(c.EnvKeyActiveProfile, c.EnvDev)
+	return getEnv(c.EnvKeyActiveProfile, c.EnvStage)
 }
 
 func loadConfig() *Config {
@@ -60,9 +60,6 @@ func loadConfig() *Config {
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
 	}
-	_, filename, _, _ := runtime.Caller(0)
-	projectRoot := filepath.Join(filepath.Dir(filename), "..", "..")
-
 	var envFileName string
 	switch GetActiveProfile() {
 	case c.EnvStage:
@@ -73,7 +70,7 @@ func loadConfig() *Config {
 		envFileName = ".env.dev"
 	}
 
-	envPath := filepath.Join(projectRoot, envFileName)
+	envPath := filepath.Join(utils.GetProjectRootPath(), envFileName)
 	err := godotenv.Load(envPath)
 	if err != nil {
 		l.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
@@ -111,11 +108,11 @@ func loadConfig() *Config {
 }
 
 func GetStorageDomain() string {
-	publicDomain := GetConfig().ObjStore.PublicDomain
-	if publicDomain == "" {
-		publicDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
+	storageDomain := GetConfig().ObjStore.PublicDomain
+	if storageDomain == "" {
+		storageDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
 	}
-	return publicDomain
+	return storageDomain
 }
 
 func getEnvWithPanic(key string) string {
