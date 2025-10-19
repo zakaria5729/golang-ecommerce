@@ -3,6 +3,8 @@ package size_category
 import (
 	"errors"
 	"fmt"
+
+	m "github.com/easy-comerce/backend/internal/size_category/model"
 )
 
 type SizeCategoryService struct {
@@ -15,7 +17,7 @@ func NewSizeCategoryService(repo *SizeCategoryRepository) *SizeCategoryService {
 	}
 }
 
-func (s *SizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategory, error) {
+func (s *SizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error) {
 	sizeCategories, err := s.repo.GetAllSizeCategories(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch size categories: %w", err)
@@ -24,7 +26,7 @@ func (s *SizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, so
 	return sizeCategories, nil
 }
 
-func (s *SizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategory, error) {
+func (s *SizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error) {
 	sizeCategory, err := s.repo.GetSizeCategoryByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("size category not found: %w", err)
@@ -33,7 +35,7 @@ func (s *SizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*
 	return sizeCategory, nil
 }
 
-func (s *SizeCategoryService) CreateSizeCategory(req *CreateSizeCategoryRequest) (*SizeCategory, error) {
+func (s *SizeCategoryService) CreateSizeCategory(req *m.CreateSizeCategoryRequest) (*SizeCategoryEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.repo.SizeCategoryExistsByName(req.Name)
@@ -44,7 +46,7 @@ func (s *SizeCategoryService) CreateSizeCategory(req *CreateSizeCategoryRequest)
 		return nil, errors.New("size category with this name already exists")
 	}
 
-	sizeCategory := &SizeCategory{
+	sizeCategory := &SizeCategoryEntity{
 		Name: req.Name,
 	}
 
@@ -56,7 +58,7 @@ func (s *SizeCategoryService) CreateSizeCategory(req *CreateSizeCategoryRequest)
 	return sizeCategory, nil
 }
 
-func (s *SizeCategoryService) UpdateSizeCategory(id uint, req *UpdateSizeCategoryRequest) (*SizeCategory, error) {
+func (s *SizeCategoryService) UpdateSizeCategory(id uint, req *m.UpdateSizeCategoryRequest) (*SizeCategoryEntity, error) {
 	req.Sanitize()
 
 	existingSizeCategory, err := s.repo.GetSizeCategoryByID(id, nil)

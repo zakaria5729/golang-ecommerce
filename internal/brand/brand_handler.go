@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/brand/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *BrandHandler) GetBrandByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BrandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
-	var req CreateBrandRequest
+	var req m.CreateBrandRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateBrand") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *BrandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateBrandRequest
+	var req m.UpdateBrandRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateBrand") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *BrandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) 
 	response.SendResponse(w, "Brand restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllBrandsData(r *http.Request, showDeleted *bool, service *BrandService) (error, []Brand) {
+func getAllBrandsData(r *http.Request, showDeleted *bool, service *BrandService) (error, []BrandEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -113,7 +114,7 @@ func getAllBrandsData(r *http.Request, showDeleted *bool, service *BrandService)
 	return nil, brands
 }
 
-func getBrandDataById(r *http.Request, showDeleted *bool, service *BrandService) (error, *Brand) {
+func getBrandDataById(r *http.Request, showDeleted *bool, service *BrandService) (error, *BrandEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid brand ID"), nil
@@ -127,7 +128,7 @@ func getBrandDataById(r *http.Request, showDeleted *bool, service *BrandService)
 	return nil, brand
 }
 
-func validateCreateBrandRequest(req *CreateBrandRequest) validator.ValidationErrors {
+func validateCreateBrandRequest(req *m.CreateBrandRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -135,7 +136,7 @@ func validateCreateBrandRequest(req *CreateBrandRequest) validator.ValidationErr
 	)
 }
 
-func validateUpdateBrandRequest(req *UpdateBrandRequest) validator.ValidationErrors {
+func validateUpdateBrandRequest(req *m.UpdateBrandRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

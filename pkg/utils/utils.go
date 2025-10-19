@@ -12,8 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/models"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -99,7 +98,7 @@ func ParseStringPtr(s string) *string {
 
 func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 	page = 1
-	pageSize = constants.DefaultPageSize
+	pageSize = c.DefaultPageSize
 
 	if pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -108,11 +107,11 @@ func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 	}
 
 	if pageSizeStr != "" {
-		if l, err := strconv.Atoi(pageSizeStr); err == nil && l > 0 && l <= constants.MaxPageSize {
+		if l, err := strconv.Atoi(pageSizeStr); err == nil && l > 0 && l <= c.MaxPageSize {
 			pageSize = l
 		}
-		if pageSize > constants.MaxPageSize {
-			pageSize = constants.MaxPageSize
+		if pageSize > c.MaxPageSize {
+			pageSize = c.MaxPageSize
 		}
 	}
 
@@ -137,12 +136,12 @@ func CalculatePagination(total, page, pageSize int) (totalPages, offset int) {
 	return totalPages, offset
 }
 
-func BuildPaginatedResponse(data any, total, page, pageSize int) *models.PaginatedResponse {
+func BuildPaginatedResponse(data any, total, page, pageSize int) *response.PaginatedResponse {
 	totalPages, _ := CalculatePagination(total, page, pageSize)
 
-	return &models.PaginatedResponse{
+	return &response.PaginatedResponse{
 		Data: data,
-		Pagination: models.PaginationMeta{
+		Pagination: response.PaginationMeta{
 			Page:          page,
 			PageSize:      pageSize,
 			TotalElements: total,
@@ -157,7 +156,7 @@ func BuildSelectFields(defaultFields []string, optionalFields []string, include 
 	includeAll := false
 
 	for _, field := range include {
-		if strings.ToLower(field) == constants.All {
+		if strings.ToLower(field) == c.All {
 			includeAll = true
 			break
 		}
@@ -190,9 +189,9 @@ func BuildSortingOrder(sortBy string, sortOrder string, fields *[]string) string
 	}
 
 	allowedFields := map[string]bool{
-		constants.FieldID:        true,
-		constants.FieldCreatedAt: true,
-		constants.FieldUpdatedAt: true,
+		c.FieldID:        true,
+		c.FieldCreatedAt: true,
+		c.FieldUpdatedAt: true,
 	}
 
 	if fields != nil && len(*fields) > 0 {
@@ -205,11 +204,11 @@ func BuildSortingOrder(sortBy string, sortOrder string, fields *[]string) string
 		return ""
 	}
 
-	if strings.EqualFold(sortOrder, constants.SortOrderDesc) {
-		return sortBy + " " + constants.SortOrderDesc
+	if strings.EqualFold(sortOrder, c.SortOrderDesc) {
+		return sortBy + " " + c.SortOrderDesc
 	}
 
-	return sortBy + " " + constants.SortOrderAsc
+	return sortBy + " " + c.SortOrderAsc
 }
 
 func GetOffset(page, pageSize int) int {

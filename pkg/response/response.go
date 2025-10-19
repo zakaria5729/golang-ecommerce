@@ -20,7 +20,7 @@ type Error struct {
 }
 
 func SendErrorJSON(w http.ResponseWriter, message string, statusCode ...int) {
-	code := http.StatusInternalServerError
+	code := http.StatusBadRequest
 	if len(statusCode) > 0 {
 		code = statusCode[0]
 	}

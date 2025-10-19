@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/easy-comerce/backend/internal/role"
+	"github.com/easy-comerce/backend/internal/user/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -26,8 +27,8 @@ func NewUserService(userRepo *UserRepository, roleRepo *role.RoleRepository) *Us
 	}
 }
 
-func (uc *UserService) UpdateProfile(userID uint, req *UpdateProfileRequest) error {
-	user := &User{
+func (uc *UserService) UpdateProfile(userID uint, req *model.UpdateProfileRequest) error {
+	user := &UserEntity{
 		Name: req.Name,
 	}
 
@@ -44,7 +45,7 @@ func (uc *UserService) UpdateProfile(userID uint, req *UpdateProfileRequest) err
 	return nil
 }
 
-func (uc *UserService) ChangePassword(userID uint, req *ChangePasswordRequest) error {
+func (uc *UserService) ChangePassword(userID uint, req *model.ChangePasswordRequest) error {
 	password, err := uc.userRepo.getUserPasswordByID(userID)
 	if err != nil {
 		return errors.New("Failed to verify user current password")
@@ -57,7 +58,7 @@ func (uc *UserService) ChangePassword(userID uint, req *ChangePasswordRequest) e
 	return nil
 }
 
-func (uc *UserService) GetAllUsersPaginated(includeStr string, showDeletedStr string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (uc *UserService) GetAllUsersPaginated(includeStr string, showDeletedStr string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
@@ -70,18 +71,18 @@ func (uc *UserService) GetAllUsersPaginated(includeStr string, showDeletedStr st
 	return utils.BuildPaginatedResponse(getUserResponses(users), total, page, pageSize), nil
 }
 
-func (uc *UserService) GetUserByID(userID uint, includeStr string, showDeletedStr string) (*UserResponse, error) {
+func (uc *UserService) GetUserByID(userID uint, includeStr string, showDeletedStr string) (*model.UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
 	user, err := uc.userRepo.GetUserByID(userID, include, showDeleted)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
 
 	return user.ToResponse(), nil
 }
 
-func (uc *UserService) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*User, error) {
+func (uc *UserService) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*UserEntity, error) {
 	if userID <= 0 {
 		return nil, errors.New("invalid user ID")
 	}
@@ -133,7 +134,7 @@ func (uc *UserService) UndoDeletedUser(ctx context.Context, userID uint) error {
 	return nil
 }
 
-func (uc *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (*UserResponse, error) {
+func (uc *UserService) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
 
@@ -142,10 +143,10 @@ func (uc *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (
 		return nil, errors.New("user with this email already exists")
 	}
 
-	user := &User{
+	user := &UserEntity{
 		Email:    req.Email,
-		Password: req.Password,
 		Name:     req.Name,
+		Password: req.Password,
 		Verified: req.Verified,
 		Banned:   req.Banned,
 	}
@@ -162,7 +163,7 @@ func (uc *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (
 		return nil, fmt.Errorf("no role found with this roleID: %w", err)
 	}
 
-	user.Roles = []role.Role{*fetchedRole}
+	user.Roles = []role.RoleEntity{*fetchedRole}
 	createdUser, err := uc.userRepo.CreateUser(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -171,7 +172,7 @@ func (uc *UserService) CreateUser(ctx context.Context, req *CreateUserRequest) (
 	return createdUser.ToResponse(), nil
 }
 
-func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *UpdateUserRequest) error {
+func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *model.UpdateUserRequest) error {
 	req.Name = utils.Trim(req.Name)
 	superAdminEmail := os.Getenv(c.EnvSuperAdminEmail)
 
@@ -191,7 +192,7 @@ func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *Updat
 		return errors.New("cannot update super admin user")
 	}
 
-	user := &User{
+	user := &UserEntity{
 		Name:     req.Name,
 		Verified: req.Verified,
 		Banned:   req.Banned,
@@ -214,8 +215,8 @@ func (uc *UserService) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchas
 	return nil
 }
 
-func getUserResponses(users []User) []UserResponse {
-	responses := make([]UserResponse, len(users))
+func getUserResponses(users []UserEntity) []model.UserResponse {
+	responses := make([]model.UserResponse, len(users))
 	for i, user := range users {
 		responses[i] = *user.ToResponse()
 	}

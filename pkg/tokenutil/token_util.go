@@ -8,13 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/easy-comerce/backend/internal/user"
-	"github.com/easy-comerce/backend/pkg/constants"
+	userEntity "github.com/easy-comerce/backend/internal/user"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type JwtClaims struct {
+	UserID   uint     `json:"user_id"`
+	Roles    []string `json:"roles"`
+	Email    string   `json:"email"`
+	Username string   `json:"username"`
+	jwt.RegisteredClaims
+}
 
 func GenerateNewToken(isFallback ...bool) (string, error) {
 	ts := time.Now().UnixNano()
@@ -38,8 +45,8 @@ func GenerateNewTokenWithExpiryTime(expiryHours int) (string, time.Time, error) 
 	return token, expiresAt, nil
 }
 
-func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &models.JwtClaims{}, func(token *jwt.Token) (any, error) {
+func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			l.Logger.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -51,7 +58,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 		return nil, err
 	}
 
-	claims, ok := token.Claims.(*models.JwtClaims)
+	claims, ok := token.Claims.(*JwtClaims)
 	if ok && token.Valid {
 		return claims, nil
 	}
@@ -64,9 +71,9 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*models.JwtClaims, er
 	return nil, errors.New("jwt token invalid")
 }
 
-func GenerateNewJwtToken(user *user.User, jwtSecret string) (string, int64, error) {
+func GenerateNewJwtToken(user *userEntity.UserEntity, jwtSecret string) (string, int64, error) {
 	now := timeutil.NowUTC()
-	expirationTime := timeutil.AddHoursUTC(constants.AccessTokenExpiryHours)
+	expirationTime := timeutil.AddHoursUTC(c.AccessTokenExpiryHours)
 	expiresAt := expirationTime.Unix()
 
 	var roleNames []string
@@ -74,7 +81,7 @@ func GenerateNewJwtToken(user *user.User, jwtSecret string) (string, int64, erro
 		roleNames = append(roleNames, role.RoleType)
 	}
 
-	claims := &models.JwtClaims{
+	claims := &JwtClaims{
 		UserID:   user.ID,
 		Email:    user.Email,
 		Roles:    roleNames,
@@ -83,7 +90,7 @@ func GenerateNewJwtToken(user *user.User, jwtSecret string) (string, int64, erro
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
-			Issuer:    constants.ProjectName,
+			Issuer:    c.ProjectName,
 			Subject:   fmt.Sprintf("%d", user.ID),
 		},
 	}
@@ -98,19 +105,19 @@ func GenerateNewJwtToken(user *user.User, jwtSecret string) (string, int64, erro
 }
 
 func ExtractJwtToken(r *http.Request) string {
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(c.Authorization)
 	if authHeader == "" {
 		return ""
 	}
 
 	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	if len(parts) != 2 || parts[0] != c.Bearer {
 		return ""
 	}
 	return parts[1]
 }
 
-func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*models.JwtClaims, error) {
+func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*JwtClaims, error) {
 	token := ExtractJwtToken(r)
 	if token == "" {
 		return nil, errors.New("no jwt token provided")

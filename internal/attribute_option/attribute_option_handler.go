@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/attribute_option/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *AttributeOptionHandler) GetAttributeOptionByID(w http.ResponseWriter, r
 }
 
 func (h *AttributeOptionHandler) CreateAttributeOption(w http.ResponseWriter, r *http.Request) {
-	var req CreateAttributeOptionRequest
+	var req m.CreateAttributeOptionRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateAttributeOption") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *AttributeOptionHandler) UpdateAttributeOption(w http.ResponseWriter, r 
 		return
 	}
 
-	var req UpdateAttributeOptionRequest
+	var req m.UpdateAttributeOptionRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateAttributeOption") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *AttributeOptionHandler) UndoDeletedAttributeOption(w http.ResponseWrite
 	response.SendResponse(w, "Attribute option restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllAttributeOptionsData(r *http.Request, showDeleted *bool, service *AttributeOptionService) (error, []AttributeOption) {
+func getAllAttributeOptionsData(r *http.Request, showDeleted *bool, service *AttributeOptionService) (error, []AttributeOptionEntity) {
 	q := r.URL.Query()
 	include := q.Get(c.Include)
 	attributeTypeID := q.Get("attribute_type_id")
@@ -115,7 +116,7 @@ func getAllAttributeOptionsData(r *http.Request, showDeleted *bool, service *Att
 	return nil, attributeOptions
 }
 
-func validateCreateAttributeOptionRequest(req *CreateAttributeOptionRequest) validator.ValidationErrors {
+func validateCreateAttributeOptionRequest(req *m.CreateAttributeOptionRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.AttributeTypeID, "attribute_type_id"),
 		validator.ValidateRequired(req.AttributeOptionName, "attribute_option_name"),
@@ -124,7 +125,7 @@ func validateCreateAttributeOptionRequest(req *CreateAttributeOptionRequest) val
 	)
 }
 
-func validateUpdateAttributeOptionRequest(req *UpdateAttributeOptionRequest) validator.ValidationErrors {
+func validateUpdateAttributeOptionRequest(req *m.UpdateAttributeOptionRequest) validator.ValidationErrors {
 	errors := validator.MergeValidationErrors(
 		validator.ValidateRequired(req.AttributeOptionName, "attribute_option_name"),
 		validator.ValidateMinLength(req.AttributeOptionName, "attribute_option_name", 2),

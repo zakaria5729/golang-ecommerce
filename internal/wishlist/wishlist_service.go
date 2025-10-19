@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -18,7 +18,7 @@ func NewWishlistService(repo *WishlistRepository) *WishlistService {
 	}
 }
 
-func (s *WishlistService) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *WishlistService) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	wishlists, total, err := s.repo.GetAllWishlistsPaginated(showDeleted, userID, productID, page, pageSize, sortBy, sortOrder)
 	if err != nil {
@@ -38,7 +38,7 @@ func (s *WishlistService) AddToWishlistsByUser(userID uint, productID uint) erro
 		return errors.New("product is already in wishlist")
 	}
 
-	wishlist := &Wishlist{
+	wishlist := &WishlistEntity{
 		UserID:    userID,
 		ProductID: productID,
 	}

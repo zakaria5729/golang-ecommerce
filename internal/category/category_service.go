@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
+	m "github.com/easy-comerce/backend/internal/category/model"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -20,7 +21,7 @@ func NewCategoryService(repo *CategoryRepository) *CategoryService {
 	}
 }
 
-func (s *CategoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, subcategoryDepthFilter string, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
+func (s *CategoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, subcategoryDepthFilter string, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error) {
 	subcategoryDepth, _ := utils.ParseInt(subcategoryDepthFilter)
 	categories, err := s.repo.GetAllCategoriesWithSubcategories(subcategoryDepth, showDeleted, sortBy, sortOrder)
 	if err != nil {
@@ -30,7 +31,7 @@ func (s *CategoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, s
 	return categories, nil
 }
 
-func (s *CategoryService) GetAllCategories(showDeleted *bool, parentIDFilter string, priorityLimitFilter string, sortBy, sortOrder string) ([]CategoryResponse, error) {
+func (s *CategoryService) GetAllCategories(showDeleted *bool, parentIDFilter string, priorityLimitFilter string, sortBy, sortOrder string) ([]m.CategoryResponse, error) {
 	parentID, _ := utils.ParseUint(parentIDFilter)
 	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
 
@@ -42,7 +43,7 @@ func (s *CategoryService) GetAllCategories(showDeleted *bool, parentIDFilter str
 	return getCategoryResponses(categories), nil
 }
 
-func (s *CategoryService) GetAllCategoriesPaginated(showDeleted *bool, parentIDFilter string, pageStr string, pageSizeStr string, priorityLimitFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *CategoryService) GetAllCategoriesPaginated(showDeleted *bool, parentIDFilter string, pageStr string, pageSizeStr string, priorityLimitFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	parentID, _ := utils.ParseUint(parentIDFilter)
 	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
@@ -55,7 +56,7 @@ func (s *CategoryService) GetAllCategoriesPaginated(showDeleted *bool, parentIDF
 	return utils.BuildPaginatedResponse(getCategoryResponses(categories), total, page, pageSize), nil
 }
 
-func (s *CategoryService) GetCategoryByID(id uint, showDeleted *bool) (*CategoryResponse, error) {
+func (s *CategoryService) GetCategoryByID(id uint, showDeleted *bool) (*m.CategoryResponse, error) {
 	category, err := s.repo.GetCategoryByID(id, showDeleted)
 
 	if err != nil {
@@ -65,8 +66,8 @@ func (s *CategoryService) GetCategoryByID(id uint, showDeleted *bool) (*Category
 	return category.ToResponse(), nil
 }
 
-func (s *CategoryService) CreateCategory(ctx context.Context, req *CreateCategoryRequest) (*CategoryResponse, error) {
-	category := &Category{
+func (s *CategoryService) CreateCategory(ctx context.Context, req *m.CreateCategoryRequest) (*m.CategoryResponse, error) {
+	category := &CategoryEntity{
 		Title:    req.Title,
 		SubTitle: req.SubTitle,
 		ParentID: req.ParentID,
@@ -103,7 +104,7 @@ func (s *CategoryService) CreateCategory(ctx context.Context, req *CreateCategor
 	return createdCategory.ToResponse(), nil
 }
 
-func (s *CategoryService) UpdateCategory(ctx context.Context, id uint, req *UpdateCategoryRequest) (*CategoryResponse, error) {
+func (s *CategoryService) UpdateCategory(ctx context.Context, id uint, req *m.UpdateCategoryRequest) (*m.CategoryResponse, error) {
 	existingCategory, err := s.repo.GetCategoryByID(id, nil)
 	if err != nil || existingCategory == nil {
 		return nil, fmt.Errorf("category not found with category ID: %w", err)
@@ -193,8 +194,8 @@ func (s *CategoryService) IncrementPriority(categoryID uint) error {
 	return nil
 }
 
-func getCategoryResponses(categories []Category) []CategoryResponse {
-	responses := make([]CategoryResponse, len(categories))
+func getCategoryResponses(categories []CategoryEntity) []m.CategoryResponse {
+	responses := make([]m.CategoryResponse, len(categories))
 	for i, cat := range categories {
 		responses[i] = *cat.ToResponse()
 	}

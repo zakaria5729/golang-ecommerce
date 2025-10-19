@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/system/model"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -21,7 +22,7 @@ func NewSystemHandler(service *SystemService) *SystemHandler {
 }
 
 func (h *SystemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request) {
-	var req SystemHealthRequest
+	var req m.SystemHealthRequest
 	if !utils.DecodeJSON(w, r, &req, "SystemHealthCheck") {
 		return
 	}
@@ -77,7 +78,7 @@ func (h *SystemHandler) HandleSocialFlowTemp(w http.ResponseWriter, r *http.Requ
 		case c.AuthTypeGoogle:
 			h.service.HandleGoogleLoginTemp(w, r)
 		case c.AuthTypeFacebook:
-			// h.service.HandleFacebookLoginTemp(w, r)
+			h.service.HandleFacebookLoginTemp(w, r)
 		}
 	}
 }
@@ -90,7 +91,7 @@ func (h *SystemHandler) HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *h
 		case c.AuthTypeGoogle:
 			h.service.HandleGoogleLoginCallbackTemp(w, r)
 		case c.AuthTypeFacebook:
-			// h.service.HandleFacebookLoginTemp(w, r)
+			h.service.HandleFacebookLoginCallbackTemp(w, r)
 		}
 	}
 }

@@ -3,6 +3,8 @@ package color
 import (
 	"errors"
 	"fmt"
+
+	m "github.com/easy-comerce/backend/internal/color/model"
 )
 
 type ColorService struct {
@@ -15,7 +17,7 @@ func NewColorService(repo *ColorRepository) *ColorService {
 	}
 }
 
-func (s *ColorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]Color, error) {
+func (s *ColorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]ColorEntity, error) {
 	colors, err := s.colorRepo.GetAllColors(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch colors: %w", err)
@@ -24,7 +26,7 @@ func (s *ColorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string)
 	return colors, nil
 }
 
-func (s *ColorService) GetColorByID(id uint, showDeleted *bool) (*Color, error) {
+func (s *ColorService) GetColorByID(id uint, showDeleted *bool) (*ColorEntity, error) {
 	color, err := s.colorRepo.GetColorByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("color not found: %w", err)
@@ -33,7 +35,7 @@ func (s *ColorService) GetColorByID(id uint, showDeleted *bool) (*Color, error) 
 	return color, nil
 }
 
-func (s *ColorService) CreateColor(req *CreateColorRequest) (*Color, error) {
+func (s *ColorService) CreateColor(req *m.CreateColorRequest) (*ColorEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.colorRepo.ColorExistsByName(req.Name)
@@ -44,7 +46,7 @@ func (s *ColorService) CreateColor(req *CreateColorRequest) (*Color, error) {
 		return nil, errors.New("color with this name already exists")
 	}
 
-	color := &Color{
+	color := &ColorEntity{
 		Name: req.Name,
 	}
 
@@ -56,7 +58,7 @@ func (s *ColorService) CreateColor(req *CreateColorRequest) (*Color, error) {
 	return color, nil
 }
 
-func (s *ColorService) UpdateColor(id uint, req *UpdateColorRequest) (*Color, error) {
+func (s *ColorService) UpdateColor(id uint, req *m.UpdateColorRequest) (*ColorEntity, error) {
 	req.Sanitize()
 
 	existingColor, err := s.colorRepo.GetColorByID(id, nil)

@@ -17,9 +17,9 @@ func NewColorRepository(db *gorm.DB) *ColorRepository {
 	}
 }
 
-func (r *ColorRepository) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]Color, error) {
-	var colors []Color
-	query := r.db.Model(&Color{})
+func (r *ColorRepository) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]ColorEntity, error) {
+	var colors []ColorEntity
+	query := r.db.Model(&ColorEntity{})
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
@@ -37,9 +37,9 @@ func (r *ColorRepository) GetAllColors(showDeleted *bool, sortBy, sortOrder stri
 	return colors, err
 }
 
-func (r *ColorRepository) GetColorByID(id uint, showDeleted *bool) (*Color, error) {
-	var color Color
-	query := r.db.Model(&Color{})
+func (r *ColorRepository) GetColorByID(id uint, showDeleted *bool) (*ColorEntity, error) {
+	var color ColorEntity
+	query := r.db.Model(&ColorEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -53,7 +53,7 @@ func (r *ColorRepository) GetColorByID(id uint, showDeleted *bool) (*Color, erro
 	return &color, nil
 }
 
-func (r *ColorRepository) CreateColor(color *Color) (*Color, error) {
+func (r *ColorRepository) CreateColor(color *ColorEntity) (*ColorEntity, error) {
 	err := r.db.Create(color).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create color", "method", "CreateColor", "error", err, "color", color)
@@ -63,7 +63,7 @@ func (r *ColorRepository) CreateColor(color *Color) (*Color, error) {
 	return color, nil
 }
 
-func (r *ColorRepository) UpdateColor(color *Color) error {
+func (r *ColorRepository) UpdateColor(color *ColorEntity) error {
 	err := r.db.Save(color).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update color", "method", "UpdateColor", "error", err, "color", color)
@@ -73,7 +73,7 @@ func (r *ColorRepository) UpdateColor(color *Color) error {
 }
 
 func (r *ColorRepository) DeleteColor(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Color{}).Error
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&ColorEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete color", "method", "DeleteColor", "error", err, "id", id)
 	}
@@ -82,7 +82,7 @@ func (r *ColorRepository) DeleteColor(id uint) error {
 }
 
 func (r *ColorRepository) UndoDeletedColor(id uint) error {
-	err := r.db.Unscoped().Model(&Color{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
+	err := r.db.Unscoped().Model(&ColorEntity{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to undo deleted color", "method", "UndoDeletedColor", "error", err, "id", id)
 	}
@@ -91,8 +91,8 @@ func (r *ColorRepository) UndoDeletedColor(id uint) error {
 }
 
 func (r *ColorRepository) ColorExists(id uint, showDeleted *bool) (bool, error) {
-	var color Color
-	query := r.db.Model(&Color{}).Where(c.FieldID+" = ?", id)
+	var color ColorEntity
+	query := r.db.Model(&ColorEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -108,8 +108,8 @@ func (r *ColorRepository) ColorExists(id uint, showDeleted *bool) (bool, error) 
 }
 
 func (r *ColorRepository) ColorExistsByName(name string, excludeID ...uint) (bool, error) {
-	var color Color
-	query := r.db.Model(&Color{}).Where(c.ColorName+" = ?", name)
+	var color ColorEntity
+	query := r.db.Model(&ColorEntity{}).Where(c.ColorName+" = ?", name)
 
 	if len(excludeID) > 0 {
 		query = query.Where(c.FieldID+" != ?", excludeID[0])

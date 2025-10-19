@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	m "github.com/easy-comerce/backend/internal/product_stats/model"
 	l "github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -20,7 +21,7 @@ func NewProductStatsService(service *ProductStatsRepository) *ProductStatsServic
 	}
 }
 
-func (s *ProductStatsService) GetAllProductStatsPaginated(pageStr string, pageSizeStr string, productIDFilter string, dateFromFilter string, dateToFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *ProductStatsService) GetAllProductStatsPaginated(pageStr string, pageSizeStr string, productIDFilter string, dateFromFilter string, dateToFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	productID, _ := utils.ParseUint(productIDFilter)
 	dateFrom := parseTimeFilter(dateFromFilter)
@@ -34,7 +35,7 @@ func (s *ProductStatsService) GetAllProductStatsPaginated(pageStr string, pageSi
 	return utils.BuildPaginatedResponse(histories, total, page, pageSize), nil
 }
 
-func (s *ProductStatsService) GetProductStatsByID(id uint) (*ProductStats, error) {
+func (s *ProductStatsService) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {
 	history, err := s.repo.GetProductStatsByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("product stats not found: %w", err)
@@ -43,10 +44,10 @@ func (s *ProductStatsService) GetProductStatsByID(id uint) (*ProductStats, error
 	return history, nil
 }
 
-func (s *ProductStatsService) IncreaseProductStats(ctx context.Context, req *IncreaseProductStatsRequest) error {
+func (s *ProductStatsService) IncreaseProductStats(ctx context.Context, req *m.IncreaseProductStatsRequest) error {
 	productStats, err := s.repo.GetProductStatsByID(req.ProductID)
 	if err != nil || productStats == nil {
-		productStats = &ProductStats{
+		productStats = &ProductStatsEntity{
 			ProductID: req.ProductID,
 		}
 	}
@@ -77,7 +78,7 @@ func (s *ProductStatsService) IncreaseProductStats(ctx context.Context, req *Inc
 func (s *ProductStatsService) IncreasePurchaseCountInProductStats(ctx context.Context, productID uint) error {
 	productStats, err := s.repo.GetProductStatsByID(productID)
 	if err != nil || productStats == nil {
-		productStats = &ProductStats{
+		productStats = &ProductStatsEntity{
 			ProductID: productID,
 		}
 	}

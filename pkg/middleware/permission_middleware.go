@@ -108,7 +108,7 @@ func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool
 			banned := false
 			verified := false
 			var refreshToken *string
-			var user *user.User
+			var user *user.UserEntity
 
 			if !loadFullUser {
 				banned, verified, refreshToken, err = pm.userRepo.GetAuthUserStatusByID(claims.UserID)

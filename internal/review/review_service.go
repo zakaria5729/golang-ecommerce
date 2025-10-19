@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	m "github.com/easy-comerce/backend/internal/review/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -20,7 +21,7 @@ func NewReviewService(repo *ReviewRepository) *ReviewService {
 	}
 }
 
-func (s *ReviewService) GetAllReviewsPaginated(showDeleted *bool, productIDFilter string, userIDFilter string, ratingFromFilter string, ratingToFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *ReviewService) GetAllReviewsPaginated(showDeleted *bool, productIDFilter string, userIDFilter string, ratingFromFilter string, ratingToFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	productID, _ := utils.ParseUint(productIDFilter)
 	userID, _ := utils.ParseUint(userIDFilter)
 	ratingFrom, _ := utils.ParseInt(ratingFromFilter)
@@ -36,7 +37,7 @@ func (s *ReviewService) GetAllReviewsPaginated(showDeleted *bool, productIDFilte
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-func (s *ReviewService) GetReviewByID(id uint, showDeleted *bool) (*Review, error) {
+func (s *ReviewService) GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error) {
 	review, err := s.repo.GetReviewByID(id, showDeleted)
 
 	if err != nil {
@@ -46,7 +47,7 @@ func (s *ReviewService) GetReviewByID(id uint, showDeleted *bool) (*Review, erro
 	return review, nil
 }
 
-func (s *ReviewService) CreateReview(userID uint, productID uint, rating int, comment string) (*Review, error) {
+func (s *ReviewService) CreateReview(userID uint, productID uint, rating int, comment string) (*ReviewEntity, error) {
 	if rating < c.MinReviewRating || rating > c.MaxReviewRating {
 		return nil, fmt.Errorf("invalid rating")
 	}
@@ -57,7 +58,7 @@ func (s *ReviewService) CreateReview(userID uint, productID uint, rating int, co
 	}
 
 	comment = utils.Trim(comment)
-	review := &Review{
+	review := &ReviewEntity{
 		ProductID: productID,
 		UserID:    userID,
 		Rating:    rating,
@@ -74,7 +75,7 @@ func (s *ReviewService) CreateReview(userID uint, productID uint, rating int, co
 }
 
 func (s *ReviewService) UpdateReview(ctx context.Context, id uint, userID *uint, rating int, comment string) error {
-	review := &Review{}
+	review := &ReviewEntity{}
 
 	if rating != 0 {
 		if rating < c.MinReviewRating || rating > c.MaxReviewRating {
@@ -133,7 +134,7 @@ func (s *ReviewService) DeleteReview(ctx context.Context, idStr string, userID *
 	return nil
 }
 
-func (s *ReviewService) GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *ReviewService) GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	rating, _ := utils.ParseInt(ratingFilter)
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
@@ -145,7 +146,7 @@ func (s *ReviewService) GetReviewsByProduct(productID uint, showDeleted *bool, r
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-func (s *ReviewService) GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *ReviewService) GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	rating, _ := utils.ParseInt(ratingFilter)
 	productID, _ := utils.ParseUint(productIDStr)
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
@@ -163,7 +164,7 @@ func (s *ReviewService) GetReviewsByUser(userID uint, showDeleted *bool, product
 	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
 }
 
-func (s *ReviewService) GetProductRatingStats(productID uint, showDeleted *bool) (*ProductRatingStatsResponse, error) {
+func (s *ReviewService) GetProductRatingStats(productID uint, showDeleted *bool) (*m.ProductRatingStatsResponse, error) {
 	avgRating, err := s.repo.GetAverageRating(productID, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get average rating: %w", err)
@@ -174,7 +175,7 @@ func (s *ReviewService) GetProductRatingStats(productID uint, showDeleted *bool)
 		return nil, fmt.Errorf("failed to get rating counts: %w", err)
 	}
 
-	return &ProductRatingStatsResponse{
+	return &m.ProductRatingStatsResponse{
 		AverageRating: avgRating,
 		RatingCounts:  ratingCounts,
 	}, nil

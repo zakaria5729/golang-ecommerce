@@ -21,6 +21,7 @@ var (
 func InitializeDB() *gorm.DB {
 	once.Do(func() {
 		db = loadDB()
+		db.Exec("SET search_path TO public")
 	})
 	return db
 }

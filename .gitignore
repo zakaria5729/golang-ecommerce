@@ -7,5 +7,6 @@ main
 *.exe
 *.bin
 easy_api
+easy_com_api
 easy-commerce
 .DS_Store

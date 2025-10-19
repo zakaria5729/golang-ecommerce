@@ -71,7 +71,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req Address
+	var req AddressEntity
 	if !utils.DecodeJSON(w, r, &req, "CreateAddress") {
 		return
 	}
@@ -98,7 +98,7 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req Address
+	var req AddressEntity
 	if !utils.DecodeJSON(w, r, &req, "UpdateAddress") {
 		return
 	}
@@ -191,7 +191,7 @@ func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Reques
 	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
-func validateAddressRequest(req *Address) validator.ValidationErrors {
+func validateAddressRequest(req *AddressEntity) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
 	if req.Street == "" || len(req.Street) < 5 {

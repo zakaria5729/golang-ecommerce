@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,11 +12,13 @@ import (
 	"time"
 
 	"github.com/easy-comerce/backend/db"
+	m "github.com/easy-comerce/backend/internal/system/model"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"
 )
 
@@ -29,7 +32,7 @@ func NewSystemService(cfg *config.Config) *SystemService {
 	}
 }
 
-func (s *SystemService) SystemHealthCheck(ctx context.Context) *SystemHealthResponse {
+func (s *SystemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
 	dbStatus := "healthy"
 
 	sqlDB, err := db.GetDB().DB()
@@ -44,21 +47,21 @@ func (s *SystemService) SystemHealthCheck(ctx context.Context) *SystemHealthResp
 		}
 	}
 
-	return &SystemHealthResponse{
+	return &m.SystemHealthResponse{
 		ServerStatus: "healthy",
 		DBStatus:     dbStatus,
 		Timestamp:    time.Now().UTC().Format(time.RFC3339),
 	}
 }
 
-func (s *SystemService) GetSystemLogFiles(fileName string) ([]SystemLogFileResponse, error) {
+func (s *SystemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error) {
 	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
 	files, err := os.ReadDir(logsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read logs directory: %v", err)
 	}
 
-	var logFiles []SystemLogFileResponse
+	var logFiles []m.SystemLogFileResponse
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".log") {
 			if fileName != "" && !strings.Contains(file.Name(), fileName) {
@@ -70,9 +73,16 @@ func (s *SystemService) GetSystemLogFiles(fileName string) ([]SystemLogFileRespo
 				continue
 			}
 
-			logFiles = append(logFiles, SystemLogFileResponse{
+			var size string
+			if info.Size() < c.SizeInMB {
+				size = fmt.Sprintf("%.2f KB", float64(info.Size())/1024.0)
+			} else {
+				size = fmt.Sprintf("%.2f MB", float64(info.Size())/float64(c.SizeInMB))
+			}
+
+			logFiles = append(logFiles, m.SystemLogFileResponse{
 				FileName:   file.Name(),
-				Size:       fmt.Sprintf("%.2f kb", float64(info.Size())/1024.0),
+				Size:       size,
 				ModifiedAt: info.ModTime().Format(time.RFC3339),
 			})
 		}
@@ -159,11 +169,56 @@ func (s *SystemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 			return
 		}
 
-		idToken, ok := token.Extra("id_token").(string)
-		if !ok {
-			http.Error(w, "No ID token in response", http.StatusInternalServerError)
+		fmt.Fprintf(w, "ID Token: %s", token.AccessToken)
+	}
+}
+
+func (s *SystemService) HandleFacebookLoginTemp(w http.ResponseWriter, r *http.Request) {
+	if config.GetActiveProfile() != c.EnvProd {
+		conf := &oauth2.Config{
+			ClientID:     s.cfg.FacebookAppID,
+			ClientSecret: "ce26f2b347e99cc70d4c9f3b4b8b0bbd",
+			RedirectURL:  fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
+			Scopes:       []string{"email"},
+			Endpoint:     facebook.Endpoint,
+		}
+
+		url := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (s *SystemService) HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r *http.Request) {
+	if config.GetActiveProfile() != c.EnvProd {
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "Missing authorization code", http.StatusBadRequest)
 			return
 		}
-		fmt.Fprintf(w, "ID Token: %s", idToken)
+
+		conf := &oauth2.Config{
+			ClientID:     s.cfg.FacebookAppID,
+			ClientSecret: "ce26f2b347e99cc70d4c9f3b4b8b0bbd",
+			RedirectURL:  fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
+			Scopes:       []string{"email"},
+			Endpoint:     facebook.Endpoint,
+		}
+
+		token, err := conf.Exchange(context.Background(), code)
+		if err != nil {
+			http.Error(w, "Token exchange failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		client := conf.Client(context.Background(), token)
+		resp, err := client.Get(c.FacebookUserInfoURL)
+		if err != nil {
+			http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Fprintf(w, "Facebook User Info: %s", string(body))
 	}
 }

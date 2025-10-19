@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/attribute_type/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *AttributeTypeHandler) GetAttributeTypeByID(w http.ResponseWriter, r *ht
 }
 
 func (h *AttributeTypeHandler) CreateAttributeType(w http.ResponseWriter, r *http.Request) {
-	var req CreateAttributeTypeRequest
+	var req m.CreateAttributeTypeRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateAttributeType") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *AttributeTypeHandler) UpdateAttributeType(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var req UpdateAttributeTypeRequest
+	var req m.UpdateAttributeTypeRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateAttributeType") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *AttributeTypeHandler) UndoDeletedAttributeType(w http.ResponseWriter, r
 	response.SendResponse(w, "Attribute type restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, []AttributeType) {
+func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, []AttributeTypeEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -113,7 +114,7 @@ func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service *Attri
 	return nil, attributeTypes
 }
 
-func getAttributeTypeDataById(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, *AttributeType) {
+func getAttributeTypeDataById(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, *AttributeTypeEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid attribute type ID"), nil
@@ -127,7 +128,7 @@ func getAttributeTypeDataById(r *http.Request, showDeleted *bool, service *Attri
 	return nil, attributeType
 }
 
-func validateCreateAttributeTypeRequest(req *CreateAttributeTypeRequest) validator.ValidationErrors {
+func validateCreateAttributeTypeRequest(req *m.CreateAttributeTypeRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -135,7 +136,7 @@ func validateCreateAttributeTypeRequest(req *CreateAttributeTypeRequest) validat
 	)
 }
 
-func validateUpdateAttributeTypeRequest(req *UpdateAttributeTypeRequest) validator.ValidationErrors {
+func validateUpdateAttributeTypeRequest(req *m.UpdateAttributeTypeRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

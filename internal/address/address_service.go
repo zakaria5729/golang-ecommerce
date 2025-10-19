@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -19,7 +19,7 @@ func NewAddressService(repo *AddressRepository) *AddressService {
 	}
 }
 
-func (s *AddressService) GetAllAddressesByUser(userID uint, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) ([]Address, error) {
+func (s *AddressService) GetAllAddressesByUser(userID uint, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) ([]AddressEntity, error) {
 	addressType := utils.ParseStringPtr(addressTypeFilter)
 	isDefault := utils.ParseBoolPtr(isDefaultFilter)
 
@@ -31,7 +31,7 @@ func (s *AddressService) GetAllAddressesByUser(userID uint, addressTypeFilter st
 	return addresses, nil
 }
 
-func (s *AddressService) GetAllAddressesPaginated(showDeleted *bool, userIdStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *AddressService) GetAllAddressesPaginated(showDeleted *bool, userIdStr string, pageStr string, pageSizeStr string, addressTypeFilter string, isDefaultFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	addressType := utils.ParseStringPtr(addressTypeFilter)
@@ -43,7 +43,7 @@ func (s *AddressService) GetAllAddressesPaginated(showDeleted *bool, userIdStr s
 		return nil, fmt.Errorf("failed to fetch addresses: %w", err)
 	}
 
-	var addressPtrs []*Address
+	var addressPtrs []*AddressEntity
 	for i := range addresses {
 		addressPtrs = append(addressPtrs, &addresses[i])
 	}
@@ -51,7 +51,7 @@ func (s *AddressService) GetAllAddressesPaginated(showDeleted *bool, userIdStr s
 	return utils.BuildPaginatedResponse(addressPtrs, total, page, pageSize), nil
 }
 
-func (s *AddressService) GetAddressByID(id uint, showDeleted *bool) (*Address, error) {
+func (s *AddressService) GetAddressByID(id uint, showDeleted *bool) (*AddressEntity, error) {
 	address, err := s.repo.GetAddressByID(id, nil, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("address not found: %w", err)
@@ -60,7 +60,7 @@ func (s *AddressService) GetAddressByID(id uint, showDeleted *bool) (*Address, e
 	return address, nil
 }
 
-func (s *AddressService) CreateAddress(userID uint, req *Address) (*Address, error) {
+func (s *AddressService) CreateAddress(userID uint, req *AddressEntity) (*AddressEntity, error) {
 	req.UserID = userID
 	req.Sanitize()
 
@@ -68,7 +68,7 @@ func (s *AddressService) CreateAddress(userID uint, req *Address) (*Address, err
 		req.AddressType = c.AddressTypeShipping
 	}
 
-	address := &Address{
+	address := &AddressEntity{
 		UserID:      req.UserID,
 		Street:      req.Street,
 		City:        req.City,
@@ -86,7 +86,7 @@ func (s *AddressService) CreateAddress(userID uint, req *Address) (*Address, err
 	return address, nil
 }
 
-func (s *AddressService) UpdateAddress(id uint, userID uint, req *Address) (*Address, error) {
+func (s *AddressService) UpdateAddress(id uint, userID uint, req *AddressEntity) (*AddressEntity, error) {
 	req.Sanitize()
 
 	existingAddress, err := s.repo.GetAddressByID(id, &userID, nil)
@@ -180,7 +180,7 @@ func (s *AddressService) SetDefaultAddress(id uint, userID uint, addressType str
 	return nil
 }
 
-func (s *AddressService) GetDefaultAddress(userID uint, addressType string) (*Address, error) {
+func (s *AddressService) GetDefaultAddress(userID uint, addressType string) (*AddressEntity, error) {
 	if addressType != c.AddressTypeShipping && addressType != c.AddressTypeBilling {
 		return nil, errors.New("invalid address type. Must be " + c.AddressTypeShipping + " or " + c.AddressTypeBilling)
 	}

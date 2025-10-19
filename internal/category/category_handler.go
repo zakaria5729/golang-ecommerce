@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/category/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
-	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -67,7 +67,7 @@ func (h *CategoryHandler) GetCategoryByID(w http.ResponseWriter, r *http.Request
 }
 
 func (h *CategoryHandler) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var req CreateCategoryRequest
+	var req m.CreateCategoryRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateCategory") {
 		return
 	}
@@ -88,7 +88,7 @@ func (h *CategoryHandler) UpdateCategory(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req UpdateCategoryRequest
+	var req m.UpdateCategoryRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateCategory") {
 		return
 	}
@@ -124,7 +124,7 @@ func (h *CategoryHandler) UndoDeleteCategory(w http.ResponseWriter, r *http.Requ
 	response.SendResponse(w, "Undo category deleted successfully", err, http.StatusInternalServerError)
 }
 
-func getAllCategoriesData(r *http.Request, service *CategoryService, showDeleted *bool) ([]CategoryResponse, error) {
+func getAllCategoriesData(r *http.Request, service *CategoryService, showDeleted *bool) ([]m.CategoryResponse, error) {
 	q := r.URL.Query()
 	parentIDFilter := q.Get(c.CategoryParentID)
 	priorityLimitFilter := q.Get(c.CategoryPriorityLimit)
@@ -133,7 +133,7 @@ func getAllCategoriesData(r *http.Request, service *CategoryService, showDeleted
 	return service.GetAllCategories(showDeleted, parentIDFilter, priorityLimitFilter, sortBy, sortOrder)
 }
 
-func getAllCategoriesWithSubcategoriesData(r *http.Request, service *CategoryService, showDeleted *bool) ([]CategorySubcategoriesResponse, error) {
+func getAllCategoriesWithSubcategoriesData(r *http.Request, service *CategoryService, showDeleted *bool) ([]m.CategorySubcategoriesResponse, error) {
 	q := r.URL.Query()
 	subcategoryDepthFilter := q.Get(c.SubcategoryDepth)
 	sortBy := q.Get(c.SortBy)
@@ -141,7 +141,7 @@ func getAllCategoriesWithSubcategoriesData(r *http.Request, service *CategorySer
 	return service.GetAllCategoriesWithSubcategories(showDeleted, subcategoryDepthFilter, sortBy, sortOrder)
 }
 
-func getCategoryDataById(r *http.Request, service *CategoryService, showDeleted *bool) (*CategoryResponse, error) {
+func getCategoryDataById(r *http.Request, service *CategoryService, showDeleted *bool) (*m.CategoryResponse, error) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return nil, errors.New("invalid category ID")
@@ -150,7 +150,7 @@ func getCategoryDataById(r *http.Request, service *CategoryService, showDeleted 
 	return service.GetCategoryByID(*id, showDeleted)
 }
 
-func getAllCategoriesPaginatedData(r *http.Request, service *CategoryService, showDeleted *bool) (*models.PaginatedResponse, error) {
+func getAllCategoriesPaginatedData(r *http.Request, service *CategoryService, showDeleted *bool) (*response.PaginatedResponse, error) {
 	q := r.URL.Query()
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
@@ -161,11 +161,11 @@ func getAllCategoriesPaginatedData(r *http.Request, service *CategoryService, sh
 	return service.GetAllCategoriesPaginated(showDeleted, parentIDFilter, pageStr, pageSizeStr, showPriorityFilter, sortBy, sortOrder)
 }
 
-func validateUpdateCategoryRequest(req *UpdateCategoryRequest) validator.ValidationErrors {
+func validateUpdateCategoryRequest(req *m.UpdateCategoryRequest) validator.ValidationErrors {
 	return validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
 }
 
-func validateCreateCategoryRequest(req *CreateCategoryRequest) validator.ValidationErrors {
+func validateCreateCategoryRequest(req *m.CreateCategoryRequest) validator.ValidationErrors {
 	return validateRequest(req.Title, req.SubTitle, req.ParentID, req.Priority)
 }
 

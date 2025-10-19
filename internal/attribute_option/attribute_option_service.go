@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	m "github.com/easy-comerce/backend/internal/attribute_option/model"
 	"github.com/easy-comerce/backend/internal/attribute_type"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
@@ -24,7 +25,7 @@ func NewAttributeOptionService(
 	}
 }
 
-func (s *AttributeOptionService) GetAllAttributeOptions(includeStr string, showDeleted *bool, attributeTypeIDStr string, sortBy, sortOrder string) ([]AttributeOption, error) {
+func (s *AttributeOptionService) GetAllAttributeOptions(includeStr string, showDeleted *bool, attributeTypeIDStr string, sortBy, sortOrder string) ([]AttributeOptionEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 
 	var attributeTypeID *uint
@@ -43,7 +44,7 @@ func (s *AttributeOptionService) GetAllAttributeOptions(includeStr string, showD
 	return attributeOptions, nil
 }
 
-func (s *AttributeOptionService) GetAttributeOptionByID(id uint, includeStr string, showDeleted *bool) (*AttributeOption, error) {
+func (s *AttributeOptionService) GetAttributeOptionByID(id uint, includeStr string, showDeleted *bool) (*AttributeOptionEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	attributeOption, err := s.optionRepo.GetAttributeOptionByID(id, include, showDeleted)
 
@@ -54,7 +55,7 @@ func (s *AttributeOptionService) GetAttributeOptionByID(id uint, includeStr stri
 	return attributeOption, nil
 }
 
-func (s *AttributeOptionService) CreateAttributeOption(req *CreateAttributeOptionRequest) (*AttributeOption, error) {
+func (s *AttributeOptionService) CreateAttributeOption(req *m.CreateAttributeOptionRequest) (*AttributeOptionEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.typeRepo.AttributeTypeExists(req.AttributeTypeID, nil)
@@ -73,7 +74,7 @@ func (s *AttributeOptionService) CreateAttributeOption(req *CreateAttributeOptio
 		return nil, errors.New("attribute option with this name already exists for this attribute type")
 	}
 
-	attributeOption := &AttributeOption{
+	attributeOption := &AttributeOptionEntity{
 		AttributeTypeID:     &req.AttributeTypeID,
 		AttributeOptionName: req.AttributeOptionName,
 	}
@@ -86,7 +87,7 @@ func (s *AttributeOptionService) CreateAttributeOption(req *CreateAttributeOptio
 	return attributeOption, nil
 }
 
-func (s *AttributeOptionService) UpdateAttributeOption(id uint, req *UpdateAttributeOptionRequest) (*AttributeOption, error) {
+func (s *AttributeOptionService) UpdateAttributeOption(id uint, req *m.UpdateAttributeOptionRequest) (*AttributeOptionEntity, error) {
 	req.Sanitize()
 
 	existingAttributeOption, err := s.optionRepo.GetAttributeOptionByID(id, nil, nil)

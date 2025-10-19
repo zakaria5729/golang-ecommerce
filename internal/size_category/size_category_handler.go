@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/size_category/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *SizeCategoryHandler) GetSizeCategoryByID(w http.ResponseWriter, r *http
 }
 
 func (h *SizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.Request) {
-	var req CreateSizeCategoryRequest
+	var req m.CreateSizeCategoryRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateSizeCategory") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *SizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var req UpdateSizeCategoryRequest
+	var req m.UpdateSizeCategoryRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateSizeCategory") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *SizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *
 	response.SendResponse(w, "Size category restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, []SizeCategory) {
+func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, []SizeCategoryEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -113,7 +114,7 @@ func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *SizeC
 	return nil, sizeCategories
 }
 
-func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, *SizeCategory) {
+func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, *SizeCategoryEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid size category ID"), nil
@@ -127,7 +128,7 @@ func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service *SizeCa
 	return nil, sizeCategory
 }
 
-func validateCreateSizeCategoryRequest(req *CreateSizeCategoryRequest) validator.ValidationErrors {
+func validateCreateSizeCategoryRequest(req *m.CreateSizeCategoryRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -135,7 +136,7 @@ func validateCreateSizeCategoryRequest(req *CreateSizeCategoryRequest) validator
 	)
 }
 
-func validateUpdateSizeCategoryRequest(req *UpdateSizeCategoryRequest) validator.ValidationErrors {
+func validateUpdateSizeCategoryRequest(req *m.UpdateSizeCategoryRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

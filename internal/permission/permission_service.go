@@ -2,6 +2,8 @@ package permission
 
 import (
 	"errors"
+
+	"github.com/easy-comerce/backend/internal/permission/model"
 )
 
 type PermissionService struct {
@@ -14,15 +16,15 @@ func NewPermissionService(repo *PermissionRepository) *PermissionService {
 	}
 }
 
-func (s *PermissionService) GetAllPermissions(sortBy string, sortOrder string) ([]Permission, error) {
+func (s *PermissionService) GetAllPermissions(sortBy string, sortOrder string) ([]PermissionEntity, error) {
 	return s.repo.GetAllPermissions(sortBy, sortOrder, nil)
 }
 
-func (s *PermissionService) GetAllPermissionsGroup(sortBy string, sortOrder string) ([]PermissionGroup, error) {
+func (s *PermissionService) GetAllPermissionsGroup(sortBy string, sortOrder string) ([]model.PermissionGroup, error) {
 	return s.repo.GetAllPermissionsGroup(sortBy, sortOrder, nil)
 }
 
-func (s *PermissionService) GetPermissionByID(id uint) (*Permission, error) {
+func (s *PermissionService) GetPermissionByID(id uint) (*PermissionEntity, error) {
 	return s.repo.GetPermissionByID(id)
 }
 

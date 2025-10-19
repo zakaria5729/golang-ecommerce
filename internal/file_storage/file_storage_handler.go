@@ -3,6 +3,7 @@ package file_storage
 import (
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/file_storage/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -37,7 +38,7 @@ func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	uploadReq := StorageUploadRequest{
+	uploadReq := m.StorageUploadRequest{
 		File:        fileHeader,
 		Folder:      r.FormValue(c.Folder),
 		ContentType: fileHeader.Header.Get(c.ContentType),

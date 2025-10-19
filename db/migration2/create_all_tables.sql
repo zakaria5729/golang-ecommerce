@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     password_reset_token VARCHAR(255),
     password_reset_expires TIMESTAMP,
+    verification_token VARCHAR(255),
+    verification_expires TIMESTAMP,
     refresh_token_expires TIMESTAMP,
     refresh_token VARCHAR(255),
     path_key VARCHAR(255),

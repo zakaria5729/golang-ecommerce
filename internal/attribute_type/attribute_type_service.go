@@ -3,6 +3,8 @@ package attribute_type
 import (
 	"errors"
 	"fmt"
+
+	m "github.com/easy-comerce/backend/internal/attribute_type/model"
 )
 
 type AttributeTypeService struct {
@@ -15,7 +17,7 @@ func NewAttributeTypeService(repo *AttributeTypeRepository) *AttributeTypeServic
 	}
 }
 
-func (s *AttributeTypeService) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeType, error) {
+func (s *AttributeTypeService) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeTypeEntity, error) {
 	attributeTypes, err := s.repo.GetAllAttributeTypes(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch attribute types: %w", err)
@@ -24,7 +26,7 @@ func (s *AttributeTypeService) GetAllAttributeTypes(showDeleted *bool, sortBy, s
 	return attributeTypes, nil
 }
 
-func (s *AttributeTypeService) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeType, error) {
+func (s *AttributeTypeService) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeTypeEntity, error) {
 	attributeType, err := s.repo.GetAttributeTypeByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("attribute type not found: %w", err)
@@ -33,7 +35,7 @@ func (s *AttributeTypeService) GetAttributeTypeByID(id uint, showDeleted *bool) 
 	return attributeType, nil
 }
 
-func (s *AttributeTypeService) CreateAttributeType(req *CreateAttributeTypeRequest) (*AttributeType, error) {
+func (s *AttributeTypeService) CreateAttributeType(req *m.CreateAttributeTypeRequest) (*AttributeTypeEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.repo.AttributeTypeExistsByName(req.Name)
@@ -44,7 +46,7 @@ func (s *AttributeTypeService) CreateAttributeType(req *CreateAttributeTypeReque
 		return nil, errors.New("attribute type with this name already exists")
 	}
 
-	attributeType := &AttributeType{
+	attributeType := &AttributeTypeEntity{
 		Name: req.Name,
 	}
 
@@ -56,7 +58,7 @@ func (s *AttributeTypeService) CreateAttributeType(req *CreateAttributeTypeReque
 	return createdAttributeType, nil
 }
 
-func (s *AttributeTypeService) UpdateAttributeType(id uint, req *UpdateAttributeTypeRequest) (*AttributeType, error) {
+func (s *AttributeTypeService) UpdateAttributeType(id uint, req *m.UpdateAttributeTypeRequest) (*AttributeTypeEntity, error) {
 	req.Sanitize()
 
 	existingAttributeType, err := s.repo.GetAttributeTypeByID(id, nil)

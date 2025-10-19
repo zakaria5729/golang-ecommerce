@@ -3,6 +3,7 @@ package role
 import (
 	"net/http"
 
+	"github.com/easy-comerce/backend/internal/role/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -47,7 +48,7 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
-	var req CreateRoleRequest
+	var req model.CreateRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateRole") {
 		return
 	}
@@ -68,7 +69,7 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateRoleRequest
+	var req model.UpdateRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateRole") {
 		return
 	}
@@ -105,7 +106,7 @@ func (h *RoleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
-	var req AssignRoleRequest
+	var req model.AssignRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "AssignRoleToUser") {
 		return
 	}
@@ -120,7 +121,7 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Request) {
-	var req AddPermissionsToRoleRequest
+	var req model.AddPermissionsToRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "AddPermissionsToRole") {
 		return
 	}
@@ -134,7 +135,7 @@ func (h *RoleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Reques
 	response.SendResponse(w, "Permissions added to role successfully", err, http.StatusInternalServerError)
 }
 
-func validateCreateRoleRequest(req *CreateRoleRequest) validator.ValidationErrors {
+func validateCreateRoleRequest(req *model.CreateRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.RoleName, "role_name"),
 		validator.ValidateMinLength(req.RoleName, "role_name", 2),
@@ -143,7 +144,7 @@ func validateCreateRoleRequest(req *CreateRoleRequest) validator.ValidationError
 	)
 }
 
-func validateUpdateRoleRequest(req *UpdateRoleRequest) validator.ValidationErrors {
+func validateUpdateRoleRequest(req *model.UpdateRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.RoleName, "role_name"),
 		validator.ValidateMinLength(req.RoleName, "role_name", 2),
@@ -151,14 +152,14 @@ func validateUpdateRoleRequest(req *UpdateRoleRequest) validator.ValidationError
 	)
 }
 
-func validateAssignRoleRequest(req *AssignRoleRequest) validator.ValidationErrors {
+func validateAssignRoleRequest(req *model.AssignRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.UserID, "user_id"),
 		validator.ValidatePositiveInteger(req.RoleId, "role_id"),
 	)
 }
 
-func validateAddPermissionsToRoleRequest(req *AddPermissionsToRoleRequest) validator.ValidationErrors {
+func validateAddPermissionsToRoleRequest(req *model.AddPermissionsToRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
 		validator.ValidateRequiredBool(len(req.PermissionIds) > 0, "permission_ids"),

@@ -17,9 +17,9 @@ func NewSizeOptionRepository(db *gorm.DB) *SizeOptionRepository {
 	}
 }
 
-func (r *SizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategoryID *uint, sortBy, sortOrder string) ([]SizeOption, error) {
-	var sizeOptions []SizeOption
-	query := r.db.Model(&SizeOption{})
+func (r *SizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategoryID *uint, sortBy, sortOrder string) ([]SizeOptionEntity, error) {
+	var sizeOptions []SizeOptionEntity
+	query := r.db.Model(&SizeOptionEntity{})
 
 	if sizeCategoryID != nil {
 		query = query.Where(c.SizeOptionSizeCategoryID+" = ?", *sizeCategoryID)
@@ -40,9 +40,9 @@ func (r *SizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategory
 	return sizeOptions, err
 }
 
-func (r *SizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOption, error) {
-	var sizeOption SizeOption
-	query := r.db.Model(&SizeOption{})
+func (r *SizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error) {
+	var sizeOption SizeOptionEntity
+	query := r.db.Model(&SizeOptionEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -56,7 +56,7 @@ func (r *SizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*S
 	return &sizeOption, nil
 }
 
-func (r *SizeOptionRepository) CreateSizeOption(sizeOption *SizeOption) (*SizeOption, error) {
+func (r *SizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*SizeOptionEntity, error) {
 	err := r.db.Create(sizeOption).Error
 	if err != nil {
 		l.Logger.Error("Failed to create size option", "method", "CreateSizeOption", "error", err, "sizeOption", sizeOption)
@@ -65,7 +65,7 @@ func (r *SizeOptionRepository) CreateSizeOption(sizeOption *SizeOption) (*SizeOp
 	return sizeOption, nil
 }
 
-func (r *SizeOptionRepository) UpdateSizeOption(sizeOption *SizeOption) error {
+func (r *SizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) error {
 	err := r.db.Save(sizeOption).Error
 	if err != nil {
 		l.Logger.Error("Failed to update size option", "method", "UpdateSizeOption", "error", err, "sizeOption", sizeOption)
@@ -74,7 +74,7 @@ func (r *SizeOptionRepository) UpdateSizeOption(sizeOption *SizeOption) error {
 }
 
 func (r *SizeOptionRepository) DeleteSizeOption(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeOption{}).Error
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeOptionEntity{}).Error
 	if err != nil {
 		l.Logger.Error("Failed to delete size option", "method", "DeleteSizeOption", "error", err, "id", id)
 	}
@@ -83,7 +83,7 @@ func (r *SizeOptionRepository) DeleteSizeOption(id uint) error {
 }
 
 func (r *SizeOptionRepository) UndoDeletedSizeOption(id uint) error {
-	var sizeOption SizeOption
+	var sizeOption SizeOptionEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&sizeOption).Error
 	if err != nil {
 		l.Logger.Error("Failed to find deleted size option", "method", "UndoDeletedSizeOption", "error", err, "id", id)
@@ -100,8 +100,8 @@ func (r *SizeOptionRepository) UndoDeletedSizeOption(id uint) error {
 }
 
 func (r *SizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (bool, error) {
-	var sizeOption SizeOption
-	query := r.db.Model(&SizeOption{}).Where(c.FieldID+" = ?", id)
+	var sizeOption SizeOptionEntity
+	query := r.db.Model(&SizeOptionEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -117,8 +117,8 @@ func (r *SizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (boo
 }
 
 func (r *SizeOptionRepository) SizeOptionExistsByName(name string, sizeCategoryID uint, excludeID ...uint) (bool, error) {
-	var sizeOption SizeOption
-	query := r.db.Model(&SizeOption{}).Where(c.SizeOptionName+" = ? AND "+c.SizeOptionSizeCategoryID+" = ?", name, sizeCategoryID)
+	var sizeOption SizeOptionEntity
+	query := r.db.Model(&SizeOptionEntity{}).Where(c.SizeOptionName+" = ? AND "+c.SizeOptionSizeCategoryID+" = ?", name, sizeCategoryID)
 
 	if len(excludeID) > 0 {
 		query = query.Where(c.FieldID+" != ?", excludeID[0])

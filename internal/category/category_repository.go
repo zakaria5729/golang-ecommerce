@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	m "github.com/easy-comerce/backend/internal/category/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -23,15 +24,15 @@ func NewCategoryRepository(db *gorm.DB) *CategoryRepository {
 	}
 }
 
-func (r *CategoryRepository) GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]Category, error) {
-	var categories []Category
+func (r *CategoryRepository) GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, error) {
+	var categories []CategoryEntity
 
 	var maxPriorityLimit int = c.MaxPriorityLimit
 	if priorityLimit != nil && *priorityLimit > maxPriorityLimit {
 		priorityLimit = &maxPriorityLimit
 	}
 
-	query := r.db.Model(&Category{})
+	query := r.db.Model(&CategoryEntity{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
@@ -55,8 +56,8 @@ func (r *CategoryRepository) GetAllCategories(showDeleted *bool, parentID *uint,
 	return categories, err
 }
 
-func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]Category, int, error) {
-	var categories []Category
+func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, int, error) {
+	var categories []CategoryEntity
 	var total int64
 
 	var maxPriorityLimit int = c.MaxPriorityLimit
@@ -64,7 +65,7 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parent
 		priorityLimit = &maxPriorityLimit
 	}
 
-	query := r.db.Model(&Category{})
+	query := r.db.Model(&CategoryEntity{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
@@ -94,8 +95,8 @@ func (r *CategoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parent
 	return categories, int(total), err
 }
 
-func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*Category, error) {
-	var category Category
+func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*CategoryEntity, error) {
+	var category CategoryEntity
 	query := r.db.Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
@@ -110,7 +111,7 @@ func (r *CategoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*Categ
 	return &category, nil
 }
 
-func (r *CategoryRepository) CreateCategory(category *Category) (*Category, error) {
+func (r *CategoryRepository) CreateCategory(category *CategoryEntity) (*CategoryEntity, error) {
 	err := r.db.Create(category).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create category", "method", "CreateCategory", "error", err, "category", category)
@@ -119,8 +120,8 @@ func (r *CategoryRepository) CreateCategory(category *Category) (*Category, erro
 	return category, nil
 }
 
-func (r *CategoryRepository) UpdateCategory(category *Category) (*Category, error) {
-	err := r.db.Model(&Category{}).Updates(category).Error
+func (r *CategoryRepository) UpdateCategory(category *CategoryEntity) (*CategoryEntity, error) {
+	err := r.db.Model(&CategoryEntity{}).Updates(category).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update category", "method", "UpdateCategory", "error", err, "category", category)
 		return nil, err
@@ -139,8 +140,8 @@ func (r *CategoryRepository) DeleteCategory(ctx context.Context, id uint) error 
 }
 
 func (r *CategoryRepository) CategoryExists(id uint, showDeleted *bool) (bool, error) {
-	var category Category
-	query := r.db.Model(&Category{}).Where(c.FieldID+" = ?", id)
+	var category CategoryEntity
+	query := r.db.Model(&CategoryEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -156,8 +157,8 @@ func (r *CategoryRepository) CategoryExists(id uint, showDeleted *bool) (bool, e
 }
 
 func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint) (bool, error) {
-	var category Category
-	query := r.db.Model(&Category{}).Where(c.CategoryTitle+" = ?", title)
+	var category CategoryEntity
+	query := r.db.Model(&CategoryEntity{}).Where(c.CategoryTitle+" = ?", title)
 
 	if excludeID != nil {
 		query = query.Where(c.FieldID+" != ?", *excludeID)
@@ -173,8 +174,8 @@ func (r *CategoryRepository) CategoryExistsByTitle(title string, excludeID *uint
 }
 
 func (r *CategoryRepository) HasChildren(parentID uint) (bool, error) {
-	var category Category
-	err := r.db.Model(&Category{}).Where(c.CategoryParentID+" = ?", parentID).Select(c.FieldID).Take(&category).Error
+	var category CategoryEntity
+	err := r.db.Model(&CategoryEntity{}).Where(c.CategoryParentID+" = ?", parentID).Select(c.FieldID).Take(&category).Error
 
 	if err != nil {
 		l.Logger.Error("❌ Failed to check if category has children", "method", "HasChildren", "error", err, "parentID", parentID)
@@ -191,7 +192,7 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 			return err
 		}
 
-		result := tx.Model(&Category{}).
+		result := tx.Model(&CategoryEntity{}).
 			Where(c.FieldID+" = ?", rootID).
 			Update(c.CategoryPriority, gorm.Expr(c.CategoryPriority+" + 1"))
 
@@ -203,8 +204,8 @@ func (r *CategoryRepository) IncrementPriority(categoryID uint) error {
 	return err
 }
 
-func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth *int, showDeleted *bool, sortBy, sortOrder string) ([]CategorySubcategoriesResponse, error) {
-	var categories []Category
+func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth *int, showDeleted *bool, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error) {
+	var categories []CategoryEntity
 
 	query := `
         WITH RECURSIVE category_tree AS (
@@ -262,17 +263,17 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
 		return nil, err
 	}
 
-	lookup := make(map[uint]*Category)
+	lookup := make(map[uint]*CategoryEntity)
 	for i := range categories {
 		lookup[categories[i].ID] = &categories[i]
 	}
 
-	var buildSubcategories func(parentID uint) []CategorySubcategoriesResponse
-	buildSubcategories = func(parentID uint) []CategorySubcategoriesResponse {
-		var subs []CategorySubcategoriesResponse
+	var buildSubcategories func(parentID uint) []m.CategorySubcategoriesResponse
+	buildSubcategories = func(parentID uint) []m.CategorySubcategoriesResponse {
+		var subs []m.CategorySubcategoriesResponse
 		for _, cat := range categories {
 			if cat.ParentID != nil && *cat.ParentID == parentID {
-				sub := CategorySubcategoriesResponse{
+				sub := m.CategorySubcategoriesResponse{
 					Category:      *lookup[cat.ID].ToResponse(),
 					Subcategories: buildSubcategories(cat.ID),
 				}
@@ -282,10 +283,10 @@ func (r *CategoryRepository) GetAllCategoriesWithSubcategories(subcategoryDepth 
 		return subs
 	}
 
-	var roots []CategorySubcategoriesResponse
+	var roots []m.CategorySubcategoriesResponse
 	for i := range categories {
 		if categories[i].ParentID == nil {
-			root := CategorySubcategoriesResponse{
+			root := m.CategorySubcategoriesResponse{
 				Category:      *lookup[categories[i].ID].ToResponse(),
 				Subcategories: buildSubcategories(categories[i].ID),
 			}
@@ -306,7 +307,7 @@ func findRootCategoryID(tx *gorm.DB, categoryID uint) (uint, error) {
 		}
 		visited[currentID] = true
 
-		var category Category
+		var category CategoryEntity
 		err := tx.Select(c.FieldID, c.CategoryParentID).
 			Where(c.FieldID+" = ?", currentID).
 			First(&category).Error
@@ -326,7 +327,7 @@ func findRootCategoryID(tx *gorm.DB, categoryID uint) (uint, error) {
 }
 
 func deleteOrUndoCategory(ctx context.Context, db *gorm.DB, id uint, isUndo *bool) error {
-	category := Category{}
+	category := CategoryEntity{}
 	userID, _ := cu.GetUserIDFromContext(ctx)
 
 	if isUndo != nil && *isUndo {
@@ -360,7 +361,7 @@ func deleteOrUndoCategory(ctx context.Context, db *gorm.DB, id uint, isUndo *boo
 			return nil
 		}
 
-		query := tx.Model(&Category{})
+		query := tx.Model(&CategoryEntity{})
 		if isUndo != nil && *isUndo {
 			query = query.Unscoped()
 		} else {

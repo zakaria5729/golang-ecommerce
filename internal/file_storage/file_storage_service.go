@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	m "github.com/easy-comerce/backend/internal/file_storage/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 )
 
@@ -19,7 +20,7 @@ func NewFileStorageService(repo *FileStorageRepository) *FileStorageService {
 	}
 }
 
-func (s *FileStorageService) UploadFile(ctx context.Context, userID uint, req *StorageUploadRequest) (*StorageUploadResponse, error) {
+func (s *FileStorageService) UploadFile(ctx context.Context, userID uint, req *m.StorageUploadRequest) (*m.StorageUploadResponse, error) {
 	maxFileSize := c.SizeInMB * 3
 	if req.File.Size > maxFileSize {
 		return nil, fmt.Errorf("file size exceeds, maximum allowed size of %d MB", maxFileSize/c.SizeInMB)
@@ -47,7 +48,7 @@ func (s *FileStorageService) DeleteFile(ctx context.Context, key string) error {
 		return fmt.Errorf("file key is required")
 	}
 
-	err := s.repo.Delete(ctx, &StorageDeleteRequest{PathKey: key})
+	err := s.repo.Delete(ctx, &m.StorageDeleteRequest{PathKey: key})
 	if err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}

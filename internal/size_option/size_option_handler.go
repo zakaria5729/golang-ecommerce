@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/size_option/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *SizeOptionHandler) GetSizeOptionByID(w http.ResponseWriter, r *http.Req
 }
 
 func (h *SizeOptionHandler) CreateSizeOption(w http.ResponseWriter, r *http.Request) {
-	var req CreateSizeOptionRequest
+	var req m.CreateSizeOptionRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateSizeOption") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *SizeOptionHandler) UpdateSizeOption(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req UpdateSizeOptionRequest
+	var req m.UpdateSizeOptionRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateSizeOption") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *SizeOptionHandler) UndoDeletedSizeOption(w http.ResponseWriter, r *http
 	response.SendResponse(w, "Size option restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, []SizeOption) {
+func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, []SizeOptionEntity) {
 	q := r.URL.Query()
 	sizeCategoryID := q.Get(c.SizeOptionSizeCategoryID)
 	sortBy := q.Get(c.SortBy)
@@ -114,7 +115,7 @@ func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service *SizeOpti
 	return nil, sizeOptions
 }
 
-func getSizeOptionDataById(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, *SizeOption) {
+func getSizeOptionDataById(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, *SizeOptionEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid size option ID"), nil
@@ -128,7 +129,7 @@ func getSizeOptionDataById(r *http.Request, showDeleted *bool, service *SizeOpti
 	return nil, sizeOption
 }
 
-func validateCreateSizeOptionRequest(req *CreateSizeOptionRequest) validator.ValidationErrors {
+func validateCreateSizeOptionRequest(req *m.CreateSizeOptionRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -137,7 +138,7 @@ func validateCreateSizeOptionRequest(req *CreateSizeOptionRequest) validator.Val
 	)
 }
 
-func validateUpdateSizeOptionRequest(req *UpdateSizeOptionRequest) validator.ValidationErrors {
+func validateUpdateSizeOptionRequest(req *m.UpdateSizeOptionRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

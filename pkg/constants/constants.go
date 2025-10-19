@@ -23,8 +23,20 @@ const (
 	EnvKeyJWTSecret       string = "JWT_SECRET"
 	EnvKeyFcmUrl          string = "FCM_URL"
 	EnvKeyFcmServerKey    string = "FCM_SERVER_KEY"
-	EnvKeyGoogleClientID  string = "GOOGLE_CLIENT_ID"
 	EnvKeyFacebookAppID   string = "FACEBOOK_APP_ID"
+	EnvKeyGoogleClientID  string = "GOOGLE_CLIENT_ID"
+)
+
+const (
+	AuthTypeGoogle      string = "google"
+	AuthTypeFacebook    string = "facebook"
+	GoogleUserInfoURL   string = "https://www.googleapis.com/oauth2/v2/userinfo"
+	FacebookUserInfoURL string = "https://graph.facebook.com/me?fields=email,name,first_name,last_name,picture.width(250).height(250)"
+)
+
+const (
+	Bearer        string = "Bearer"
+	Authorization string = "Authorization"
 )
 
 const (
@@ -77,11 +89,6 @@ const (
 	RoleNameMaintainer string = "Maintainer"
 	RoleNameSeller     string = "Seller"
 	RoleNameUser       string = "User"
-)
-
-const (
-	AuthTypeGoogle   string = "google"
-	AuthTypeFacebook string = "facebook"
 )
 
 const (

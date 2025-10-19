@@ -17,8 +17,8 @@ func NewAddressRepository(db *gorm.DB) *AddressRepository {
 	}
 }
 
-func (r *AddressRepository) GetAllAddressesByUser(userID uint, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]Address, error) {
-	var addresses []Address
+func (r *AddressRepository) GetAllAddressesByUser(userID uint, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, error) {
+	var addresses []AddressEntity
 	query := r.db.Where(c.AddressUserID+" = ?", userID)
 
 	if addressType != nil && *addressType != "" {
@@ -40,11 +40,11 @@ func (r *AddressRepository) GetAllAddressesByUser(userID uint, addressType *stri
 	return addresses, err
 }
 
-func (r *AddressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]Address, int, error) {
-	var addresses []Address
+func (r *AddressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, int, error) {
+	var addresses []AddressEntity
 	var total int64
 
-	query := r.db.Model(&Address{})
+	query := r.db.Model(&AddressEntity{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
@@ -78,8 +78,8 @@ func (r *AddressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *
 	return addresses, int(total), err
 }
 
-func (r *AddressRepository) GetAddressByID(id uint, userID *uint, showDeleted *bool) (*Address, error) {
-	var address Address
+func (r *AddressRepository) GetAddressByID(id uint, userID *uint, showDeleted *bool) (*AddressEntity, error) {
+	var address AddressEntity
 	query := r.db.Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
@@ -98,7 +98,7 @@ func (r *AddressRepository) GetAddressByID(id uint, userID *uint, showDeleted *b
 	return &address, nil
 }
 
-func (r *AddressRepository) CreateAddress(address *Address) error {
+func (r *AddressRepository) CreateAddress(address *AddressEntity) error {
 	err := r.db.Create(address).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create address", "method", "CreateAddress", "error", err, "address", address)
@@ -106,8 +106,8 @@ func (r *AddressRepository) CreateAddress(address *Address) error {
 	return err
 }
 
-func (r *AddressRepository) UpdateAddress(address *Address) error {
-	err := r.db.Model(&Address{}).Where(c.FieldID+" = ?", address.ID).Updates(address).Error
+func (r *AddressRepository) UpdateAddress(address *AddressEntity) error {
+	err := r.db.Model(&AddressEntity{}).Where(c.FieldID+" = ?", address.ID).Updates(address).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update address", "method", "UpdateAddress", "error", err, "address", address)
 	}
@@ -115,7 +115,7 @@ func (r *AddressRepository) UpdateAddress(address *Address) error {
 }
 
 func (r *AddressRepository) DeleteAddress(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&Address{}).Error
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AddressEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete address", "method", "DeleteAddress", "error", err, "id", id)
 	}
@@ -123,7 +123,7 @@ func (r *AddressRepository) DeleteAddress(id uint) error {
 }
 
 func (r *AddressRepository) RemoveAddress(id uint, userID uint) error {
-	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Delete(&Address{}).Error
+	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Delete(&AddressEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to remove address", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
 	}
@@ -147,7 +147,7 @@ func (r *AddressRepository) SetDefaultAddress(id uint, userID uint, addressType 
 }
 
 func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bool) (bool, error) {
-	query := r.db.Model(&Address{}).Where(c.FieldID+" = ?", id)
+	query := r.db.Model(&AddressEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -156,7 +156,7 @@ func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bo
 		query = query.Where(c.AddressUserID+" = ?", *userID)
 	}
 
-	var address Address
+	var address AddressEntity
 	err := query.Select(c.FieldID).Take(&address).Error
 	if err != nil || address.ID == 0 {
 		l.Logger.Error("❌ Failed to check if address exists", "method", "AddressExists", "error", err, "id", id, "userID", userID)
@@ -166,8 +166,8 @@ func (r *AddressRepository) AddressExists(id uint, userID *uint, showDeleted *bo
 	return true, nil
 }
 
-func (r *AddressRepository) GetDefaultAddress(userID uint, addressType string) (*Address, error) {
-	var address Address
+func (r *AddressRepository) GetDefaultAddress(userID uint, addressType string) (*AddressEntity, error) {
+	var address AddressEntity
 
 	err := r.db.Where(c.AddressUserID+" = ? AND "+c.AddressAddressType+" = ? AND "+c.AddressIsDefault+" = ?", userID, addressType, true).First(&address).Error
 	if err != nil {

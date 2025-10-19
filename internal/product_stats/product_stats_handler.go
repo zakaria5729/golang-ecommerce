@@ -3,6 +3,7 @@ package product_stats
 import (
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/product_stats/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -45,7 +46,7 @@ func (h *ProductStatsHandler) GetProductStatsByID(w http.ResponseWriter, r *http
 }
 
 func (h *ProductStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *http.Request) {
-	var req IncreaseProductStatsRequest
+	var req m.IncreaseProductStatsRequest
 	if !utils.DecodeJSON(w, r, &req, "IncreaseProductStats") {
 		return
 	}
@@ -59,7 +60,7 @@ func (h *ProductStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *htt
 	response.SendResponse(w, "Product stats increased successfully", err, http.StatusInternalServerError)
 }
 
-func validateProductStatsRequest(req *IncreaseProductStatsRequest) validator.ValidationErrors {
+func validateProductStatsRequest(req *m.IncreaseProductStatsRequest) validator.ValidationErrors {
 	var errors validator.ValidationErrors
 
 	if req.ProductID <= 0 {

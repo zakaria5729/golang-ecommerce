@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	m "github.com/easy-comerce/backend/internal/review/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
-	"github.com/easy-comerce/backend/pkg/models"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -53,7 +53,7 @@ func (h *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req CreateReviewRequest
+	var req m.CreateReviewRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateReview") {
 		return
 	}
@@ -158,7 +158,7 @@ func (h *ReviewHandler) GetProductRatingStats(w http.ResponseWriter, r *http.Req
 	response.SendResponse(w, stats, err, http.StatusInternalServerError)
 }
 
-func getReviewDataByID(r *http.Request, showDeleted *bool, service *ReviewService) (error, *Review) {
+func getReviewDataByID(r *http.Request, showDeleted *bool, service *ReviewService) (error, *ReviewEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid review ID"), nil
@@ -172,7 +172,7 @@ func getReviewDataByID(r *http.Request, showDeleted *bool, service *ReviewServic
 	return nil, review
 }
 
-func getAllReviewsPaginatedData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *models.PaginatedResponse) {
+func getAllReviewsPaginatedData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *response.PaginatedResponse) {
 	q := r.URL.Query()
 
 	pageStr := q.Get(c.Page)
@@ -192,7 +192,7 @@ func getAllReviewsPaginatedData(r *http.Request, showDeleted *bool, service *Rev
 	return nil, paginatedResponse
 }
 
-func getReviewsByProductData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *models.PaginatedResponse) {
+func getReviewsByProductData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *response.PaginatedResponse) {
 	productID, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
 		return errors.New("invalid product ID"), nil
@@ -213,7 +213,7 @@ func getReviewsByProductData(r *http.Request, showDeleted *bool, service *Review
 	return nil, reviews
 }
 
-func getProductRatingStatsData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *ProductRatingStatsResponse) {
+func getProductRatingStatsData(r *http.Request, showDeleted *bool, service *ReviewService) (error, *m.ProductRatingStatsResponse) {
 	productID, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || productID == nil || *productID == 0 {
 		return errors.New("invalid product ID"), nil
@@ -233,7 +233,7 @@ func updateReviewData(r *http.Request, userID *uint, service *ReviewService) (er
 		return errors.New("Invalid review ID"), nil
 	}
 
-	var req UpdateReviewRequest
+	var req m.UpdateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return errors.New("Invalid request body"), nil
 	}

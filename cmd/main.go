@@ -26,7 +26,7 @@ func main() {
 
 	handler := router.Use(
 		m.CorsMiddleware,
-		m.RecoveryMiddleware,
+		// m.RecoveryMiddleware,
 		m.LoggingMiddleware,
 	)
 

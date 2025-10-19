@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/easy-comerce/backend/pkg/models"
+	r "github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
@@ -39,7 +39,7 @@ func (s *NotificationService) CreateNotification(ctx context.Context, userID uin
 	return notification, nil
 }
 
-func (s *NotificationService) GetUserNotifications(showDeleted *bool, userID uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*models.PaginatedResponse, error) {
+func (s *NotificationService) GetUserNotifications(showDeleted *bool, userID uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	notifications, total, err := s.repo.GetAllByUserIDPaginated(showDeleted, userID, page, pageSize, sortBy, sortOrder)

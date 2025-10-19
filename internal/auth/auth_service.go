@@ -4,20 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
+	"github.com/easy-comerce/backend/internal/auth/model"
 	"github.com/easy-comerce/backend/internal/file_storage"
+	fm "github.com/easy-comerce/backend/internal/file_storage/model"
 	"github.com/easy-comerce/backend/internal/role"
 	"github.com/easy-comerce/backend/internal/user"
+	userModel "github.com/easy-comerce/backend/internal/user/model"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	httpclient "github.com/easy-comerce/backend/pkg/http_client"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/tokenutil"
 	"github.com/easy-comerce/backend/pkg/utils"
-	"google.golang.org/api/idtoken"
 	"gorm.io/gorm"
 )
 
@@ -39,27 +41,27 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
+func (s *AuthService) Login(req *model.LoginRequest) (*model.LoginResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Password = utils.Trim(req.Password)
 
-	user, err := s.userRepo.GetFullUserByEmail(req.Email)
+	userEntity, err := s.userRepo.GetFullUserByEmail(req.Email)
 	if err != nil {
 		return nil, errors.New("invalid email or password")
 	}
 
-	if !user.Verified {
+	if !userEntity.Verified {
 		return nil, errors.New("account is not verified yet")
 	}
 
-	if !user.CheckPassword(req.Password) {
+	if !userEntity.CheckPassword(req.Password) {
 		return nil, errors.New("invalid email or password")
 	}
 
-	return createLoginResponse(user, s.userRepo, s.jwtSecret)
+	return createLoginResponse(userEntity, s.userRepo, s.jwtSecret)
 }
 
-func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, error) {
+func (s *AuthService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginResponse, error) {
 	var err error
 	var name string
 	var email string
@@ -67,9 +69,9 @@ func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, erro
 
 	switch req.AuthType {
 	case c.AuthTypeGoogle:
-		name, email, imageUrl, err = getUserInfoFromGoogle(req.IdToken)
+		name, email, imageUrl, err = getUserInfoFromGoogle(req.AccessToken)
 	case c.AuthTypeFacebook:
-		// name, email, imageUrl, err = getUserInfoFromFacebook(req.IdToken)
+		name, email, imageUrl, err = getUserInfoFromFacebook(req.AccessToken)
 	default:
 		err = errors.New("invalid auth type")
 	}
@@ -83,7 +85,7 @@ func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, erro
 		return createLoginResponse(loginUser, s.userRepo, s.jwtSecret)
 	}
 
-	newUser := &user.User{
+	newUser := &user.UserEntity{
 		Email:    email,
 		Password: c.SocialLoginDefaultPassword,
 		Name:     name,
@@ -103,7 +105,9 @@ func (s *AuthService) SocialLogin(req *SocialLoginRequest) (*LoginResponse, erro
 	return createLoginResponse(newUser, s.userRepo, s.jwtSecret)
 }
 
-func (s *AuthService) Register(req *RegisterRequest) (*user.UserResponse, error) {
+var InternalServerError = errors.New("failed to create user")
+
+func (s *AuthService) Register(req *model.RegisterRequest) (*userModel.UserResponse, error) {
 	req.Name = utils.Trim(req.Name)
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
@@ -115,7 +119,7 @@ func (s *AuthService) Register(req *RegisterRequest) (*user.UserResponse, error)
 		return nil, errors.New("user with this email already exists")
 	}
 
-	user := &user.User{
+	user := &user.UserEntity{
 		Email:    req.Email,
 		Password: req.Password,
 		Name:     req.Name,
@@ -139,7 +143,7 @@ func (s *AuthService) Register(req *RegisterRequest) (*user.UserResponse, error)
 	return userResponse, nil
 }
 
-func (s *AuthService) ForgotPassword(req *ForgotPasswordRequest) (string, error) {
+func (s *AuthService) ForgotPassword(req *model.ForgotPasswordRequest) (string, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
 	userID, err := s.userRepo.GetUserIdByEmail(req.Email)
@@ -160,7 +164,7 @@ func (s *AuthService) ForgotPassword(req *ForgotPasswordRequest) (string, error)
 	return token, nil
 }
 
-func (s *AuthService) ResetPassword(req *ResetPasswordRequest) error {
+func (s *AuthService) ResetPassword(req *model.ResetPasswordRequest) error {
 	user, err := s.userRepo.GetUserByResetPasswordToken(req.Token)
 	if err != nil || user == nil || user.PasswordResetExpires.Before(timeutil.NowUTC()) {
 		return errors.New("invalid or expired reset token")
@@ -183,7 +187,7 @@ func (s *AuthService) ResetPassword(req *ResetPasswordRequest) error {
 	return nil
 }
 
-func (s *AuthService) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, error) {
+func (s *AuthService) RefreshToken(req *model.RefreshTokenRequest) (*model.LoginResponse, error) {
 	user, err := s.userRepo.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
 		return nil, errors.New("invalid or expired refresh token")
@@ -211,7 +215,7 @@ func (s *AuthService) RefreshToken(req *RefreshTokenRequest) (*LoginResponse, er
 		return nil, fmt.Errorf("failed to set refresh token: %w", err)
 	}
 
-	return &LoginResponse{
+	return &model.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
@@ -238,7 +242,7 @@ func (s *AuthService) VerifyEmail(token string) error {
 	return nil
 }
 
-func (s *AuthService) ResendVerifyLink(req *ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
+func (s *AuthService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
 	userID, verified, err := s.userRepo.GetUserIdAndVerifiedByEmail(req.Email, nil)
 	if err != nil || userID == nil {
 		return "", false, err
@@ -258,7 +262,7 @@ func (s *AuthService) ResendVerifyLink(req *ResendVerifyLinkRequest) (verificati
 	return "", verified, nil
 }
 
-func createLoginResponse(user *user.User, userRepo *user.UserRepository, jwtSecret string) (*LoginResponse, error) {
+func createLoginResponse(user *user.UserEntity, userRepo *user.UserRepository, jwtSecret string) (*model.LoginResponse, error) {
 	if user.Banned {
 		return nil, errors.New("account is banned")
 	}
@@ -278,7 +282,7 @@ func createLoginResponse(user *user.User, userRepo *user.UserRepository, jwtSecr
 		user.LastLoginAt = &lastLoginAt
 	}
 
-	return &LoginResponse{
+	return &model.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         user.ToResponse(),
@@ -286,7 +290,7 @@ func createLoginResponse(user *user.User, userRepo *user.UserRepository, jwtSecr
 	}, nil
 }
 
-func createRegisterResponse(user *user.User, userRepo *user.UserRepository, roleRepo *role.RoleRepository) (*user.User, error) {
+func createRegisterResponse(user *user.UserEntity, userRepo *user.UserRepository, roleRepo *role.RoleRepository) (*user.UserEntity, error) {
 	if err := user.HashPassword(); err != nil {
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
@@ -296,7 +300,7 @@ func createRegisterResponse(user *user.User, userRepo *user.UserRepository, role
 		return nil, fmt.Errorf("failed to assign default role: %w", err)
 	}
 
-	user.Roles = []role.Role{*userRole}
+	user.Roles = []role.RoleEntity{*userRole}
 	createdUser, err := userRepo.CreateUser(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -325,62 +329,82 @@ func setVerificationToken(userID uint, userRepo *user.UserRepository) (string, e
 func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl *string, err error) {
 	googleClientId := config.GetConfig().GoogleClientID
 	if googleClientId == "" {
-		return "", "", nil, errors.New("Social login is not enabled")
+		return "", "", nil, errors.New("Google login is not properly configured")
 	}
 
-	payload, err := idtoken.Validate(context.Background(), idToken, googleClientId)
-	if err != nil {
-		return "", "", nil, errors.New("invalid id token")
+	var res map[string]any
+	if err = httpclient.New().Retry(1).Do(httpclient.Request{
+		URL:      c.GoogleUserInfoURL,
+		Response: &res,
+		Headers: map[string]string{
+			c.Authorization: c.Bearer + " " + idToken,
+		},
+	}); err != nil {
+		return "", "", nil, fmt.Errorf("❌ failed to get user info from Google: %v", err)
 	}
 
-	email, ok := payload.Claims[c.UserEmail].(string)
+	email, ok := res[c.UserEmail].(string)
 	if !ok {
 		return "", "", nil, errors.New("email not found")
 	}
-
-	name, ok = payload.Claims[c.UserName].(string)
+	name, ok = res[c.UserName].(string)
 	if !ok {
 		name = "New User"
 	}
 
-	name = utils.Trim(name)
-	email = utils.Trim(strings.ToLower(email))
-
-	picture, ok := payload.Claims["picture"].(string)
+	picture, ok := res["picture"].(string)
 	if ok {
 		picture = strings.Replace(picture, "s96-c", "s512-c", 1)
 		imageUrl = &picture
 	}
 
+	return utils.Trim(name), utils.Trim(strings.ToLower(email)), imageUrl, nil
+}
+
+func getUserInfoFromFacebook(accessToken string) (name string, email string, imageUrl *string, err error) {
+	facebookAppID := config.GetConfig().FacebookAppID
+	if facebookAppID == "" {
+		return "", "", nil, errors.New("Facebook login is not properly configured")
+	}
+
+	var res map[string]any
+	if err = httpclient.New().Retry(1).Do(httpclient.Request{
+		URL:      c.FacebookUserInfoURL,
+		Response: &res,
+		QueryParams: map[string]string{
+			"access_token": accessToken,
+		},
+	}); err != nil {
+		return "", "", nil, fmt.Errorf("❌ failed to get user info from Facebook: %v", err)
+	}
+
+	l.Logger.Info("✅ Got user info from Facebook", "method", "getUserInfoFromFacebook", "res", res)
 	return name, email, imageUrl, nil
 }
 
 func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *string {
 	if imageUrl == "" {
-		l.Logger.Error("Failed to create object storage client", "error", "empty image url", "method", "getProfilePicPathKeyFromImageUrl")
+		l.Logger.Error("❌ Failed to create object storage client", "error", "empty image url", "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
 	storage, err := file_storage.NewObjectStorage()
 	if err != nil {
-		l.Logger.Error("Failed to create object storage client", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Logger.Error("❌ Failed to create object storage client", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
-	resp, err := http.Get(imageUrl)
+	var imgData []byte
+	err = httpclient.New().Retry(2).Do(httpclient.Request{
+		URL:      imageUrl,
+		Response: &imgData,
+	})
 	if err != nil {
-		l.Logger.Error("Failed to get image from url", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
-		return nil
-	}
-	defer resp.Body.Close()
-
-	imgData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		l.Logger.Error("Failed to read image from url", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Logger.Error("❌ Failed to get image from url", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
-	uploadReq := file_storage.StorageUploadRawRequest{
+	uploadReq := fm.StorageUploadRawRequest{
 		FileData:    imgData,
 		FileName:    "social_user_profile_pic.png",
 		Folder:      c.FolderUser,
@@ -390,10 +414,9 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 	repo := file_storage.NewFileStorageRepository(storage)
 	response, err := repo.UploadRaw(ctx, &uploadReq)
 	if err != nil {
-		l.Logger.Error("Failed to upload image", "error", err, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Logger.Error("❌ Failed to upload image", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
-	l.Logger.Info("Image uploaded successfully", "path_key", response.PathKey, "method", "getProfilePicPathKeyFromImageUrl")
 	return &response.PathKey
 }

@@ -3,6 +3,8 @@ package brand
 import (
 	"errors"
 	"fmt"
+
+	m "github.com/easy-comerce/backend/internal/brand/model"
 )
 
 type BrandService struct {
@@ -15,7 +17,7 @@ func NewBrandService(repo *BrandRepository) *BrandService {
 	}
 }
 
-func (s *BrandService) GetAllBrands(showDeleted *bool, sortBy, sortOrder string) ([]Brand, error) {
+func (s *BrandService) GetAllBrands(showDeleted *bool, sortBy, sortOrder string) ([]BrandEntity, error) {
 	brands, err := s.repo.GetAllBrands(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch brands: %w", err)
@@ -24,7 +26,7 @@ func (s *BrandService) GetAllBrands(showDeleted *bool, sortBy, sortOrder string)
 	return brands, nil
 }
 
-func (s *BrandService) GetBrandByID(id uint, showDeleted *bool) (*Brand, error) {
+func (s *BrandService) GetBrandByID(id uint, showDeleted *bool) (*BrandEntity, error) {
 	brand, err := s.repo.GetBrandByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("brand not found: %w", err)
@@ -33,7 +35,7 @@ func (s *BrandService) GetBrandByID(id uint, showDeleted *bool) (*Brand, error) 
 	return brand, nil
 }
 
-func (s *BrandService) CreateBrand(req *CreateBrandRequest) (*Brand, error) {
+func (s *BrandService) CreateBrand(req *m.CreateBrandRequest) (*BrandEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.repo.BrandExistsByName(req.Name)
@@ -44,7 +46,7 @@ func (s *BrandService) CreateBrand(req *CreateBrandRequest) (*Brand, error) {
 		return nil, errors.New("brand with this name already exists")
 	}
 
-	brand := &Brand{
+	brand := &BrandEntity{
 		Name:        req.Name,
 		Description: req.Description,
 	}
@@ -57,7 +59,7 @@ func (s *BrandService) CreateBrand(req *CreateBrandRequest) (*Brand, error) {
 	return brand, nil
 }
 
-func (s *BrandService) UpdateBrand(id uint, req *UpdateBrandRequest) (*Brand, error) {
+func (s *BrandService) UpdateBrand(id uint, req *m.UpdateBrandRequest) (*BrandEntity, error) {
 	req.Sanitize()
 
 	existingBrand, err := s.repo.GetBrandByID(id, nil)

@@ -18,9 +18,9 @@ func NewAttributeOptionRepository() *AttributeOptionRepository {
 	}
 }
 
-func (r *AttributeOptionRepository) GetAllAttributeOptions(include []string, showDeleted *bool, attributeTypeID *uint, sortBy, sortOrder string) ([]AttributeOption, error) {
-	var attributeOptions []AttributeOption
-	query := r.db.Model(&AttributeOption{})
+func (r *AttributeOptionRepository) GetAllAttributeOptions(include []string, showDeleted *bool, attributeTypeID *uint, sortBy, sortOrder string) ([]AttributeOptionEntity, error) {
+	var attributeOptions []AttributeOptionEntity
+	query := r.db.Model(&AttributeOptionEntity{})
 
 	if attributeTypeID != nil && *attributeTypeID > 0 {
 		query = query.Where(c.AttributeOptionAttributeTypeID+" = ?", *attributeTypeID)
@@ -46,9 +46,9 @@ func (r *AttributeOptionRepository) GetAllAttributeOptions(include []string, sho
 	return attributeOptions, err
 }
 
-func (r *AttributeOptionRepository) GetAttributeOptionByID(id uint, include []string, showDeleted *bool) (*AttributeOption, error) {
-	var attributeOption AttributeOption
-	query := r.db.Model(&AttributeOption{})
+func (r *AttributeOptionRepository) GetAttributeOptionByID(id uint, include []string, showDeleted *bool) (*AttributeOptionEntity, error) {
+	var attributeOption AttributeOptionEntity
+	query := r.db.Model(&AttributeOptionEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -66,7 +66,7 @@ func (r *AttributeOptionRepository) GetAttributeOptionByID(id uint, include []st
 	return &attributeOption, nil
 }
 
-func (r *AttributeOptionRepository) CreateAttributeOption(attributeOption *AttributeOption) (*AttributeOption, error) {
+func (r *AttributeOptionRepository) CreateAttributeOption(attributeOption *AttributeOptionEntity) (*AttributeOptionEntity, error) {
 	err := r.db.Create(attributeOption).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create attribute option", "method", "CreateAttributeOption", "error", err, "attributeOption", attributeOption)
@@ -76,7 +76,7 @@ func (r *AttributeOptionRepository) CreateAttributeOption(attributeOption *Attri
 	return attributeOption, nil
 }
 
-func (r *AttributeOptionRepository) UpdateAttributeOption(attributeOption *AttributeOption) error {
+func (r *AttributeOptionRepository) UpdateAttributeOption(attributeOption *AttributeOptionEntity) error {
 	err := r.db.Save(attributeOption).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update attribute option", "method", "UpdateAttributeOption", "error", err, "attributeOption", attributeOption)
@@ -86,7 +86,7 @@ func (r *AttributeOptionRepository) UpdateAttributeOption(attributeOption *Attri
 }
 
 func (r *AttributeOptionRepository) DeleteAttributeOption(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeOption{}).Error
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeOptionEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete attribute option", "method", "DeleteAttributeOption", "error", err, "id", id)
 	}
@@ -95,7 +95,7 @@ func (r *AttributeOptionRepository) DeleteAttributeOption(id uint) error {
 }
 
 func (r *AttributeOptionRepository) UndoDeletedAttributeOption(id uint) error {
-	var attributeOption AttributeOption
+	var attributeOption AttributeOptionEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&attributeOption).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to find deleted attribute option", "method", "UndoDeletedAttributeOption", "error", err, "id", id)
@@ -112,8 +112,8 @@ func (r *AttributeOptionRepository) UndoDeletedAttributeOption(id uint) error {
 }
 
 func (r *AttributeOptionRepository) AttributeOptionExists(id uint, showDeleted *bool) (bool, error) {
-	var attributeOption AttributeOption
-	query := r.db.Model(&AttributeOption{}).Where(c.FieldID+" = ?", id)
+	var attributeOption AttributeOptionEntity
+	query := r.db.Model(&AttributeOptionEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -129,8 +129,8 @@ func (r *AttributeOptionRepository) AttributeOptionExists(id uint, showDeleted *
 }
 
 func (r *AttributeOptionRepository) AttributeOptionExistsByNameAndType(attributeOptionName string, attributeTypeID uint, excludeID ...uint) (bool, error) {
-	var attributeOption AttributeOption
-	query := r.db.Model(&AttributeOption{}).Where(c.AttributeOptionAttributeOptionName+" = ? AND "+c.AttributeOptionAttributeTypeID+" = ?", attributeOptionName, attributeTypeID)
+	var attributeOption AttributeOptionEntity
+	query := r.db.Model(&AttributeOptionEntity{}).Where(c.AttributeOptionAttributeOptionName+" = ? AND "+c.AttributeOptionAttributeTypeID+" = ?", attributeOptionName, attributeTypeID)
 
 	if len(excludeID) > 0 {
 		query = query.Where(c.FieldID+" != ?", excludeID[0])

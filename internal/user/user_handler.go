@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	"github.com/easy-comerce/backend/internal/user/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	"github.com/easy-comerce/backend/pkg/response"
@@ -38,7 +39,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateProfileRequest
+	var req model.UpdateProfileRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateProfile") {
 		return
 	}
@@ -60,7 +61,7 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ChangePasswordRequest
+	var req model.ChangePasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ChangePassword") {
 		return
 	}
@@ -75,7 +76,7 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var req CreateUserRequest
+	var req model.CreateUserRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateUser") {
 		return
 	}
@@ -103,7 +104,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateUserRequest
+	var req model.UpdateUserRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateUser") {
 		return
 	}
@@ -165,7 +166,7 @@ func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Undo user deleted successfully", err, http.StatusInternalServerError)
 }
 
-func validateUpdateProfileRequest(req *UpdateProfileRequest) validator.ValidationErrors {
+func validateUpdateProfileRequest(req *model.UpdateProfileRequest) validator.ValidationErrors {
 	errors := validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 	)
@@ -173,7 +174,7 @@ func validateUpdateProfileRequest(req *UpdateProfileRequest) validator.Validatio
 	return errors
 }
 
-func validateCreateUserRequest(req *CreateUserRequest) validator.ValidationErrors {
+func validateCreateUserRequest(req *model.CreateUserRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateRequired(req.Email, "email"),
@@ -183,13 +184,13 @@ func validateCreateUserRequest(req *CreateUserRequest) validator.ValidationError
 	)
 }
 
-func validateUpdateUserRequest(req *UpdateUserRequest) validator.ValidationErrors {
+func validateUpdateUserRequest(req *model.UpdateUserRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 	)
 }
 
-func validateChangePasswordRequest(req *ChangePasswordRequest) validator.ValidationErrors {
+func validateChangePasswordRequest(req *model.ChangePasswordRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.CurrentPassword, "current_password"),
 		validator.ValidatePassword(req.NewPassword, "new_password"),

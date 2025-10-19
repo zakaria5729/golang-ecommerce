@@ -25,6 +25,7 @@ const (
 	TableProductStats    string = "product_stats"
 	TableBrand           string = "brands"
 	TableColor           string = "colors"
+	TableSecret          string = "secrets"
 	TableAttributeType   string = "attribute_types"
 	TableAttributeOption string = "attribute_options"
 	TableSizeCategory    string = "size_categories"

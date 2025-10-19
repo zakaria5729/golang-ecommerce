@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	m "github.com/easy-comerce/backend/internal/color/model"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -43,7 +44,7 @@ func (h *ColorHandler) GetColorByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ColorHandler) CreateColor(w http.ResponseWriter, r *http.Request) {
-	var req CreateColorRequest
+	var req m.CreateColorRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateColor") {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *ColorHandler) UpdateColor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateColorRequest
+	var req m.UpdateColorRequest
 	if !utils.DecodeJSON(w, r, &req, "UpdateColor") {
 		return
 	}
@@ -100,7 +101,7 @@ func (h *ColorHandler) UndoDeletedColor(w http.ResponseWriter, r *http.Request) 
 	response.SendResponse(w, "Color restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllColorsData(r *http.Request, showDeleted *bool, service *ColorService) (error, []Color) {
+func getAllColorsData(r *http.Request, showDeleted *bool, service *ColorService) (error, []ColorEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -113,7 +114,7 @@ func getAllColorsData(r *http.Request, showDeleted *bool, service *ColorService)
 	return nil, colors
 }
 
-func getColorDataById(r *http.Request, showDeleted *bool, service *ColorService) (error, *Color) {
+func getColorDataById(r *http.Request, showDeleted *bool, service *ColorService) (error, *ColorEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid color ID"), nil
@@ -127,7 +128,7 @@ func getColorDataById(r *http.Request, showDeleted *bool, service *ColorService)
 	return nil, color
 }
 
-func validateCreateColorRequest(req *CreateColorRequest) validator.ValidationErrors {
+func validateCreateColorRequest(req *m.CreateColorRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),
@@ -135,7 +136,7 @@ func validateCreateColorRequest(req *CreateColorRequest) validator.ValidationErr
 	)
 }
 
-func validateUpdateColorRequest(req *UpdateColorRequest) validator.ValidationErrors {
+func validateUpdateColorRequest(req *m.UpdateColorRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidateRequired(req.Name, "name"),
 		validator.ValidateMinLength(req.Name, "name", 2),

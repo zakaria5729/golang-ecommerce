@@ -102,14 +102,14 @@ func createAllPermissionsIfNotExists(permissionRepo *p.PermissionRepository, all
 	return nil
 }
 
-func createSuperAdminUser(userRepo *user.UserRepository, email, password string, superAdminRole *role.Role) error {
-	userModel := &user.User{
+func createSuperAdminUser(userRepo *user.UserRepository, email, password string, superAdminRole *role.RoleEntity) error {
+	userModel := &user.UserEntity{
 		Email:    email,
 		Password: password,
 		Name:     c.RoleNameSuperAdmin,
 		Verified: true,
 		Banned:   false,
-		Roles:    []role.Role{*superAdminRole},
+		Roles:    []role.RoleEntity{*superAdminRole},
 	}
 
 	_, err := userRepo.CreateUser(userModel)
@@ -120,7 +120,7 @@ func createSuperAdminUser(userRepo *user.UserRepository, email, password string,
 	return nil
 }
 
-func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, allPermissionNames []string, showDeleted *bool) (*role.Role, error) {
+func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, allPermissionNames []string, showDeleted *bool) (*role.RoleEntity, error) {
 	superAdminRole, err := roleRepo.GetRoleByType(c.RoleTypeSuperAdmin, showDeleted)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("❌ Failed to get super admin role", "method", "createSuperAdminRoleIfNotExists", "error", err)
@@ -134,7 +134,7 @@ func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRe
 			return nil, err
 		}
 
-		superAdminRole = &role.Role{
+		superAdminRole = &role.RoleEntity{
 			RoleName:    c.RoleNameSuperAdmin,
 			RoleType:    c.RoleTypeSuperAdmin,
 			Description: nil,
@@ -175,11 +175,11 @@ func createUserRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.
 			return err
 		}
 
-		userRole = &role.Role{
+		userRole = &role.RoleEntity{
 			RoleName:    c.RoleNameUser,
 			RoleType:    c.RoleTypeUser,
 			Description: nil,
-			Permissions: []p.Permission{*permission},
+			Permissions: []p.PermissionEntity{*permission},
 		}
 
 		userRole, err = roleRepo.CreateRole(userRole)

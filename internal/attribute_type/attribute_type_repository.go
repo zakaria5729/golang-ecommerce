@@ -18,9 +18,9 @@ func NewAttributeTypeRepository() *AttributeTypeRepository {
 	}
 }
 
-func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeType, error) {
-	var attributeTypes []AttributeType
-	query := r.db.Model(&AttributeType{})
+func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeTypeEntity, error) {
+	var attributeTypes []AttributeTypeEntity
+	query := r.db.Model(&AttributeTypeEntity{})
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
 		query = query.Order(orderClause)
@@ -38,9 +38,9 @@ func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy
 	return attributeTypes, err
 }
 
-func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeType, error) {
-	var attributeType AttributeType
-	query := r.db.Model(&AttributeType{})
+func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeTypeEntity, error) {
+	var attributeType AttributeTypeEntity
+	query := r.db.Model(&AttributeTypeEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -54,7 +54,7 @@ func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *boo
 	return &attributeType, nil
 }
 
-func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeType) (*AttributeType, error) {
+func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeTypeEntity) (*AttributeTypeEntity, error) {
 	err := r.db.Create(attributeType).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create attribute type", "method", "CreateAttributeType", "error", err, "attributeType", attributeType)
@@ -64,7 +64,7 @@ func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeTy
 	return attributeType, nil
 }
 
-func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeType) error {
+func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeTypeEntity) error {
 	err := r.db.Save(attributeType).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update attribute type", "method", "UpdateAttributeType", "error", err, "attributeType", attributeType)
@@ -74,7 +74,7 @@ func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeTy
 }
 
 func (r *AttributeTypeRepository) DeleteAttributeType(id uint) error {
-	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeType{}).Error
+	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeTypeEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete attribute type", "method", "DeleteAttributeType", "error", err, "id", id)
 	}
@@ -83,7 +83,7 @@ func (r *AttributeTypeRepository) DeleteAttributeType(id uint) error {
 }
 
 func (r *AttributeTypeRepository) UndoDeletedAttributeType(id uint) error {
-	var attributeType AttributeType
+	var attributeType AttributeTypeEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&attributeType).Error
 
 	if err != nil {
@@ -101,8 +101,8 @@ func (r *AttributeTypeRepository) UndoDeletedAttributeType(id uint) error {
 }
 
 func (r *AttributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool) (bool, error) {
-	var attributeType AttributeType
-	query := r.db.Model(&AttributeType{}).Where(c.FieldID+" = ?", id)
+	var attributeType AttributeTypeEntity
+	query := r.db.Model(&AttributeTypeEntity{}).Where(c.FieldID+" = ?", id)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -118,8 +118,8 @@ func (r *AttributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool
 }
 
 func (r *AttributeTypeRepository) AttributeTypeExistsByName(name string, excludeID ...uint) (bool, error) {
-	var attributeType AttributeType
-	query := r.db.Model(&AttributeType{}).Where(c.AttributeTypeName+" = ?", name)
+	var attributeType AttributeTypeEntity
+	query := r.db.Model(&AttributeTypeEntity{}).Where(c.AttributeTypeName+" = ?", name)
 
 	if len(excludeID) > 0 {
 		query = query.Where(c.FieldID+" != ?", excludeID[0])

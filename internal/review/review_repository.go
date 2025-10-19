@@ -22,10 +22,10 @@ func NewReviewRepository(db *gorm.DB) *ReviewRepository {
 	}
 }
 
-func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
-	var reviews []Review
+func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+	var reviews []ReviewEntity
 	var total int64
-	query := r.db.Model(&Review{})
+	query := r.db.Model(&ReviewEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -66,9 +66,9 @@ func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*Review, error) {
-	var review Review
-	query := r.db.Model(&Review{})
+func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error) {
+	var review ReviewEntity
+	query := r.db.Model(&ReviewEntity{})
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -83,7 +83,7 @@ func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*Review, e
 	return &review, nil
 }
 
-func (r *ReviewRepository) CreateReview(review *Review) error {
+func (r *ReviewRepository) CreateReview(review *ReviewEntity) error {
 	review.Sanitize()
 
 	err := r.db.Create(review).Error
@@ -95,8 +95,8 @@ func (r *ReviewRepository) CreateReview(review *Review) error {
 	return nil
 }
 
-func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *Review) error {
-	query := r.db.Model(&Review{})
+func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *ReviewEntity) error {
+	query := r.db.Model(&ReviewEntity{})
 
 	if userID != nil {
 		query = query.Where(c.FieldID+" = ? AND "+c.ReviewUserID+" = ?", id, userID)
@@ -118,12 +118,12 @@ func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *Review) e
 }
 
 func (r *ReviewRepository) UndoDeletedReview(ctx context.Context, id uint) error {
-	review := &Review{}
+	review := &ReviewEntity{}
 	review.DeletedAt = nil
 	review.DeletedBy = nil
 	review.UpdatedBy, _ = cu.GetUserIDFromContext(ctx)
 
-	result := r.db.Unscoped().Model(&Review{}).
+	result := r.db.Unscoped().Model(&ReviewEntity{}).
 		Select(c.FieldDeletedAt, c.FieldDeletedBy).
 		Where(c.FieldID+" = ?", id).Updates(review)
 	if result.Error != nil {
@@ -139,7 +139,7 @@ func (r *ReviewRepository) UndoDeletedReview(ctx context.Context, id uint) error
 }
 
 func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *uint) error {
-	query := r.db.Model(&Review{})
+	query := r.db.Model(&ReviewEntity{})
 
 	if userID != nil {
 		query = query.Where(c.FieldID+" = ? AND "+c.ReviewUserID+" = ?", id, userID)
@@ -147,7 +147,7 @@ func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *ui
 		query = query.Where(c.FieldID+" = ?", id)
 	}
 
-	review := &Review{}
+	review := &ReviewEntity{}
 	review.DeletedAt = timeutil.GormNowUTC()
 	review.DeletedBy, _ = cu.GetUserIDFromContext(ctx)
 
@@ -164,10 +164,10 @@ func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *ui
 	return nil
 }
 
-func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
-	var reviews []Review
+func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+	var reviews []ReviewEntity
 	var total int64
-	query := r.db.Model(&Review{}).Where(c.ReviewProductID+" = ?", productID)
+	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewProductID+" = ?", productID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -196,10 +196,10 @@ func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]Review, int64, error) {
-	var reviews []Review
+func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+	var reviews []ReviewEntity
 	var total int64
-	query := r.db.Model(&Review{}).Where(c.ReviewUserID+" = ?", userID)
+	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewUserID+" = ?", userID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -238,7 +238,7 @@ func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 
 func (r *ReviewRepository) GetAverageRating(productID uint, showDeleted *bool) (float64, error) {
 	var avgRating float64
-	query := r.db.Model(&Review{}).Where(c.ReviewProductID+" = ?", productID)
+	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewProductID+" = ?", productID)
 
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
@@ -259,7 +259,7 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 		Count  int
 	}
 
-	query := r.db.Model(&Review{})
+	query := r.db.Model(&ReviewEntity{})
 	if showDeleted != nil && *showDeleted {
 		query = query.Unscoped()
 	}
@@ -285,8 +285,8 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 }
 
 func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
-	var review Review
-	err := r.db.Model(&Review{}).
+	var review ReviewEntity
+	err := r.db.Model(&ReviewEntity{}).
 		Where(c.ReviewProductID+" = ? AND "+c.ReviewUserID+" = ?", productID, userID).
 		Select(c.FieldID).
 		Take(&review).Error
