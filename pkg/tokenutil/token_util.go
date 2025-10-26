@@ -9,6 +9,7 @@ import (
 	"time"
 
 	userEntity "github.com/easy-comerce/backend/internal/user"
+	e "github.com/easy-comerce/backend/pkg/app_error"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
@@ -30,7 +31,7 @@ func GenerateNewToken(isFallback ...bool) (string, error) {
 		if len(isFallback) > 0 && isFallback[0] {
 			return timeutil.NowUTC().Format("20060102150405"), nil
 		}
-		return "", err
+		return "", e.WrapServerError("failed to generate token", err)
 	}
 	return fmt.Sprintf("%x%x", ts, randBytes), nil
 }
@@ -38,7 +39,7 @@ func GenerateNewToken(isFallback ...bool) (string, error) {
 func GenerateNewTokenWithExpiryTime(expiryHours int) (string, time.Time, error) {
 	token, err := GenerateNewToken(true)
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, e.WrapServerError("failed to generate token", err)
 	}
 
 	expiresAt := timeutil.AddHoursUTC(expiryHours)
@@ -55,7 +56,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, e.WrapServerError("failed to verify token", err)
 	}
 
 	claims, ok := token.Claims.(*JwtClaims)
@@ -98,7 +99,7 @@ func GenerateNewJwtToken(user *userEntity.UserEntity, jwtSecret string) (string,
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
-		return "", 0, err
+		return "", 0, e.WrapServerError("failed to generate token", err)
 	}
 
 	return tokenString, expiresAt, nil
@@ -125,7 +126,7 @@ func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*JwtClaims
 
 	claims, err := VerifyJwtToken(token, jwtSecret)
 	if err != nil {
-		return nil, err
+		return nil, e.WrapServerError("failed to verify token", err)
 	}
 	return claims, nil
 }

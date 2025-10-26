@@ -17,7 +17,7 @@ func main() {
 	db.InitializeDB()
 
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
-		panic("Failed to create initial role and user: " + err.Error())
+		panic("❌ Failed to create initial role and user: " + err.Error())
 	}
 
 	baseMux := http.NewServeMux()
@@ -26,7 +26,7 @@ func main() {
 
 	handler := router.Use(
 		m.CorsMiddleware,
-		// m.RecoveryMiddleware,
+		m.RecoveryMiddleware,
 		m.LoggingMiddleware,
 	)
 
@@ -37,6 +37,6 @@ func main() {
 
 	l.Logger.Info("Server starting", "port", cfg.Port)
 	if err := server.ListenAndServe(); err != nil {
-		l.Logger.Error("Failed to start server", "error", err, "port", cfg.Port)
+		l.Logger.Error("❌ Failed to start server", "error", err, "port", cfg.Port)
 	}
 }

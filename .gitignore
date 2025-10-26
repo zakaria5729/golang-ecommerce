@@ -10,3 +10,6 @@ easy_api
 easy_com_api
 easy-commerce
 .DS_Store
+.env.dev
+.env.stage
+.env.prod

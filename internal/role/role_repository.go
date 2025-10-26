@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/easy-comerce/backend/internal/permission"
+	e "github.com/easy-comerce/backend/pkg/app_error"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
@@ -78,6 +79,11 @@ func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*RoleEnt
 		Where(c.RoleRoleType+" = ?", roleType).
 		First(&role).Error; err != nil {
 		l.Logger.Error("Failed to fetch role by type", "method", "GetRoleWithPermissionsByType", "error", err, "roleType", roleType)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("failed to fetch role by type", err)
+		}
+
 		return nil, err
 	}
 

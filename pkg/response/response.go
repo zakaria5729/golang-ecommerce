@@ -2,8 +2,10 @@ package response
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	apperror "github.com/easy-comerce/backend/pkg/app_error"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/validator"
 )
@@ -44,6 +46,31 @@ func SendValidationErrorJSON(w http.ResponseWriter, message string, validationEr
 		},
 	}
 	sendJSON(w, response, code)
+}
+
+func SendApiResponse(w http.ResponseWriter, result any, err error) {
+	errorStatusCode := http.StatusBadRequest
+	if err != nil && errors.As(err, new(*apperror.ServerError)) {
+		errorStatusCode = http.StatusInternalServerError
+	}
+
+	SendApiResponseWithStatusCode(w, result, err, errorStatusCode)
+}
+
+func SendApiResponseWithStatusCode(w http.ResponseWriter, result any, err error, errorStatusCode int) {
+	if err != nil {
+		SendErrorJSON(w, err.Error(), errorStatusCode)
+		return
+	}
+
+	if result != nil {
+		if successMsg, ok := result.(string); ok && successMsg != "" {
+			SendSuccessMsgJSON(w, successMsg)
+			return
+		}
+	}
+
+	SendSuccessJSON(w, result)
 }
 
 func SendResponse(w http.ResponseWriter, result any, err error, errorStatusCode int) {

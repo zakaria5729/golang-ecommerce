@@ -36,7 +36,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loginResponse, err := h.service.Login(&req)
-	response.SendResponse(w, loginResponse, err, http.StatusOK)
+	response.SendApiResponse(w, loginResponse, err)
 }
 
 func (h *AuthHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (h *AuthHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loginResponse, err := h.service.SocialLogin(&req)
-	response.SendResponse(w, loginResponse, err, http.StatusOK)
+	response.SendApiResponse(w, loginResponse, err)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if userResponse != nil && userResponse.VerificationLink != nil {
 		msg += " Verification link: " + *userResponse.VerificationLink
 	}
-	response.SendResponse(w, msg, err, http.StatusBadRequest)
+	response.SendApiResponse(w, msg, err)
 }
 
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +93,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if token != "" && config.GetActiveProfile() != c.EnvProd {
 		msg += " with token: " + token
 	}
-	response.SendResponse(w, msg, err, http.StatusInternalServerError)
+	response.SendApiResponse(w, msg, err)
 }
 
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +108,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.service.ResetPassword(&req)
-	response.SendResponse(w, "Password reset successfully", err, http.StatusInternalServerError)
+	response.SendApiResponse(w, "Password reset successfully", err)
 }
 
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +123,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loginResponse, err := h.service.RefreshToken(&req)
-	response.SendResponse(w, loginResponse, err, http.StatusOK)
+	response.SendApiResponse(w, loginResponse, err)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +134,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.service.Logout(*userID)
-	response.SendResponse(w, "Logged out successfully", err, http.StatusInternalServerError)
+	response.SendApiResponse(w, "Logged out successfully", err)
 }
 
 func (h *AuthHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func (h *AuthHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
 	if verificationLink != "" {
 		msg += " Verification link: " + verificationLink
 	}
-	response.SendResponse(w, msg, err, http.StatusInternalServerError)
+	response.SendApiResponse(w, msg, err)
 }
 
 func (h *AuthHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {

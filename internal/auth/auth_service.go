@@ -13,6 +13,8 @@ import (
 	"github.com/easy-comerce/backend/internal/role"
 	"github.com/easy-comerce/backend/internal/user"
 	userModel "github.com/easy-comerce/backend/internal/user/model"
+	apperror "github.com/easy-comerce/backend/pkg/app_error"
+	e "github.com/easy-comerce/backend/pkg/app_error"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	httpclient "github.com/easy-comerce/backend/pkg/http_client"
@@ -99,21 +101,19 @@ func (s *AuthService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginRe
 
 	newUser, err = createRegisterResponse(newUser, s.userRepo, s.roleRepo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user via %s login", req.AuthType)
+		return nil, fmt.Errorf("failed to create user via %s login: %w", req.AuthType, err)
 	}
 
 	return createLoginResponse(newUser, s.userRepo, s.jwtSecret)
 }
-
-var InternalServerError = errors.New("failed to create user")
 
 func (s *AuthService) Register(req *model.RegisterRequest) (*userModel.UserResponse, error) {
 	req.Name = utils.Trim(req.Name)
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
 	exists, err := s.userRepo.IsUserExists(req.Email)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to check user existence: %w", err)
+	if err != nil {
+		return nil, err
 	}
 	if exists {
 		return nil, errors.New("user with this email already exists")
@@ -148,17 +148,17 @@ func (s *AuthService) ForgotPassword(req *model.ForgotPasswordRequest) (string, 
 
 	userID, err := s.userRepo.GetUserIdByEmail(req.Email)
 	if err != nil || userID == nil {
-		return "", nil
+		return "", err
 	}
 
 	token, err := tokenutil.GenerateNewToken()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate reset token: %w", err)
+		return "", err
 	}
 
 	expiresAt := timeutil.AddHoursUTC(c.PasswordResetTokenExpiryHours)
 	if err := s.userRepo.SetPasswordResetToken(*userID, token, expiresAt); err != nil {
-		return "", fmt.Errorf("failed to set reset token: %w", err)
+		return "", err
 	}
 
 	return token, nil
@@ -167,7 +167,7 @@ func (s *AuthService) ForgotPassword(req *model.ForgotPasswordRequest) (string, 
 func (s *AuthService) ResetPassword(req *model.ResetPasswordRequest) error {
 	user, err := s.userRepo.GetUserByResetPasswordToken(req.Token)
 	if err != nil || user == nil || user.PasswordResetExpires.Before(timeutil.NowUTC()) {
-		return errors.New("invalid or expired reset token")
+		return e.NewServerError("invalid or expired reset token")
 	}
 
 	if user.Email == config.GetConfig().SuperAdminEmail {
@@ -176,12 +176,11 @@ func (s *AuthService) ResetPassword(req *model.ResetPasswordRequest) error {
 
 	user.Password = req.NewPassword
 	if err := user.HashPassword(); err != nil {
-		return fmt.Errorf("failed to process new password: %w", err)
+		return e.WrapServerError("failed to process new password", err)
 	}
 
-	err = s.userRepo.ResetPassword(user.ID, user.Password)
-	if err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
+	if err := s.userRepo.ResetPassword(user.ID, user.Password); err != nil {
+		return e.NewServerError("failed to reset user password")
 	}
 
 	return nil
@@ -203,16 +202,16 @@ func (s *AuthService) RefreshToken(req *model.RefreshTokenRequest) (*model.Login
 
 	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, s.jwtSecret)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %w", err)
+		return nil, err
 	}
 
 	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.RefreshTokenExpiryHours)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, err
 	}
 
 	if err := s.userRepo.SetRefreshToken(user.ID, &refreshToken, &refreshExpiresAt); err != nil {
-		return nil, fmt.Errorf("failed to set refresh token: %w", err)
+		return nil, err
 	}
 
 	return &model.LoginResponse{
@@ -224,7 +223,7 @@ func (s *AuthService) RefreshToken(req *model.RefreshTokenRequest) (*model.Login
 
 func (s *AuthService) Logout(userID uint) error {
 	if err := s.userRepo.SetRefreshToken(userID, nil, nil); err != nil {
-		return fmt.Errorf("failed to clear refresh token: %w", err)
+		return e.WrapServerError("failed to clear refresh token", err)
 	}
 	return nil
 }
@@ -232,11 +231,11 @@ func (s *AuthService) Logout(userID uint) error {
 func (s *AuthService) VerifyEmail(token string) error {
 	userID, err := s.userRepo.GetUserByVerificationToken(token)
 	if err != nil || userID == nil {
-		return errors.New("invalid or expired verification token")
+		return err
 	}
 
 	if err := s.userRepo.SetVerifiedAndVerificationToken(*userID, true, nil, nil); err != nil {
-		return errors.New("failed to verify user")
+		return err
 	}
 
 	return nil
@@ -245,7 +244,7 @@ func (s *AuthService) VerifyEmail(token string) error {
 func (s *AuthService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
 	userID, verified, err := s.userRepo.GetUserIdAndVerifiedByEmail(req.Email, nil)
 	if err != nil || userID == nil {
-		return "", false, err
+		return "", false, e.NewServerError("failed to get user id and verified")
 	}
 
 	if !verified {
@@ -269,15 +268,16 @@ func createLoginResponse(user *user.UserEntity, userRepo *user.UserRepository, j
 
 	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, jwtSecret)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %w", err)
+		return nil, apperror.WrapServerError("failed to generate token: %w", err)
 	}
 
 	refreshToken, refreshExpiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.RefreshTokenExpiryHours)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, apperror.WrapServerError("failed to generate refresh token: %w", err)
 	}
 
 	if lastLoginAt, err := userRepo.SetRefreshTokenAndLastLoginAt(user.ID, refreshToken, refreshExpiresAt); err != nil {
+		return nil, err
 	} else {
 		user.LastLoginAt = &lastLoginAt
 	}
@@ -292,18 +292,18 @@ func createLoginResponse(user *user.UserEntity, userRepo *user.UserRepository, j
 
 func createRegisterResponse(user *user.UserEntity, userRepo *user.UserRepository, roleRepo *role.RoleRepository) (*user.UserEntity, error) {
 	if err := user.HashPassword(); err != nil {
-		return nil, fmt.Errorf("failed to process password: %w", err)
+		return nil, apperror.WrapServerError("failed to process password", err)
 	}
 
 	userRole, err := roleRepo.GetRoleWithPermissionsByType(c.RoleTypeUser)
 	if err != nil {
-		return nil, fmt.Errorf("failed to assign default role: %w", err)
+		return nil, err
 	}
 
 	user.Roles = []role.RoleEntity{*userRole}
 	createdUser, err := userRepo.CreateUser(user)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, err
 	}
 
 	return createdUser, nil
@@ -313,12 +313,17 @@ func setVerificationToken(userID uint, userRepo *user.UserRepository) (string, e
 	verificationToken, expiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.VerificationTokenExpiryHours)
 	if err != nil {
 		l.Logger.Error("❌ Failed to generate verification token", "method", "Register", "error", err, "userID", userID)
-		return "", errors.New("Failed to generate verification token")
+		return "", e.WrapServerError("Failed to generate verification token", err)
 	}
 
 	if verificationToken != "" {
 		if err := userRepo.SetVerifiedAndVerificationToken(userID, false, &verificationToken, &expiresAt); err != nil {
 			l.Logger.Error("❌ Failed to set verification token", "method", "Register", "error", err, "userID", userID)
+
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return "", e.WrapServerError("Failed to set verification token", err)
+			}
+
 			return "", errors.New("Failed to set verification token")
 		}
 	}
@@ -394,6 +399,7 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 		return nil
 	}
 
+	imageUrl = utils.Trim(imageUrl)
 	var imgData []byte
 	err = httpclient.New().Retry(2).Do(httpclient.Request{
 		URL:      imageUrl,

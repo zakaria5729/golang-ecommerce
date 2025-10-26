@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/easy-comerce/backend/internal/user/model"
+	e "github.com/easy-comerce/backend/pkg/app_error"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -129,6 +130,11 @@ func (r *UserRepository) GetUserIdByEmail(email string) (*uint, error) {
 
 	if err := r.db.Select(c.FieldID).Where(c.UserEmail+" = ?", email).First(&user).Error; err != nil {
 		l.Logger.Error("❌ Failed to fetch userID by email", "method", "GetUserIdByEmail", "error", err, "email", email)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("Failed to fetch userID by email", err)
+		}
+
 		return nil, err
 	}
 
@@ -143,9 +149,13 @@ func (r *UserRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
 		Preload(c.UserRolesPermissionsCapitalized).
 		First(&user).Error; err != nil {
 		l.Logger.Error("❌ Failed to fetch user by email", "method", "GetUserByEmail", "error", err, "email", email)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("Failed to fetch user by email", err)
+		}
+
 		return nil, err
 	}
-
 	return &user, nil
 }
 
@@ -153,6 +163,11 @@ func (r *UserRepository) CreateUser(user *UserEntity) (*UserEntity, error) {
 	err := r.db.Create(user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create user", "method", "CreateUser", "error", err, "user", user)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("Failed to create user", err)
+		}
+
 		return nil, err
 	}
 	return user, nil
@@ -171,6 +186,10 @@ func (r *UserRepository) ResetPassword(userID uint, password string) error {
 		Updates(user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to reset user password", "method", "ResetPassword", "error", err, "userID", userID)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return e.WrapServerError("Failed to reset user password", err)
+		}
 	}
 	return err
 }
@@ -310,6 +329,11 @@ func (r *UserRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *
 	err := query.Select(c.FieldID, c.UserEmail, c.UserVerified).Take(&user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "email", email)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, e.WrapServerError("Failed to get user email", err)
+		}
+
 		return nil, false, err
 	}
 
@@ -322,6 +346,11 @@ func (r *UserRepository) IsUserExists(email string) (bool, error) {
 	err := r.db.Model(&UserEntity{}).Where(c.UserEmail+" = ?", email).Select(c.FieldID).Take(&user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to check if user exists by email", "method", "IsUserExists", "error", err, "email", email)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, e.WrapServerError("Failed to check if user exists by email", err)
+		}
+
 		return false, err
 	}
 
@@ -370,6 +399,10 @@ func (r *UserRepository) SetPasswordResetToken(userID uint, token string, expire
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to set password reset token", "method", "SetPasswordResetToken", "error", err, "userID", userID)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return e.WrapServerError("failed to set password reset token", err)
+		}
 	}
 	return err
 }
@@ -381,6 +414,11 @@ func (r *UserRepository) GetUserByResetPasswordToken(token string) (*UserEntity,
 		First(&user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to check if reset password token is valid and not expired", "method", "IsValidResetPasswordToken", "error", err, "token", token)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("failed to check if reset password token is valid and not expired", err)
+		}
+
 		return nil, err
 	}
 	return &user, nil
@@ -397,6 +435,10 @@ func (r *UserRepository) SetRefreshTokenAndLastLoginAt(userID uint, token string
 	err = r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
 		l.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return lastLoginAt, e.WrapServerError("failed to set refresh token", err)
+		}
 	}
 	return lastLoginAt, err
 }
@@ -410,6 +452,10 @@ func (r *UserRepository) SetRefreshToken(userID uint, token *string, expiresAt *
 	err := r.db.Model(&UserEntity{}).Select(c.UserRefreshToken, c.UserRefreshTokenExpires).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
 		l.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return e.WrapServerError("failed to set refresh token", err)
+		}
 	}
 
 	return err
@@ -425,9 +471,13 @@ func (r *UserRepository) SetVerifiedAndVerificationToken(userID uint, verified b
 	err := r.db.Model(&UserEntity{}).Select(c.UserVerificationToken, c.UserVerificationExpires, c.UserVerified).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
 		l.Logger.Error("Failed to set verified and verification token", "method", "SetVerifiedAndVerificationToken", "error", err, "userID", userID, "verified", verified)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return e.WrapServerError("failed to set verified and verification token", err)
+		}
 	}
 
-	return err
+	return errors.New("failed to set verified and verification token")
 }
 
 func (r *UserRepository) GetUserByVerificationToken(token string) (*uint, error) {
@@ -443,7 +493,12 @@ func (r *UserRepository) GetUserByVerificationToken(token string) (*uint, error)
 		Where(c.UserVerificationToken+" = ? AND "+c.UserVerificationExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
 		First(&user).Error; err != nil {
 		l.Logger.Error("❌ Failed to fetch user by verification token", "method", "GetUserByVerificationToken", "error", err, "token", token)
-		return nil, err
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.WrapServerError("failed to fetch user by verification token", err)
+		}
+
+		return nil, errors.New("invalid or expired verification token")
 	}
 
 	return &user.ID, nil
@@ -461,6 +516,11 @@ func (r *UserRepository) GetUserByRefreshToken(token string) (*UserEntity, error
 		Where(c.UserRefreshToken+" = ? AND "+c.UserRefreshTokenExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
 		First(&user).Error; err != nil {
 		l.Logger.Error("❌ Failed to fetch user by refresh token", "method", "GetUserByRefreshToken", "error", err, "token", token)
+
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, e.NewServerError("Failed to fetch user by refresh token")
+		}
+
 		return nil, err
 	}
 
