@@ -1,0 +1,6 @@
+{"time":"2025-10-26T12:31:31.339584+06:00","level":"INFO","msg":"Config initialized successfully","env":"dev"}
+{"time":"2025-10-26T12:31:31.352812+06:00","level":"INFO","msg":"Database connected successfully","host":"localhost","port":"5432","username":"postgres","dbname":"easy_commerce_temp","env":"dev","show_log":"true"}
+{"time":"2025-10-26T12:31:31.398422+06:00","level":"INFO","msg":"User role ALREADY EXISTS","method":"createUserRoleIfNotExists","type":"USER"}
+{"time":"2025-10-26T12:31:31.469753+06:00","level":"INFO","msg":"Super Admin role ALREADY EXISTS","method":"createSuperAdminRoleIfNotExists","type":"SUPER_ADMIN"}
+{"time":"2025-10-26T12:31:31.475034+06:00","level":"INFO","msg":"Super Admin user ALREADY EXISTS","method":"createSuperAdminRoleAndUserIfNotExists","email":"super123@admin.com"}
+{"time":"2025-10-26T12:31:31.476951+06:00","level":"INFO","msg":"Server starting","port":"8080"}

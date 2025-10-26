@@ -1,7 +1,6 @@
 __debug_bin*
-*.log
+# *.log
 api-doc/*
-docs/*
 postman/*
 main
 *.exe
@@ -10,4 +9,3 @@ easy_api
 easy_com_api
 easy-commerce
 .DS_Store
-.env*
