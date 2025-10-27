@@ -11,17 +11,24 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type ProductStatsService struct {
-	repo *ProductStatsRepository
+type ProductStatsService interface {
+	GetAllProductStatsPaginated(pageStr string, pageSizeStr string, productIDFilter string, dateFromFilter string, dateToFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	GetProductStatsByID(id uint) (*ProductStatsEntity, error)
+	IncreaseProductStats(ctx context.Context, req *m.IncreaseProductStatsRequest) error
+	IncreasePurchaseCountInProductStats(ctx context.Context, productID uint) error
 }
 
-func NewProductStatsService(service *ProductStatsRepository) *ProductStatsService {
-	return &ProductStatsService{
-		repo: service,
+type productStatsService struct {
+	repo ProductStatsRepository
+}
+
+func NewProductStatsService(repo ProductStatsRepository) ProductStatsService {
+	return &productStatsService{
+		repo: repo,
 	}
 }
 
-func (s *ProductStatsService) GetAllProductStatsPaginated(pageStr string, pageSizeStr string, productIDFilter string, dateFromFilter string, dateToFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *productStatsService) GetAllProductStatsPaginated(pageStr string, pageSizeStr string, productIDFilter string, dateFromFilter string, dateToFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	productID, _ := utils.ParseUint(productIDFilter)
 	dateFrom := parseTimeFilter(dateFromFilter)
@@ -35,7 +42,7 @@ func (s *ProductStatsService) GetAllProductStatsPaginated(pageStr string, pageSi
 	return utils.BuildPaginatedResponse(histories, total, page, pageSize), nil
 }
 
-func (s *ProductStatsService) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {
+func (s *productStatsService) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {
 	history, err := s.repo.GetProductStatsByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("product stats not found: %w", err)
@@ -44,7 +51,7 @@ func (s *ProductStatsService) GetProductStatsByID(id uint) (*ProductStatsEntity,
 	return history, nil
 }
 
-func (s *ProductStatsService) IncreaseProductStats(ctx context.Context, req *m.IncreaseProductStatsRequest) error {
+func (s *productStatsService) IncreaseProductStats(ctx context.Context, req *m.IncreaseProductStatsRequest) error {
 	productStats, err := s.repo.GetProductStatsByID(req.ProductID)
 	if err != nil || productStats == nil {
 		productStats = &ProductStatsEntity{
@@ -75,7 +82,7 @@ func (s *ProductStatsService) IncreaseProductStats(ctx context.Context, req *m.I
 	return nil
 }
 
-func (s *ProductStatsService) IncreasePurchaseCountInProductStats(ctx context.Context, productID uint) error {
+func (s *productStatsService) IncreasePurchaseCountInProductStats(ctx context.Context, productID uint) error {
 	productStats, err := s.repo.GetProductStatsByID(productID)
 	if err != nil || productStats == nil {
 		productStats = &ProductStatsEntity{

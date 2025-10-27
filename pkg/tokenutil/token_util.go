@@ -56,7 +56,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	})
 
 	if err != nil {
-		return nil, e.WrapServerError("failed to verify token", err)
+		return nil, e.WrapServerError("Invalid/expired jwt token", err)
 	}
 
 	claims, ok := token.Claims.(*JwtClaims)
@@ -126,7 +126,7 @@ func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*JwtClaims
 
 	claims, err := VerifyJwtToken(token, jwtSecret)
 	if err != nil {
-		return nil, e.WrapServerError("failed to verify token", err)
+		return nil, e.WrapServerError("Invalid/expired jwt token", err)
 	}
 	return claims, nil
 }

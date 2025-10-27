@@ -10,17 +10,30 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type AddressHandler struct {
-	service *AddressService
+type AddressHandler interface {
+	GetAllAddressesByUser(w http.ResponseWriter, r *http.Request)
+	GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request)
+	GetAddressByID(w http.ResponseWriter, r *http.Request)
+	CreateAddress(w http.ResponseWriter, r *http.Request)
+	UpdateAddress(w http.ResponseWriter, r *http.Request)
+	DeleteAddress(w http.ResponseWriter, r *http.Request)
+	RemoveAddress(w http.ResponseWriter, r *http.Request)
+	UndoDeleteAddress(w http.ResponseWriter, r *http.Request)
+	SetDefaultAddress(w http.ResponseWriter, r *http.Request)
+	GetDefaultAddress(w http.ResponseWriter, r *http.Request)
 }
 
-func NewAddressHandler(service *AddressService) *AddressHandler {
-	return &AddressHandler{
+type addressHandler struct {
+	service AddressService
+}
+
+func NewAddressHandler(service AddressService) AddressHandler {
+	return &addressHandler{
 		service: service,
 	}
 }
 
-func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -37,7 +50,7 @@ func (h *AddressHandler) GetAllAddressesByUser(w http.ResponseWriter, r *http.Re
 	response.SendResponse(w, addresses, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
@@ -52,7 +65,7 @@ func (h *AddressHandler) GetAllAddressesPaginated(w http.ResponseWriter, r *http
 	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
@@ -64,7 +77,7 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -85,7 +98,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -112,7 +125,7 @@ func (h *AddressHandler) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, address, err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
@@ -123,7 +136,7 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Address deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -140,7 +153,7 @@ func (h *AddressHandler) RemoveAddress(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Address removed successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid address ID", http.StatusBadRequest)
@@ -151,7 +164,7 @@ func (h *AddressHandler) UndoDeleteAddress(w http.ResponseWriter, r *http.Reques
 	response.SendResponse(w, "Undo delete address successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -174,7 +187,7 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 	response.SendResponse(w, "Address set as default successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AddressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
+func (h *addressHandler) GetDefaultAddress(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)

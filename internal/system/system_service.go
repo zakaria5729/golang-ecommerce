@@ -180,7 +180,7 @@ func (s *systemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 			return
 		}
 
-		fmt.Fprintf(w, "ID Token: %s", token.AccessToken)
+		fmt.Fprintf(w, token.AccessToken)
 	}
 }
 
@@ -230,6 +230,6 @@ func (s *systemService) HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r
 		defer resp.Body.Close()
 
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintf(w, "Facebook User Info: %s", string(body))
+		fmt.Fprintf(w, string(body))
 	}
 }

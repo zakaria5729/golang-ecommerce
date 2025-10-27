@@ -10,7 +10,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterAuthRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterAuthRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	db := db.GetDB()
 	cfg := config.GetConfig()
 	userRepo := user.NewUserRepository(db)

@@ -11,17 +11,29 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type UserHandler struct {
-	service *UserService
+type UserHandler interface {
+	GetProfile(w http.ResponseWriter, r *http.Request)
+	UpdateProfile(w http.ResponseWriter, r *http.Request)
+	ChangePassword(w http.ResponseWriter, r *http.Request)
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	UpdateUser(w http.ResponseWriter, r *http.Request)
+	GetAllUsersPaginated(w http.ResponseWriter, r *http.Request)
+	GetUserByID(w http.ResponseWriter, r *http.Request)
+	DeleteUser(w http.ResponseWriter, r *http.Request)
+	UndoDeletedUser(w http.ResponseWriter, r *http.Request)
 }
 
-func NewUserHandler(service *UserService) *UserHandler {
-	return &UserHandler{
+type userHandler struct {
+	service UserService
+}
+
+func NewUserHandler(service UserService) UserHandler {
+	return &userHandler{
 		service: service,
 	}
 }
 
-func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -32,7 +44,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, user.ToResponse(), err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -54,7 +66,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Profile updated successfully", err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -75,7 +87,7 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Password changed successfully", err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateUserRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateUser") {
 		return
@@ -91,7 +103,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	authUserID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)
@@ -118,7 +130,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Update user info successfully", err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	includeStr := q.Get(c.Include)
 	pageStr := q.Get(c.Page)
@@ -131,7 +143,7 @@ func (h *UserHandler) GetAllUsersPaginated(w http.ResponseWriter, r *http.Reques
 	response.SendResponse(w, userResponses, err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
@@ -144,7 +156,7 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, userResponse, err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
@@ -155,7 +167,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "User deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *UserHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UndoDeletedUser(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)

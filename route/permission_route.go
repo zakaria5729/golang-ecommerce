@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterPermissionRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterPermissionRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := p.NewPermissionRepository(db.GetDB())
 	service := p.NewPermissionService(repo)
 	h := p.NewPermissionHandler(service)

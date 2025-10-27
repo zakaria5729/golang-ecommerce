@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterReviewRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterReviewRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := review.NewReviewRepository(db.GetDB())
 	service := review.NewReviewService(repo)
 	h := review.NewReviewHandler(service)

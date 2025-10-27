@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterProductStatsRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterProductStatsRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := ps.NewProductStatsRepository(db.GetDB())
 	service := ps.NewProductStatsService(repo)
 	h := ps.NewProductStatsHandler(service)

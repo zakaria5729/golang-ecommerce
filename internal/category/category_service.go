@@ -11,18 +11,28 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type CategoryService struct {
-	repo *CategoryRepository
+type CategoryService interface {
+	GetAllCategoriesWithSubcategories(showDeleted *bool, subcategoryDepth *int, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error)
+	GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]m.CategoryResponse, error)
+	GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, pageStr string, pageSizeStr string, priorityLimit *int, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	GetCategoryByID(id uint, showDeleted *bool) (*m.CategoryResponse, error)
+	CreateCategory(ctx context.Context, req *m.CreateCategoryRequest) (*m.CategoryResponse, error)
+	UpdateCategory(ctx context.Context, id uint, req *m.UpdateCategoryRequest) (*m.CategoryResponse, error)
+	DeleteCategory(ctx context.Context, id uint) error
+	UndoDeleteCategory(ctx context.Context, id uint) error
 }
 
-func NewCategoryService(repo *CategoryRepository) *CategoryService {
-	return &CategoryService{
+type categoryService struct {
+	repo CategoryRepository
+}
+
+func NewCategoryService(repo CategoryRepository) CategoryService {
+	return &categoryService{
 		repo: repo,
 	}
 }
 
-func (s *CategoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, subcategoryDepthFilter string, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error) {
-	subcategoryDepth, _ := utils.ParseInt(subcategoryDepthFilter)
+func (s *categoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, subcategoryDepth *int, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error) {
 	categories, err := s.repo.GetAllCategoriesWithSubcategories(subcategoryDepth, showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch nested categories: %w", err)
@@ -31,10 +41,7 @@ func (s *CategoryService) GetAllCategoriesWithSubcategories(showDeleted *bool, s
 	return categories, nil
 }
 
-func (s *CategoryService) GetAllCategories(showDeleted *bool, parentIDFilter string, priorityLimitFilter string, sortBy, sortOrder string) ([]m.CategoryResponse, error) {
-	parentID, _ := utils.ParseUint(parentIDFilter)
-	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
-
+func (s *categoryService) GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]m.CategoryResponse, error) {
 	categories, err := s.repo.GetAllCategories(showDeleted, parentID, priorityLimit, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
@@ -43,11 +50,8 @@ func (s *CategoryService) GetAllCategories(showDeleted *bool, parentIDFilter str
 	return getCategoryResponses(categories), nil
 }
 
-func (s *CategoryService) GetAllCategoriesPaginated(showDeleted *bool, parentIDFilter string, pageStr string, pageSizeStr string, priorityLimitFilter string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *categoryService) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, pageStr string, pageSizeStr string, priorityLimit *int, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
-	parentID, _ := utils.ParseUint(parentIDFilter)
-	priorityLimit, _ := utils.ParseInt(priorityLimitFilter)
-
 	categories, total, err := s.repo.GetAllCategoriesPaginated(showDeleted, parentID, page, pageSize, priorityLimit, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch categories: %w", err)
@@ -56,7 +60,7 @@ func (s *CategoryService) GetAllCategoriesPaginated(showDeleted *bool, parentIDF
 	return utils.BuildPaginatedResponse(getCategoryResponses(categories), total, page, pageSize), nil
 }
 
-func (s *CategoryService) GetCategoryByID(id uint, showDeleted *bool) (*m.CategoryResponse, error) {
+func (s *categoryService) GetCategoryByID(id uint, showDeleted *bool) (*m.CategoryResponse, error) {
 	category, err := s.repo.GetCategoryByID(id, showDeleted)
 
 	if err != nil {
@@ -66,7 +70,7 @@ func (s *CategoryService) GetCategoryByID(id uint, showDeleted *bool) (*m.Catego
 	return category.ToResponse(), nil
 }
 
-func (s *CategoryService) CreateCategory(ctx context.Context, req *m.CreateCategoryRequest) (*m.CategoryResponse, error) {
+func (s *categoryService) CreateCategory(ctx context.Context, req *m.CreateCategoryRequest) (*m.CategoryResponse, error) {
 	category := &CategoryEntity{
 		Title:    req.Title,
 		SubTitle: req.SubTitle,
@@ -78,22 +82,30 @@ func (s *CategoryService) CreateCategory(ctx context.Context, req *m.CreateCateg
 	category.CreatedBy, _ = cu.GetUserIDFromContext(ctx)
 	category.Sanitize()
 
-	if category.ParentID != nil && *category.ParentID > 0 {
-		parentExists, err := s.repo.CategoryExists(*category.ParentID, nil)
+	if req.ParentID != nil && *req.ParentID != 0 {
+		parentExists, err := s.repo.CategoryExists(*req.ParentID, nil)
+		if err != nil || !parentExists {
+			return nil, fmt.Errorf("parent category not found with ID: %d", *req.ParentID)
+		}
+
+		parentCategory, err := s.repo.GetCategoryByID(*req.ParentID, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check parent category: %w", err)
+			return nil, fmt.Errorf("failed to get parent category: %w", err)
 		}
-		if !parentExists {
-			return nil, errors.New("parent category does not exist")
+
+		if parentCategory.ParentID != nil {
+			return nil, errors.New("nested subcategories are not allowed")
 		}
+
+		category.PathKey = parentCategory.PathKey
 	}
 
-	exists, err := s.repo.CategoryExistsByTitle(category.Title, nil)
+	titleExists, err := s.repo.CategoryExistsByTitle(req.Title, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check category title: %w", err)
+		return nil, fmt.Errorf("failed to check if category exists: %w", err)
 	}
-	if exists {
-		return nil, errors.New("category with this title already exists")
+	if titleExists {
+		return nil, fmt.Errorf("category with title '%s' already exists", req.Title)
 	}
 
 	createdCategory, err := s.repo.CreateCategory(category)
@@ -104,54 +116,58 @@ func (s *CategoryService) CreateCategory(ctx context.Context, req *m.CreateCateg
 	return createdCategory.ToResponse(), nil
 }
 
-func (s *CategoryService) UpdateCategory(ctx context.Context, id uint, req *m.UpdateCategoryRequest) (*m.CategoryResponse, error) {
+func (s *categoryService) UpdateCategory(ctx context.Context, id uint, req *m.UpdateCategoryRequest) (*m.CategoryResponse, error) {
 	existingCategory, err := s.repo.GetCategoryByID(id, nil)
 	if err != nil || existingCategory == nil {
 		return nil, fmt.Errorf("category not found with category ID: %w", err)
 	}
 
 	if req.Title != "" {
+		exists, err := s.repo.CategoryExistsByTitle(req.Title, &id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if category exists: %w", err)
+		}
+		if exists {
+			return nil, fmt.Errorf("category with title '%s' already exists", req.Title)
+		}
 		existingCategory.Title = req.Title
 	}
+
 	if req.SubTitle != nil {
 		existingCategory.SubTitle = req.SubTitle
 	}
+
 	if req.ParentID != nil {
-		existingCategory.ParentID = req.ParentID
+		if *req.ParentID == 0 {
+			existingCategory.ParentID = nil
+		} else {
+			parentExists, err := s.repo.CategoryExists(*req.ParentID, nil)
+			if err != nil || !parentExists {
+				return nil, fmt.Errorf("parent category not found with ID: %d", *req.ParentID)
+			}
+
+			parentCategory, err := s.repo.GetCategoryByID(*req.ParentID, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get parent category: %w", err)
+			}
+
+			if parentCategory.ParentID != nil {
+				return nil, errors.New("nested subcategories are not allowed")
+			}
+
+			existingCategory.ParentID = req.ParentID
+			existingCategory.PathKey = parentCategory.PathKey
+		}
 	}
+
 	if req.Priority != nil {
-		existingCategory.Priority = req.Priority
-	}
-	if req.PathKey != "" {
-		existingCategory.PathKey = &req.PathKey
-	}
-
-	existingCategory.Sanitize()
-	if existingCategory.ParentID != nil && *existingCategory.ParentID > 0 {
-		if *existingCategory.ParentID == id {
-			return nil, errors.New("category cannot be its own parent")
-		}
-
-		parentExists, err := s.repo.CategoryExists(*existingCategory.ParentID, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check parent category: %w", err)
-		}
-		if !parentExists {
-			return nil, errors.New("parent category does not exist")
-		}
-	}
-
-	if req.Title != "" && req.Title != existingCategory.Title {
-		exists, err := s.repo.CategoryExistsByTitle(req.Title, &id)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check category title: %w", err)
-		}
-		if exists {
-			return nil, errors.New("category with this title already exists")
-		}
+		tempPriority := *req.Priority
+		existingCategory.Priority = &tempPriority
 	}
 
 	existingCategory.UpdatedBy, _ = cu.GetUserIDFromContext(ctx)
+	existingCategory.Sanitize()
+
 	updatedCategory, err := s.repo.UpdateCategory(existingCategory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update category: %w", err)
@@ -160,7 +176,7 @@ func (s *CategoryService) UpdateCategory(ctx context.Context, id uint, req *m.Up
 	return updatedCategory.ToResponse(), nil
 }
 
-func (s *CategoryService) DeleteCategory(ctx context.Context, id uint) error {
+func (s *categoryService) DeleteCategory(ctx context.Context, id uint) error {
 	exists, err := s.repo.CategoryExists(id, nil)
 	if err != nil || !exists {
 		return fmt.Errorf("category not found with category ID: %w", err)
@@ -173,7 +189,7 @@ func (s *CategoryService) DeleteCategory(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *CategoryService) UndoDeletedCategory(ctx context.Context, id uint) error {
+func (s *categoryService) UndoDeleteCategory(ctx context.Context, id uint) error {
 	showDeleted := true
 	exists, err := s.repo.CategoryExists(id, &showDeleted)
 	if err != nil || !exists {
@@ -181,13 +197,13 @@ func (s *CategoryService) UndoDeletedCategory(ctx context.Context, id uint) erro
 	}
 
 	if err := s.repo.UndoDeletedCategory(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete category: %w", err)
+		return fmt.Errorf("failed to undo delete category: %w", err)
 	}
 
 	return nil
 }
 
-func (s *CategoryService) IncrementPriority(categoryID uint) error {
+func (s *categoryService) IncrementPriority(categoryID uint) error {
 	if err := s.repo.IncrementPriority(categoryID); err != nil {
 		return err
 	}

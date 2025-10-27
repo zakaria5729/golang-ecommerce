@@ -8,17 +8,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type AttributeTypeRepository struct {
+type AttributeTypeRepository interface {
+	GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeTypeEntity, error)
+	GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeTypeEntity, error)
+	CreateAttributeType(attributeType *AttributeTypeEntity) (*AttributeTypeEntity, error)
+	UpdateAttributeType(attributeType *AttributeTypeEntity) error
+	DeleteAttributeType(id uint) error
+	UndoDeletedAttributeType(id uint) error
+	AttributeTypeExists(id uint, showDeleted *bool) (bool, error)
+	AttributeTypeExistsByName(name string, excludeID ...uint) (bool, error)
+}
+
+type attributeTypeRepository struct {
 	db *gorm.DB
 }
 
-func NewAttributeTypeRepository() *AttributeTypeRepository {
-	return &AttributeTypeRepository{
+func NewAttributeTypeRepository() AttributeTypeRepository {
+	return &attributeTypeRepository{
 		db: db.GetDB(),
 	}
 }
 
-func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeTypeEntity, error) {
+func (r *attributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy, sortOrder string) ([]AttributeTypeEntity, error) {
 	var attributeTypes []AttributeTypeEntity
 	query := r.db.Model(&AttributeTypeEntity{})
 
@@ -38,7 +49,7 @@ func (r *AttributeTypeRepository) GetAllAttributeTypes(showDeleted *bool, sortBy
 	return attributeTypes, err
 }
 
-func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeTypeEntity, error) {
+func (r *attributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *bool) (*AttributeTypeEntity, error) {
 	var attributeType AttributeTypeEntity
 	query := r.db.Model(&AttributeTypeEntity{})
 
@@ -54,7 +65,7 @@ func (r *AttributeTypeRepository) GetAttributeTypeByID(id uint, showDeleted *boo
 	return &attributeType, nil
 }
 
-func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeTypeEntity) (*AttributeTypeEntity, error) {
+func (r *attributeTypeRepository) CreateAttributeType(attributeType *AttributeTypeEntity) (*AttributeTypeEntity, error) {
 	err := r.db.Create(attributeType).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create attribute type", "method", "CreateAttributeType", "error", err, "attributeType", attributeType)
@@ -64,7 +75,7 @@ func (r *AttributeTypeRepository) CreateAttributeType(attributeType *AttributeTy
 	return attributeType, nil
 }
 
-func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeTypeEntity) error {
+func (r *attributeTypeRepository) UpdateAttributeType(attributeType *AttributeTypeEntity) error {
 	err := r.db.Save(attributeType).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update attribute type", "method", "UpdateAttributeType", "error", err, "attributeType", attributeType)
@@ -73,7 +84,7 @@ func (r *AttributeTypeRepository) UpdateAttributeType(attributeType *AttributeTy
 	return err
 }
 
-func (r *AttributeTypeRepository) DeleteAttributeType(id uint) error {
+func (r *attributeTypeRepository) DeleteAttributeType(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AttributeTypeEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete attribute type", "method", "DeleteAttributeType", "error", err, "id", id)
@@ -82,7 +93,7 @@ func (r *AttributeTypeRepository) DeleteAttributeType(id uint) error {
 	return err
 }
 
-func (r *AttributeTypeRepository) UndoDeletedAttributeType(id uint) error {
+func (r *attributeTypeRepository) UndoDeletedAttributeType(id uint) error {
 	var attributeType AttributeTypeEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&attributeType).Error
 
@@ -100,7 +111,7 @@ func (r *AttributeTypeRepository) UndoDeletedAttributeType(id uint) error {
 	return err
 }
 
-func (r *AttributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool) (bool, error) {
+func (r *attributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool) (bool, error) {
 	var attributeType AttributeTypeEntity
 	query := r.db.Model(&AttributeTypeEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -117,7 +128,7 @@ func (r *AttributeTypeRepository) AttributeTypeExists(id uint, showDeleted *bool
 	return attributeType.ID != 0, nil
 }
 
-func (r *AttributeTypeRepository) AttributeTypeExistsByName(name string, excludeID ...uint) (bool, error) {
+func (r *attributeTypeRepository) AttributeTypeExistsByName(name string, excludeID ...uint) (bool, error) {
 	var attributeType AttributeTypeEntity
 	query := r.db.Model(&AttributeTypeEntity{}).Where(c.AttributeTypeName+" = ?", name)
 

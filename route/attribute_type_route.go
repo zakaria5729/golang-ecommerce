@@ -7,7 +7,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterAttributeTypeRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterAttributeTypeRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := at.NewAttributeTypeRepository()
 	service := at.NewAttributeTypeService(repo)
 	h := at.NewAttributeTypeHandler(service)

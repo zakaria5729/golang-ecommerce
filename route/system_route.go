@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterSystemRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterSystemRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	service := system.NewSystemService(config.GetConfig())
 	h := system.NewSystemHandler(service)
 

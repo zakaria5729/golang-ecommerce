@@ -12,36 +12,43 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Second
 	defaultRetry   = 0
+	defaultTimeout = 5 * time.Second
 )
+
+type HttpClient interface {
+	Timeout(timeout time.Duration) HttpClient
+	Retry(retry int) HttpClient
+	Logger(logger LoggerFunc) HttpClient
+	Do(request Request) error
+}
 
 type LoggerFunc func(format string, v ...any)
 
-type HTTPClient struct {
+type httpClient struct {
 	client *http.Client
 	logger LoggerFunc
 	retry  int
 }
 
-func New() *HTTPClient {
-	return &HTTPClient{
+func New() HttpClient {
+	return &httpClient{
 		client: &http.Client{Timeout: defaultTimeout},
 		retry:  defaultRetry,
 	}
 }
 
-func (c *HTTPClient) Timeout(timeout time.Duration) *HTTPClient {
+func (c *httpClient) Timeout(timeout time.Duration) HttpClient {
 	c.client.Timeout = timeout
 	return c
 }
 
-func (c *HTTPClient) Retry(retry int) *HTTPClient {
+func (c *httpClient) Retry(retry int) HttpClient {
 	c.retry = retry
 	return c
 }
 
-func (c *HTTPClient) Logger(logger LoggerFunc) *HTTPClient {
+func (c *httpClient) Logger(logger LoggerFunc) HttpClient {
 	c.logger = logger
 	return c
 }
@@ -55,7 +62,7 @@ type Request struct {
 	Response    any
 }
 
-func (c *HTTPClient) Do(request Request) error {
+func (c *httpClient) Do(request Request) error {
 	req, err := c.buildRequest(request)
 	if err != nil {
 		return err
@@ -64,7 +71,7 @@ func (c *HTTPClient) Do(request Request) error {
 	return c.doRequest(req, request.Response)
 }
 
-func (c *HTTPClient) buildRequest(request Request) (*http.Request, error) {
+func (c *httpClient) buildRequest(request Request) (*http.Request, error) {
 	var bodyReader io.Reader
 	if request.RequestBody != nil {
 		jsonBytes, err := json.Marshal(request.RequestBody)
@@ -114,44 +121,7 @@ func (c *HTTPClient) buildRequest(request Request) (*http.Request, error) {
 	return req, nil
 }
 
-// func (c *HTTPClient) buildRequest(request Request) (*http.Request, error) {
-// 	var bodyReader io.Reader
-// 	if request.RequestBody != nil {
-// 		jsonBytes, err := json.Marshal(request.RequestBody)
-// 		if err != nil {
-// 			if c.logger != nil {
-// 				c.logger("[HTTP ERROR] %v", err)
-// 			}
-// 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
-// 		}
-// 		bodyReader = bytes.NewBuffer(jsonBytes)
-// 	}
-
-// 	method := request.Method
-// 	if method == "" {
-// 		method = http.MethodGet
-// 	}
-
-// 	req, err := http.NewRequest(method, request.URL, bodyReader)
-// 	if err != nil {
-// 		if c.logger != nil {
-// 			c.logger("[HTTP ERROR] %v", err)
-// 		}
-// 		return nil, fmt.Errorf("failed to create request: %w", err)
-// 	}
-
-// 	if request.RequestBody != nil {
-// 		req.Header.Set("Content-Type", "application/json")
-// 	}
-
-// 	for k, v := range request.Headers {
-// 		req.Header.Set(k, v)
-// 	}
-
-// 	return req, nil
-// }
-
-func (c *HTTPClient) doRequest(req *http.Request, result any) error {
+func (c *httpClient) doRequest(req *http.Request, result any) error {
 	var lastErr error
 
 	for attempt := 0; attempt <= c.retry; attempt++ {

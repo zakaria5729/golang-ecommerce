@@ -10,17 +10,22 @@ import (
 	c "github.com/easy-comerce/backend/pkg/constants"
 )
 
-type FileStorageService struct {
-	repo *FileStorageRepository
+type FileStorageService interface {
+	UploadFile(ctx context.Context, userID uint, req *m.StorageUploadRequest) (*m.StorageUploadResponse, error)
+	DeleteFile(ctx context.Context, key string) error
 }
 
-func NewFileStorageService(repo *FileStorageRepository) *FileStorageService {
-	return &FileStorageService{
+type fileStorageService struct {
+	repo FileStorageRepository
+}
+
+func NewFileStorageService(repo FileStorageRepository) FileStorageService {
+	return &fileStorageService{
 		repo: repo,
 	}
 }
 
-func (s *FileStorageService) UploadFile(ctx context.Context, userID uint, req *m.StorageUploadRequest) (*m.StorageUploadResponse, error) {
+func (s *fileStorageService) UploadFile(ctx context.Context, userID uint, req *m.StorageUploadRequest) (*m.StorageUploadResponse, error) {
 	maxFileSize := c.SizeInMB * 3
 	if req.File.Size > maxFileSize {
 		return nil, fmt.Errorf("file size exceeds, maximum allowed size of %d MB", maxFileSize/c.SizeInMB)
@@ -43,7 +48,7 @@ func (s *FileStorageService) UploadFile(ctx context.Context, userID uint, req *m
 	return uploadRes, nil
 }
 
-func (s *FileStorageService) DeleteFile(ctx context.Context, key string) error {
+func (s *fileStorageService) DeleteFile(ctx context.Context, key string) error {
 	if key == "" {
 		return fmt.Errorf("file key is required")
 	}

@@ -10,17 +10,26 @@ import (
 	"gorm.io/gorm"
 )
 
-type NotificationRepository struct {
+type NotificationRepository interface {
+	Create(ctx context.Context, notification *Notification) error
+	GetByID(ctx context.Context, id uint, showDeleted *bool) (*Notification, error)
+	GetAllByUserIDPaginated(showDeleted *bool, userID uint, page, pageSize int, sortBy, sortOrder string) ([]Notification, int64, error)
+	MarkAsRead(notificationID uint, userID uint) error
+	MarkAllAsRead(userID uint) error
+	GetUnreadCount(userID uint) (int64, error)
+}
+
+type notificationRepository struct {
 	db *gorm.DB
 }
 
-func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
-	return &NotificationRepository{
+func NewNotificationRepository(db *gorm.DB) NotificationRepository {
+	return &notificationRepository{
 		db: db,
 	}
 }
 
-func (r *NotificationRepository) Create(ctx context.Context, notification *Notification) error {
+func (r *notificationRepository) Create(ctx context.Context, notification *Notification) error {
 	if err := r.db.WithContext(ctx).Create(notification).Error; err != nil {
 		l.Logger.Error("Failed to create notification", "method", "Create", "error", err, "userID", notification.UserID)
 		return err
@@ -28,7 +37,7 @@ func (r *NotificationRepository) Create(ctx context.Context, notification *Notif
 	return nil
 }
 
-func (r *NotificationRepository) GetByID(ctx context.Context, id uint, showDeleted *bool) (*Notification, error) {
+func (r *notificationRepository) GetByID(ctx context.Context, id uint, showDeleted *bool) (*Notification, error) {
 	var notification Notification
 	query := r.db.WithContext(ctx).Model(&Notification{})
 
@@ -48,8 +57,8 @@ func (r *NotificationRepository) GetByID(ctx context.Context, id uint, showDelet
 	return &notification, nil
 }
 
-func (r *NotificationRepository) GetAllByUserIDPaginated(showDeleted *bool, userID uint, page int, pageSize int, sortBy, sortOrder string) ([]*Notification, int, error) {
-	var notifications []*Notification
+func (r *notificationRepository) GetAllByUserIDPaginated(showDeleted *bool, userID uint, page, pageSize int, sortBy, sortOrder string) ([]Notification, int64, error) {
+	var notifications []Notification
 	var total int64
 
 	query := r.db.Model(&Notification{}).Where(c.NotificationUserID+" = ?", userID)
@@ -71,10 +80,10 @@ func (r *NotificationRepository) GetAllByUserIDPaginated(showDeleted *bool, user
 		l.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return notifications, int(total), err
+	return notifications, total, err
 }
 
-func (r *NotificationRepository) MarkAsRead(notificationID uint, userID uint) error {
+func (r *notificationRepository) MarkAsRead(notificationID uint, userID uint) error {
 	notification := &Notification{
 		IsRead: true,
 	}
@@ -96,7 +105,7 @@ func (r *NotificationRepository) MarkAsRead(notificationID uint, userID uint) er
 	return nil
 }
 
-func (r *NotificationRepository) MarkAllAsRead(userID uint) error {
+func (r *notificationRepository) MarkAllAsRead(userID uint) error {
 	notification := &Notification{
 		IsRead: true,
 	}
@@ -118,7 +127,7 @@ func (r *NotificationRepository) MarkAllAsRead(userID uint) error {
 	return nil
 }
 
-func (r *NotificationRepository) GetUnreadCount(userID uint) (int64, error) {
+func (r *notificationRepository) GetUnreadCount(userID uint) (int64, error) {
 	var count int64
 
 	err := r.db.Model(&Notification{}).

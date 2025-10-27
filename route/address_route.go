@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterAddressRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterAddressRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := a.NewAddressRepository(db.GetDB())
 	service := a.NewAddressService(repo)
 	h := a.NewAddressHandler(service)

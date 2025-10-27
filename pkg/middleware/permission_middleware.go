@@ -16,41 +16,48 @@ type MiddlewareHandler func(http.Handler) http.Handler
 
 type HandlerFunc func(http.ResponseWriter, *http.Request)
 
-type PermissionMiddleware struct {
-	permissionService *p.PermissionService
-	userRepo          *user.UserRepository
+type PermissionMiddleware interface {
+	RequireAuthUserStatus() MiddlewareHandler
+	RequireAuthUserWithRolePermission() MiddlewareHandler
+	RequirePermission(permission string) MiddlewareHandler
+	RequireAnyPermission(permissions []string) MiddlewareHandler
+}
+
+type permissionMiddleware struct {
+	permissionService p.PermissionService
+	userRepo          user.UserRepository
 	jwtSecret         string
 }
 
 func NewPermissionMiddleware(
 	jwtSecret string,
-	userRepo *user.UserRepository,
-	permissionRepo *p.PermissionRepository,
-) *PermissionMiddleware {
-	return &PermissionMiddleware{
+	userRepo user.UserRepository,
+	permissionRepo p.PermissionRepository,
+) PermissionMiddleware {
+	return &permissionMiddleware{
 		permissionService: p.NewPermissionService(permissionRepo),
 		userRepo:          userRepo,
 		jwtSecret:         jwtSecret,
 	}
 }
 
-func (pm *PermissionMiddleware) RequireAuthUserStatus() MiddlewareHandler {
+func (pm *permissionMiddleware) RequireAuthUserStatus() MiddlewareHandler {
 	return loadAuthUser(pm, false, false, false)
 }
 
-func (pm *PermissionMiddleware) RequireAuthUserWithRolePermission() MiddlewareHandler {
+func (pm *permissionMiddleware) RequireAuthUserWithRolePermission() MiddlewareHandler {
 	return loadAuthUser(pm, true, true, true)
 }
 
-func (pm *PermissionMiddleware) RequirePermission(permission string) MiddlewareHandler {
+func (pm *permissionMiddleware) RequirePermission(permission string) MiddlewareHandler {
 	return loadPermissionsStatus(pm, []string{permission}, "RequirePermission")
 }
 
-func (pm *PermissionMiddleware) RequireAnyPermission(permissions []string) MiddlewareHandler {
+func (pm *permissionMiddleware) RequireAnyPermission(permissions []string) MiddlewareHandler {
 	return loadPermissionsStatus(pm, permissions, "RequireAnyPermission")
 }
 
-func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, methodName string) MiddlewareHandler {
+func loadPermissionsStatus(pm *permissionMiddleware, permissions []string, methodName string) MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -94,7 +101,7 @@ func loadPermissionsStatus(pm *PermissionMiddleware, permissions []string, metho
 	}
 }
 
-func loadAuthUser(pm *PermissionMiddleware, loadFullUser bool, includeRoles bool, includePermissions bool) MiddlewareHandler {
+func loadAuthUser(pm *permissionMiddleware, loadFullUser bool, includeRoles bool, includePermissions bool) MiddlewareHandler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

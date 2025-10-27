@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterWishlistRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterWishlistRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := w.NewWishlistRepository(db.GetDB())
 	service := w.NewWishlistService(repo)
 	h := w.NewWishlistHandler(service)

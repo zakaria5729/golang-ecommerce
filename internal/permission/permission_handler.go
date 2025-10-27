@@ -8,17 +8,23 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type PermissionHandler struct {
-	service *PermissionService
+type PermissionHandler interface {
+	GetAllPermissions(w http.ResponseWriter, r *http.Request)
+	GetAllPermissionsGroup(w http.ResponseWriter, r *http.Request)
+	GetPermissionByID(w http.ResponseWriter, r *http.Request)
 }
 
-func NewPermissionHandler(service *PermissionService) *PermissionHandler {
-	return &PermissionHandler{
+type permissionHandler struct {
+	service PermissionService
+}
+
+func NewPermissionHandler(service PermissionService) PermissionHandler {
+	return &permissionHandler{
 		service: service,
 	}
 }
 
-func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Request) {
+func (h *permissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -27,7 +33,7 @@ func (h *PermissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Req
 	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
 }
 
-func (h *PermissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *http.Request) {
+func (h *permissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -36,7 +42,7 @@ func (h *PermissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *htt
 	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
 }
 
-func (h *PermissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
+func (h *permissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid permission ID", http.StatusBadRequest)

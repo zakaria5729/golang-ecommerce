@@ -7,17 +7,26 @@ import (
 	m "github.com/easy-comerce/backend/internal/size_category/model"
 )
 
-type SizeCategoryService struct {
-	repo *SizeCategoryRepository
+type SizeCategoryService interface {
+	GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error)
+	GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error)
+	CreateSizeCategory(req *m.CreateSizeCategoryRequest) (*SizeCategoryEntity, error)
+	UpdateSizeCategory(id uint, req *m.UpdateSizeCategoryRequest) (*SizeCategoryEntity, error)
+	DeleteSizeCategory(id uint) error
+	UndoDeletedSizeCategory(id uint) error
 }
 
-func NewSizeCategoryService(repo *SizeCategoryRepository) *SizeCategoryService {
-	return &SizeCategoryService{
+type sizeCategoryService struct {
+	repo SizeCategoryRepository
+}
+
+func NewSizeCategoryService(repo SizeCategoryRepository) SizeCategoryService {
+	return &sizeCategoryService{
 		repo: repo,
 	}
 }
 
-func (s *SizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error) {
+func (s *sizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error) {
 	sizeCategories, err := s.repo.GetAllSizeCategories(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch size categories: %w", err)
@@ -26,7 +35,7 @@ func (s *SizeCategoryService) GetAllSizeCategories(showDeleted *bool, sortBy, so
 	return sizeCategories, nil
 }
 
-func (s *SizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error) {
+func (s *sizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error) {
 	sizeCategory, err := s.repo.GetSizeCategoryByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("size category not found: %w", err)
@@ -35,7 +44,7 @@ func (s *SizeCategoryService) GetSizeCategoryByID(id uint, showDeleted *bool) (*
 	return sizeCategory, nil
 }
 
-func (s *SizeCategoryService) CreateSizeCategory(req *m.CreateSizeCategoryRequest) (*SizeCategoryEntity, error) {
+func (s *sizeCategoryService) CreateSizeCategory(req *m.CreateSizeCategoryRequest) (*SizeCategoryEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.repo.SizeCategoryExistsByName(req.Name)
@@ -58,7 +67,7 @@ func (s *SizeCategoryService) CreateSizeCategory(req *m.CreateSizeCategoryReques
 	return sizeCategory, nil
 }
 
-func (s *SizeCategoryService) UpdateSizeCategory(id uint, req *m.UpdateSizeCategoryRequest) (*SizeCategoryEntity, error) {
+func (s *sizeCategoryService) UpdateSizeCategory(id uint, req *m.UpdateSizeCategoryRequest) (*SizeCategoryEntity, error) {
 	req.Sanitize()
 
 	existingSizeCategory, err := s.repo.GetSizeCategoryByID(id, nil)
@@ -84,7 +93,7 @@ func (s *SizeCategoryService) UpdateSizeCategory(id uint, req *m.UpdateSizeCateg
 	return existingSizeCategory, nil
 }
 
-func (s *SizeCategoryService) DeleteSizeCategory(id uint) error {
+func (s *sizeCategoryService) DeleteSizeCategory(id uint) error {
 	_, err := s.repo.GetSizeCategoryByID(id, nil)
 	if err != nil {
 		return fmt.Errorf("size category not found: %w", err)
@@ -97,7 +106,7 @@ func (s *SizeCategoryService) DeleteSizeCategory(id uint) error {
 	return nil
 }
 
-func (s *SizeCategoryService) UndoDeletedSizeCategory(id uint) error {
+func (s *sizeCategoryService) UndoDeletedSizeCategory(id uint) error {
 	showDeleted := true
 	exists, err := s.repo.SizeCategoryExists(id, &showDeleted)
 	if err != nil || !exists {

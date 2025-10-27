@@ -8,17 +8,26 @@ import (
 	m "github.com/easy-comerce/backend/internal/size_option/model"
 )
 
-type SizeOptionService struct {
-	repo *SizeOptionRepository
+type SizeOptionService interface {
+	GetAllSizeOptions(showDeleted *bool, sizeCategoryIDStr string, sortBy, sortOrder string) ([]SizeOptionEntity, error)
+	GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error)
+	CreateSizeOption(req *m.CreateSizeOptionRequest) (*SizeOptionEntity, error)
+	UpdateSizeOption(id uint, req *m.UpdateSizeOptionRequest) (*SizeOptionEntity, error)
+	DeleteSizeOption(id uint) error
+	UndoDeletedSizeOption(id uint) error
 }
 
-func NewSizeOptionService(repo *SizeOptionRepository) *SizeOptionService {
-	return &SizeOptionService{
+type sizeOptionService struct {
+	repo SizeOptionRepository
+}
+
+func NewSizeOptionService(repo SizeOptionRepository) SizeOptionService {
+	return &sizeOptionService{
 		repo: repo,
 	}
 }
 
-func (s *SizeOptionService) GetAllSizeOptions(showDeleted *bool, sizeCategoryIDStr string, sortBy, sortOrder string) ([]SizeOptionEntity, error) {
+func (s *sizeOptionService) GetAllSizeOptions(showDeleted *bool, sizeCategoryIDStr string, sortBy, sortOrder string) ([]SizeOptionEntity, error) {
 	var sizeCategoryID *uint
 	if sizeCategoryIDStr != "" {
 		if id, err := strconv.ParseUint(sizeCategoryIDStr, 10, 32); err == nil {
@@ -35,7 +44,7 @@ func (s *SizeOptionService) GetAllSizeOptions(showDeleted *bool, sizeCategoryIDS
 	return sizeOptions, nil
 }
 
-func (s *SizeOptionService) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error) {
+func (s *sizeOptionService) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error) {
 	sizeOption, err := s.repo.GetSizeOptionByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("size option not found: %w", err)
@@ -44,7 +53,7 @@ func (s *SizeOptionService) GetSizeOptionByID(id uint, showDeleted *bool) (*Size
 	return sizeOption, nil
 }
 
-func (s *SizeOptionService) CreateSizeOption(req *m.CreateSizeOptionRequest) (*SizeOptionEntity, error) {
+func (s *sizeOptionService) CreateSizeOption(req *m.CreateSizeOptionRequest) (*SizeOptionEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.repo.SizeOptionExistsByName(req.Name, req.SizeCategoryID)
@@ -69,7 +78,7 @@ func (s *SizeOptionService) CreateSizeOption(req *m.CreateSizeOptionRequest) (*S
 	return createdSizeOption, nil
 }
 
-func (s *SizeOptionService) UpdateSizeOption(id uint, req *m.UpdateSizeOptionRequest) (*SizeOptionEntity, error) {
+func (s *sizeOptionService) UpdateSizeOption(id uint, req *m.UpdateSizeOptionRequest) (*SizeOptionEntity, error) {
 	req.Sanitize()
 
 	existingSizeOption, err := s.repo.GetSizeOptionByID(id, nil)
@@ -99,7 +108,7 @@ func (s *SizeOptionService) UpdateSizeOption(id uint, req *m.UpdateSizeOptionReq
 	return existingSizeOption, nil
 }
 
-func (s *SizeOptionService) DeleteSizeOption(id uint) error {
+func (s *sizeOptionService) DeleteSizeOption(id uint) error {
 	_, err := s.repo.GetSizeOptionByID(id, nil)
 	if err != nil {
 		return fmt.Errorf("size option not found: %w", err)
@@ -112,7 +121,7 @@ func (s *SizeOptionService) DeleteSizeOption(id uint) error {
 	return nil
 }
 
-func (s *SizeOptionService) UndoDeletedSizeOption(id uint) error {
+func (s *sizeOptionService) UndoDeletedSizeOption(id uint) error {
 	showDeleted := true
 	exists, err := s.repo.SizeOptionExists(id, &showDeleted)
 	if err != nil || !exists {

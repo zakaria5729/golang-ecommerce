@@ -7,17 +7,22 @@ import (
 	m "github.com/easy-comerce/backend/internal/mail/model"
 )
 
-type MailService struct {
-	repo *MailRepository
+type MailService interface {
+	SendEmail(ctx context.Context, to []string, subject, body string, isHTML bool) error
+	SendEmailWithAttachments(ctx context.Context, to []string, subject, body string, isHTML bool, attachments []string) error
 }
 
-func NewMailService(repo *MailRepository) *MailService {
-	return &MailService{
+type mailService struct {
+	repo MailRepository
+}
+
+func NewMailService(repo MailRepository) MailService {
+	return &mailService{
 		repo: repo,
 	}
 }
 
-func (s *MailService) SendEmail(ctx context.Context, to []string, subject, body string, isHTML bool) error {
+func (s *mailService) SendEmail(ctx context.Context, to []string, subject, body string, isHTML bool) error {
 	if len(to) == 0 {
 		return fmt.Errorf("at least one recipient is required")
 	}
@@ -37,7 +42,7 @@ func (s *MailService) SendEmail(ctx context.Context, to []string, subject, body 
 	return err
 }
 
-func (s *MailService) SendEmailWithAttachments(ctx context.Context, to []string, subject, body string, isHTML bool, attachments []string) error {
+func (s *mailService) SendEmailWithAttachments(ctx context.Context, to []string, subject, body string, isHTML bool, attachments []string) error {
 	if len(to) == 0 {
 		return fmt.Errorf("at least one recipient is required")
 	}

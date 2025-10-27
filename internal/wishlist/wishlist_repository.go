@@ -9,17 +9,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type WishlistRepository struct {
+type WishlistRepository interface {
+	GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int, error)
+	AddToWishlistsByUser(wishlist *WishlistEntity) error
+	RemoveFromWishlistByUser(userID uint, productID uint) error
+	ClearUserWishlist(userID uint) error
+	DeleteWishlistById(id uint) error
+	UndoDeleteWishlistById(id uint) error
+	WishlistExists(userID uint, productID uint) (bool, error)
+	GetWishlistCount(userID uint) (int64, error)
+}
+
+type wishlistRepository struct {
 	db *gorm.DB
 }
 
-func NewWishlistRepository(db *gorm.DB) *WishlistRepository {
-	return &WishlistRepository{
+func NewWishlistRepository(db *gorm.DB) WishlistRepository {
+	return &wishlistRepository{
 		db: db,
 	}
 }
 
-func (r *WishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int, error) {
+func (r *wishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int, error) {
 	var wishlists []WishlistEntity
 	var total int64
 	query := r.db.Model(&WishlistEntity{})
@@ -53,7 +64,7 @@ func (r *WishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID 
 	return wishlists, int(total), err
 }
 
-func (r *WishlistRepository) AddToWishlistsByUser(wishlist *WishlistEntity) error {
+func (r *wishlistRepository) AddToWishlistsByUser(wishlist *WishlistEntity) error {
 	err := r.db.Create(wishlist).Error
 	if err != nil {
 		logger.Logger.Error("❌ Failed to create wishlist", "method", "CreateWishlist", "error", err, "wishlist", wishlist)
@@ -61,7 +72,7 @@ func (r *WishlistRepository) AddToWishlistsByUser(wishlist *WishlistEntity) erro
 	return err
 }
 
-func (r *WishlistRepository) RemoveFromWishlistByUser(userID uint, productID uint) error {
+func (r *wishlistRepository) RemoveFromWishlistByUser(userID uint, productID uint) error {
 	result := r.db.Where(c.WishlistUserID+" = ? AND "+c.WishlistProductID+" = ?", userID, productID).Delete(&WishlistEntity{})
 	if result.Error != nil {
 		logger.Logger.Error("❌ Failed to delete wishlist", "method", "RemoveFromWishlistByUser", "error", result.Error, "userID", userID, "productID", productID)
@@ -73,7 +84,7 @@ func (r *WishlistRepository) RemoveFromWishlistByUser(userID uint, productID uin
 	return nil
 }
 
-func (r *WishlistRepository) ClearUserWishlist(userID uint) error {
+func (r *wishlistRepository) ClearUserWishlist(userID uint) error {
 	result := r.db.Where(c.WishlistUserID+" = ?", userID).Delete(&WishlistEntity{})
 	if result.Error != nil {
 		logger.Logger.Error("❌ Failed to clear user wishlist", "method", "ClearUserWishlist", "error", result.Error, "userID", userID)
@@ -85,7 +96,7 @@ func (r *WishlistRepository) ClearUserWishlist(userID uint) error {
 	return nil
 }
 
-func (r *WishlistRepository) DeleteWishlistById(id uint) error {
+func (r *wishlistRepository) DeleteWishlistById(id uint) error {
 	result := r.db.Where(c.FieldID+" = ?", id).Delete(&WishlistEntity{})
 	if result.Error != nil {
 		logger.Logger.Error("❌ Failed to delete wishlist by ID", "method", "DeleteWishlistById", "error", result.Error, "id", id)
@@ -97,7 +108,7 @@ func (r *WishlistRepository) DeleteWishlistById(id uint) error {
 	return nil
 }
 
-func (r *WishlistRepository) UndoDeleteWishlistById(id uint) error {
+func (r *wishlistRepository) UndoDeleteWishlistById(id uint) error {
 	result := r.db.Unscoped().Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil)
 	if result.Error != nil {
 		logger.Logger.Error("❌ Failed to undo delete wishlist by ID", "method", "UndoDeleteWishlistById", "error", result.Error, "id", id)
@@ -109,7 +120,7 @@ func (r *WishlistRepository) UndoDeleteWishlistById(id uint) error {
 	return nil
 }
 
-func (r *WishlistRepository) WishlistExists(userID uint, productID uint) (bool, error) {
+func (r *wishlistRepository) WishlistExists(userID uint, productID uint) (bool, error) {
 	var wishlist WishlistEntity
 	err := r.db.Model(&WishlistEntity{}).
 		Where(c.WishlistUserID+" = ? AND "+c.WishlistProductID+" = ?", userID, productID).
@@ -124,7 +135,7 @@ func (r *WishlistRepository) WishlistExists(userID uint, productID uint) (bool, 
 	return wishlist.ID != 0, nil
 }
 
-func (r *WishlistRepository) GetWishlistCount(userID uint) (int64, error) {
+func (r *wishlistRepository) GetWishlistCount(userID uint) (int64, error) {
 	var count int64
 	err := r.db.Model(&WishlistEntity{}).Where(c.WishlistUserID+" = ?", userID).Count(&count).Error
 	if err != nil {

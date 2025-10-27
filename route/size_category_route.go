@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterSizeCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterSizeCategoryRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := sc.NewSizeCategoryRepository(db.GetDB())
 	service := sc.NewSizeCategoryService(repo)
 	h := sc.NewSizeCategoryHandler(service)

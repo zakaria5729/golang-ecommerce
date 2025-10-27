@@ -11,39 +11,50 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type SizeOptionHandler struct {
-	service *SizeOptionService
+type SizeOptionHandler interface {
+	GetAllSizeOptionsPublic(w http.ResponseWriter, r *http.Request)
+	GetSizeOptionByIDPublic(w http.ResponseWriter, r *http.Request)
+	GetAllSizeOptions(w http.ResponseWriter, r *http.Request)
+	GetSizeOptionByID(w http.ResponseWriter, r *http.Request)
+	CreateSizeOption(w http.ResponseWriter, r *http.Request)
+	UpdateSizeOption(w http.ResponseWriter, r *http.Request)
+	DeleteSizeOption(w http.ResponseWriter, r *http.Request)
+	UndoDeletedSizeOption(w http.ResponseWriter, r *http.Request)
 }
 
-func NewSizeOptionHandler(service *SizeOptionService) *SizeOptionHandler {
-	return &SizeOptionHandler{
+type sizeOptionHandler struct {
+	service SizeOptionService
+}
+
+func NewSizeOptionHandler(service SizeOptionService) SizeOptionHandler {
+	return &sizeOptionHandler{
 		service: service,
 	}
 }
 
-func (h *SizeOptionHandler) GetAllSizeOptionsPublic(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) GetAllSizeOptionsPublic(w http.ResponseWriter, r *http.Request) {
 	err, sizeOptions := getAllSizeOptionsData(r, nil, h.service)
 	response.SendResponse(w, sizeOptions, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) GetSizeOptionByIDPublic(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) GetSizeOptionByIDPublic(w http.ResponseWriter, r *http.Request) {
 	err, sizeOption := getSizeOptionDataById(r, nil, h.service)
 	response.SendResponse(w, sizeOption, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) GetAllSizeOptions(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) GetAllSizeOptions(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, sizeOptions := getAllSizeOptionsData(r, showDeleted, h.service)
 	response.SendResponse(w, sizeOptions, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) GetSizeOptionByID(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) GetSizeOptionByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, sizeOption := getSizeOptionDataById(r, showDeleted, h.service)
 	response.SendResponse(w, sizeOption, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) CreateSizeOption(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) CreateSizeOption(w http.ResponseWriter, r *http.Request) {
 	var req m.CreateSizeOptionRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateSizeOption") {
 		return
@@ -58,7 +69,7 @@ func (h *SizeOptionHandler) CreateSizeOption(w http.ResponseWriter, r *http.Requ
 	response.SendResponse(w, sizeOption, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) UpdateSizeOption(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) UpdateSizeOption(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size option ID", http.StatusBadRequest)
@@ -79,7 +90,7 @@ func (h *SizeOptionHandler) UpdateSizeOption(w http.ResponseWriter, r *http.Requ
 	response.SendResponse(w, sizeOption, err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) DeleteSizeOption(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) DeleteSizeOption(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size option ID", http.StatusBadRequest)
@@ -90,7 +101,7 @@ func (h *SizeOptionHandler) DeleteSizeOption(w http.ResponseWriter, r *http.Requ
 	response.SendResponse(w, "Size option deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *SizeOptionHandler) UndoDeletedSizeOption(w http.ResponseWriter, r *http.Request) {
+func (h *sizeOptionHandler) UndoDeletedSizeOption(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size option ID", http.StatusBadRequest)
@@ -101,7 +112,7 @@ func (h *SizeOptionHandler) UndoDeletedSizeOption(w http.ResponseWriter, r *http
 	response.SendResponse(w, "Size option restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, []SizeOptionEntity) {
+func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service SizeOptionService) (error, []SizeOptionEntity) {
 	q := r.URL.Query()
 	sizeCategoryID := q.Get(c.SizeOptionSizeCategoryID)
 	sortBy := q.Get(c.SortBy)
@@ -115,7 +126,7 @@ func getAllSizeOptionsData(r *http.Request, showDeleted *bool, service *SizeOpti
 	return nil, sizeOptions
 }
 
-func getSizeOptionDataById(r *http.Request, showDeleted *bool, service *SizeOptionService) (error, *SizeOptionEntity) {
+func getSizeOptionDataById(r *http.Request, showDeleted *bool, service SizeOptionService) (error, *SizeOptionEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid size option ID"), nil

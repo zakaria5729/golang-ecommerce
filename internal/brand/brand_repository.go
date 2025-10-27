@@ -7,17 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type BrandRepository struct {
+type BrandRepository interface {
+	GetAllBrands(showDeleted *bool, sortBy, sortOrder string) ([]BrandEntity, error)
+	GetBrandByID(id uint, showDeleted *bool) (*BrandEntity, error)
+	CreateBrand(brand *BrandEntity) (*BrandEntity, error)
+	UpdateBrand(brand *BrandEntity) error
+	DeleteBrand(id uint) error
+	UndoDeletedBrand(id uint) error
+	BrandExists(id uint, showDeleted *bool) (bool, error)
+	BrandExistsByName(name string, excludeID ...uint) (bool, error)
+}
+
+type brandRepository struct {
 	db *gorm.DB
 }
 
-func NewBrandRepository(db *gorm.DB) *BrandRepository {
-	return &BrandRepository{
+func NewBrandRepository(db *gorm.DB) BrandRepository {
+	return &brandRepository{
 		db: db,
 	}
 }
 
-func (r *BrandRepository) GetAllBrands(showDeleted *bool, sortBy, sortOrder string) ([]BrandEntity, error) {
+func (r *brandRepository) GetAllBrands(showDeleted *bool, sortBy, sortOrder string) ([]BrandEntity, error) {
 	var brands []BrandEntity
 	query := r.db.Model(&BrandEntity{})
 
@@ -37,7 +48,7 @@ func (r *BrandRepository) GetAllBrands(showDeleted *bool, sortBy, sortOrder stri
 	return brands, err
 }
 
-func (r *BrandRepository) GetBrandByID(id uint, showDeleted *bool) (*BrandEntity, error) {
+func (r *brandRepository) GetBrandByID(id uint, showDeleted *bool) (*BrandEntity, error) {
 	var brand BrandEntity
 	query := r.db.Model(&BrandEntity{})
 
@@ -53,7 +64,7 @@ func (r *BrandRepository) GetBrandByID(id uint, showDeleted *bool) (*BrandEntity
 	return &brand, nil
 }
 
-func (r *BrandRepository) CreateBrand(brand *BrandEntity) (*BrandEntity, error) {
+func (r *brandRepository) CreateBrand(brand *BrandEntity) (*BrandEntity, error) {
 	err := r.db.Create(brand).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create brand", "method", "CreateBrand", "error", err, "brand", brand)
@@ -63,7 +74,7 @@ func (r *BrandRepository) CreateBrand(brand *BrandEntity) (*BrandEntity, error) 
 	return brand, nil
 }
 
-func (r *BrandRepository) UpdateBrand(brand *BrandEntity) error {
+func (r *brandRepository) UpdateBrand(brand *BrandEntity) error {
 	err := r.db.Save(brand).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to update brand", "method", "UpdateBrand", "error", err, "brand", brand)
@@ -72,7 +83,7 @@ func (r *BrandRepository) UpdateBrand(brand *BrandEntity) error {
 	return err
 }
 
-func (r *BrandRepository) DeleteBrand(id uint) error {
+func (r *brandRepository) DeleteBrand(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&BrandEntity{}).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to delete brand", "method", "DeleteBrand", "error", err, "id", id)
@@ -81,7 +92,7 @@ func (r *BrandRepository) DeleteBrand(id uint) error {
 	return err
 }
 
-func (r *BrandRepository) UndoDeletedBrand(id uint) error {
+func (r *brandRepository) UndoDeletedBrand(id uint) error {
 	err := r.db.Unscoped().Model(&BrandEntity{}).Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to undo deleted brand", "method", "UndoDeletedBrand", "error", err, "id", id)
@@ -90,7 +101,7 @@ func (r *BrandRepository) UndoDeletedBrand(id uint) error {
 	return err
 }
 
-func (r *BrandRepository) BrandExists(id uint, showDeleted *bool) (bool, error) {
+func (r *brandRepository) BrandExists(id uint, showDeleted *bool) (bool, error) {
 	var brand BrandEntity
 	query := r.db.Model(&BrandEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -107,7 +118,7 @@ func (r *BrandRepository) BrandExists(id uint, showDeleted *bool) (bool, error) 
 	return brand.ID != 0, nil
 }
 
-func (r *BrandRepository) BrandExistsByName(name string, excludeID ...uint) (bool, error) {
+func (r *brandRepository) BrandExistsByName(name string, excludeID ...uint) (bool, error) {
 	var brand BrandEntity
 	query := r.db.Model(&BrandEntity{}).Where(c.BrandName+" = ?", name)
 

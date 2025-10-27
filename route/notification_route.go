@@ -7,7 +7,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterNotificationRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterNotificationRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	fcmService := n.NewFCMService()
 	repo := n.NewNotificationRepository(db.GetDB())
 	service := n.NewNotificationService(repo, fcmService)

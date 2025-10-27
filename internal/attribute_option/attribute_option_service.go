@@ -10,22 +10,31 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type AttributeOptionService struct {
-	optionRepo *AttributeOptionRepository
-	typeRepo   *attribute_type.AttributeTypeRepository
+type AttributeOptionService interface {
+	GetAllAttributeOptions(includeStr string, showDeleted *bool, attributeTypeIDStr string, sortBy, sortOrder string) ([]AttributeOptionEntity, error)
+	GetAttributeOptionByID(id uint, includeStr string, showDeleted *bool) (*AttributeOptionEntity, error)
+	CreateAttributeOption(req *m.CreateAttributeOptionRequest) (*AttributeOptionEntity, error)
+	UpdateAttributeOption(id uint, req *m.UpdateAttributeOptionRequest) (*AttributeOptionEntity, error)
+	DeleteAttributeOption(id uint) error
+	UndoDeletedAttributeOption(id uint) error
+}
+
+type attributeOptionService struct {
+	optionRepo AttributeOptionRepository
+	typeRepo   attribute_type.AttributeTypeRepository
 }
 
 func NewAttributeOptionService(
-	optionRepo *AttributeOptionRepository,
-	typeRepo *attribute_type.AttributeTypeRepository,
-) *AttributeOptionService {
-	return &AttributeOptionService{
+	optionRepo AttributeOptionRepository,
+	typeRepo attribute_type.AttributeTypeRepository,
+) AttributeOptionService {
+	return &attributeOptionService{
 		optionRepo: optionRepo,
 		typeRepo:   typeRepo,
 	}
 }
 
-func (s *AttributeOptionService) GetAllAttributeOptions(includeStr string, showDeleted *bool, attributeTypeIDStr string, sortBy, sortOrder string) ([]AttributeOptionEntity, error) {
+func (s *attributeOptionService) GetAllAttributeOptions(includeStr string, showDeleted *bool, attributeTypeIDStr string, sortBy, sortOrder string) ([]AttributeOptionEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 
 	var attributeTypeID *uint
@@ -44,7 +53,7 @@ func (s *AttributeOptionService) GetAllAttributeOptions(includeStr string, showD
 	return attributeOptions, nil
 }
 
-func (s *AttributeOptionService) GetAttributeOptionByID(id uint, includeStr string, showDeleted *bool) (*AttributeOptionEntity, error) {
+func (s *attributeOptionService) GetAttributeOptionByID(id uint, includeStr string, showDeleted *bool) (*AttributeOptionEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	attributeOption, err := s.optionRepo.GetAttributeOptionByID(id, include, showDeleted)
 
@@ -55,7 +64,7 @@ func (s *AttributeOptionService) GetAttributeOptionByID(id uint, includeStr stri
 	return attributeOption, nil
 }
 
-func (s *AttributeOptionService) CreateAttributeOption(req *m.CreateAttributeOptionRequest) (*AttributeOptionEntity, error) {
+func (s *attributeOptionService) CreateAttributeOption(req *m.CreateAttributeOptionRequest) (*AttributeOptionEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.typeRepo.AttributeTypeExists(req.AttributeTypeID, nil)
@@ -87,7 +96,7 @@ func (s *AttributeOptionService) CreateAttributeOption(req *m.CreateAttributeOpt
 	return attributeOption, nil
 }
 
-func (s *AttributeOptionService) UpdateAttributeOption(id uint, req *m.UpdateAttributeOptionRequest) (*AttributeOptionEntity, error) {
+func (s *attributeOptionService) UpdateAttributeOption(id uint, req *m.UpdateAttributeOptionRequest) (*AttributeOptionEntity, error) {
 	req.Sanitize()
 
 	existingAttributeOption, err := s.optionRepo.GetAttributeOptionByID(id, nil, nil)
@@ -129,7 +138,7 @@ func (s *AttributeOptionService) UpdateAttributeOption(id uint, req *m.UpdateAtt
 	return existingAttributeOption, nil
 }
 
-func (s *AttributeOptionService) DeleteAttributeOption(id uint) error {
+func (s *attributeOptionService) DeleteAttributeOption(id uint) error {
 	_, err := s.optionRepo.GetAttributeOptionByID(id, nil, nil)
 	if err != nil {
 		return fmt.Errorf("attribute option not found: %w", err)
@@ -142,7 +151,7 @@ func (s *AttributeOptionService) DeleteAttributeOption(id uint) error {
 	return nil
 }
 
-func (s *AttributeOptionService) UndoDeletedAttributeOption(id uint) error {
+func (s *attributeOptionService) UndoDeletedAttributeOption(id uint) error {
 	showDeleted := true
 	exists, err := s.optionRepo.AttributeOptionExists(id, &showDeleted)
 	if err != nil || !exists {

@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterBrandRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterBrandRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := b.NewBrandRepository(db.GetDB())
 	service := b.NewBrandService(repo)
 	h := b.NewBrandHandler(service)

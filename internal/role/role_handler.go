@@ -10,17 +10,28 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type RoleHandler struct {
-	service *RoleService
+type RoleHandler interface {
+	GetAllRoles(w http.ResponseWriter, r *http.Request)
+	GetRoleByID(w http.ResponseWriter, r *http.Request)
+	CreateRole(w http.ResponseWriter, r *http.Request)
+	UpdateRole(w http.ResponseWriter, r *http.Request)
+	DeleteRole(w http.ResponseWriter, r *http.Request)
+	UndoDeletedRole(w http.ResponseWriter, r *http.Request)
+	AssignRoleToUser(w http.ResponseWriter, r *http.Request)
+	AddPermissionsToRole(w http.ResponseWriter, r *http.Request)
 }
 
-func NewRoleHandler(service *RoleService) *RoleHandler {
-	return &RoleHandler{
+type roleHandler struct {
+	service RoleService
+}
+
+func NewRoleHandler(service RoleService) RoleHandler {
+	return &roleHandler{
 		service: service,
 	}
 }
 
-func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	include := q.Get(c.Include)
 	roleType := q.Get(c.RoleRoleType)
@@ -32,7 +43,7 @@ func (h *RoleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, roles, err, http.StatusInternalServerError)
 }
 
-func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
@@ -47,7 +58,7 @@ func (h *RoleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, role, err, http.StatusNotFound)
 }
 
-func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateRole") {
 		return
@@ -62,7 +73,7 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, role, err, http.StatusBadRequest)
 }
 
-func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
@@ -83,7 +94,7 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, role, err, http.StatusBadRequest)
 }
 
-func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
@@ -94,7 +105,7 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Role deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *RoleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid role ID", http.StatusBadRequest)
@@ -105,7 +116,7 @@ func (h *RoleHandler) UndoDeletedRole(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Undo role deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	var req model.AssignRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "AssignRoleToUser") {
 		return
@@ -120,7 +131,7 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Roles assigned successfully", err, http.StatusInternalServerError)
 }
 
-func (h *RoleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Request) {
+func (h *roleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Request) {
 	var req model.AddPermissionsToRoleRequest
 	if !utils.DecodeJSON(w, r, &req, "AddPermissionsToRole") {
 		return

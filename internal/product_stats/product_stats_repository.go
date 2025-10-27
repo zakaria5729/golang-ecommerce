@@ -11,17 +11,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductStatsRepository struct {
+type ProductStatsRepository interface {
+	GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int, error)
+	GetProductStatsByID(id uint) (*ProductStatsEntity, error)
+	IncreaseProductStats(ctx context.Context, productStats *ProductStatsEntity) error
+}
+
+type productStatsRepository struct {
 	db *gorm.DB
 }
 
-func NewProductStatsRepository(db *gorm.DB) *ProductStatsRepository {
-	return &ProductStatsRepository{
+func NewProductStatsRepository(db *gorm.DB) ProductStatsRepository {
+	return &productStatsRepository{
 		db: db,
 	}
 }
 
-func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int, error) {
+func (r *productStatsRepository) GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int, error) {
 	var history []ProductStatsEntity
 	var total int64
 
@@ -58,7 +64,7 @@ func (r *ProductStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 	return history, int(total), err
 }
 
-func (r *ProductStatsRepository) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {
+func (r *productStatsRepository) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {
 	var history ProductStatsEntity
 
 	if err := r.db.Model(&ProductStatsEntity{}).Where(c.FieldID+" = ?", id).First(&history).Error; err != nil {
@@ -69,7 +75,7 @@ func (r *ProductStatsRepository) GetProductStatsByID(id uint) (*ProductStatsEnti
 	return &history, nil
 }
 
-func (r *ProductStatsRepository) IncreaseProductStats(ctx context.Context, productStats *ProductStatsEntity) error {
+func (r *productStatsRepository) IncreaseProductStats(ctx context.Context, productStats *ProductStatsEntity) error {
 	userID, _ := cu.GetUserIDFromContext(ctx)
 
 	if productStats.ID == 0 {

@@ -10,17 +10,23 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type ProductStatsHandler struct {
-	service *ProductStatsService
+type ProductStatsHandler interface {
+	GetAllProductStatsPaginated(w http.ResponseWriter, r *http.Request)
+	GetProductStatsByID(w http.ResponseWriter, r *http.Request)
+	IncreaseProductStats(w http.ResponseWriter, r *http.Request)
 }
 
-func NewProductStatsHandler(service *ProductStatsService) *ProductStatsHandler {
-	return &ProductStatsHandler{
+type productStatsHandler struct {
+	service ProductStatsService
+}
+
+func NewProductStatsHandler(service ProductStatsService) ProductStatsHandler {
+	return &productStatsHandler{
 		service: service,
 	}
 }
 
-func (h *ProductStatsHandler) GetAllProductStatsPaginated(w http.ResponseWriter, r *http.Request) {
+func (h *productStatsHandler) GetAllProductStatsPaginated(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	pageStr := q.Get(c.Page)
 	pageSizeStr := q.Get(c.PageSize)
@@ -34,7 +40,7 @@ func (h *ProductStatsHandler) GetAllProductStatsPaginated(w http.ResponseWriter,
 	response.SendResponse(w, paginatedResponse, err, http.StatusInternalServerError)
 }
 
-func (h *ProductStatsHandler) GetProductStatsByID(w http.ResponseWriter, r *http.Request) {
+func (h *productStatsHandler) GetProductStatsByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid product stats ID", http.StatusBadRequest)
@@ -45,7 +51,7 @@ func (h *ProductStatsHandler) GetProductStatsByID(w http.ResponseWriter, r *http
 	response.SendResponse(w, history, err, http.StatusInternalServerError)
 }
 
-func (h *ProductStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *http.Request) {
+func (h *productStatsHandler) IncreaseProductStats(w http.ResponseWriter, r *http.Request) {
 	var req m.IncreaseProductStatsRequest
 	if !utils.DecodeJSON(w, r, &req, "IncreaseProductStats") {
 		return

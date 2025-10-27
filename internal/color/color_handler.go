@@ -11,39 +11,50 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type ColorHandler struct {
-	service *ColorService
+type ColorHandler interface {
+	GetAllColorsPublic(w http.ResponseWriter, r *http.Request)
+	GetColorByIDPublic(w http.ResponseWriter, r *http.Request)
+	GetAllColors(w http.ResponseWriter, r *http.Request)
+	GetColorByID(w http.ResponseWriter, r *http.Request)
+	CreateColor(w http.ResponseWriter, r *http.Request)
+	UpdateColor(w http.ResponseWriter, r *http.Request)
+	DeleteColor(w http.ResponseWriter, r *http.Request)
+	UndoDeletedColor(w http.ResponseWriter, r *http.Request)
 }
 
-func NewColorHandler(service *ColorService) *ColorHandler {
-	return &ColorHandler{
+type colorHandler struct {
+	service ColorService
+}
+
+func NewColorHandler(service ColorService) ColorHandler {
+	return &colorHandler{
 		service: service,
 	}
 }
 
-func (h *ColorHandler) GetAllColorsPublic(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) GetAllColorsPublic(w http.ResponseWriter, r *http.Request) {
 	err, colors := getAllColorsData(r, nil, h.service)
 	response.SendResponse(w, colors, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) GetColorByIDPublic(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) GetColorByIDPublic(w http.ResponseWriter, r *http.Request) {
 	err, color := getColorDataById(r, nil, h.service)
 	response.SendResponse(w, color, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) GetAllColors(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) GetAllColors(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, colors := getAllColorsData(r, showDeleted, h.service)
 	response.SendResponse(w, colors, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) GetColorByID(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) GetColorByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, color := getColorDataById(r, showDeleted, h.service)
 	response.SendResponse(w, color, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) CreateColor(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) CreateColor(w http.ResponseWriter, r *http.Request) {
 	var req m.CreateColorRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateColor") {
 		return
@@ -58,7 +69,7 @@ func (h *ColorHandler) CreateColor(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, color, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) UpdateColor(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) UpdateColor(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid color ID", http.StatusBadRequest)
@@ -79,7 +90,7 @@ func (h *ColorHandler) UpdateColor(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, color, err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) DeleteColor(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) DeleteColor(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid color ID", http.StatusBadRequest)
@@ -90,7 +101,7 @@ func (h *ColorHandler) DeleteColor(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Color deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *ColorHandler) UndoDeletedColor(w http.ResponseWriter, r *http.Request) {
+func (h *colorHandler) UndoDeletedColor(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid color ID", http.StatusBadRequest)
@@ -101,7 +112,7 @@ func (h *ColorHandler) UndoDeletedColor(w http.ResponseWriter, r *http.Request) 
 	response.SendResponse(w, "Color restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllColorsData(r *http.Request, showDeleted *bool, service *ColorService) (error, []ColorEntity) {
+func getAllColorsData(r *http.Request, showDeleted *bool, service ColorService) (error, []ColorEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -114,7 +125,7 @@ func getAllColorsData(r *http.Request, showDeleted *bool, service *ColorService)
 	return nil, colors
 }
 
-func getColorDataById(r *http.Request, showDeleted *bool, service *ColorService) (error, *ColorEntity) {
+func getColorDataById(r *http.Request, showDeleted *bool, service ColorService) (error, *ColorEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid color ID"), nil

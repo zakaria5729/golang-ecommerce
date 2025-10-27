@@ -9,17 +9,21 @@ import (
 	"github.com/easy-comerce/backend/pkg/response"
 )
 
-type FileStorageHandler struct {
-	service *FileStorageService
+type FileStorageHandler interface {
+	UploadFile(w http.ResponseWriter, r *http.Request)
 }
 
-func NewFileStorageHandler(service *FileStorageService) *FileStorageHandler {
-	return &FileStorageHandler{
+type fileStorageHandler struct {
+	service FileStorageService
+}
+
+func NewFileStorageHandler(service FileStorageService) FileStorageHandler {
+	return &fileStorageHandler{
 		service: service,
 	}
 }
 
-func (h *FileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
+func (h *fileStorageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication required", http.StatusUnauthorized)

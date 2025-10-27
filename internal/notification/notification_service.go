@@ -9,22 +9,31 @@ import (
 	"gorm.io/gorm"
 )
 
-type NotificationService struct {
-	repo       *NotificationRepository
+type NotificationService interface {
+	CreateNotification(ctx context.Context, userID uint, title, message string, notifType string, data map[string]interface{}) (*Notification, error)
+	GetUserNotifications(showDeleted *bool, userID uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	MarkNotificationAsRead(notificationID uint, userID uint) error
+	MarkAllNotificationsAsRead(userID uint) error
+	GetUnreadNotificationsCount(userID uint) (int64, error)
+	SendPushNotification(ctx context.Context, deviceToken string, notification *Notification) error
+}
+
+type notificationService struct {
+	repo       NotificationRepository
 	fcmService *FCMService
 }
 
 func NewNotificationService(
-	repo *NotificationRepository,
+	repo NotificationRepository,
 	fcmService *FCMService,
-) *NotificationService {
-	return &NotificationService{
+) NotificationService {
+	return &notificationService{
 		repo:       repo,
 		fcmService: fcmService,
 	}
 }
 
-func (s *NotificationService) CreateNotification(ctx context.Context, userID uint, title, message string, notifType string, data map[string]interface{}) (*Notification, error) {
+func (s *notificationService) CreateNotification(ctx context.Context, userID uint, title, message string, notifType string, data map[string]interface{}) (*Notification, error) {
 	notification := &Notification{
 		UserID:  userID,
 		Title:   title,
@@ -39,7 +48,7 @@ func (s *NotificationService) CreateNotification(ctx context.Context, userID uin
 	return notification, nil
 }
 
-func (s *NotificationService) GetUserNotifications(showDeleted *bool, userID uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *notificationService) GetUserNotifications(showDeleted *bool, userID uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 
 	notifications, total, err := s.repo.GetAllByUserIDPaginated(showDeleted, userID, page, pageSize, sortBy, sortOrder)
@@ -47,10 +56,10 @@ func (s *NotificationService) GetUserNotifications(showDeleted *bool, userID uin
 		return nil, errors.New("failed to get user notifications")
 	}
 
-	return utils.BuildPaginatedResponse(notifications, total, page, pageSize), nil
+	return utils.BuildPaginatedResponse(notifications, int(total), page, pageSize), nil
 }
 
-func (s *NotificationService) MarkNotificationAsRead(notificationID uint, userID uint) error {
+func (s *notificationService) MarkNotificationAsRead(notificationID uint, userID uint) error {
 	if err := s.repo.MarkAsRead(notificationID, userID); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.New("notification not found with this id")
@@ -62,7 +71,7 @@ func (s *NotificationService) MarkNotificationAsRead(notificationID uint, userID
 	return nil
 }
 
-func (s *NotificationService) MarkAllNotificationsAsRead(userID uint) error {
+func (s *notificationService) MarkAllNotificationsAsRead(userID uint) error {
 	if err := s.repo.MarkAllAsRead(userID); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return errors.New("notification not found with this id")
@@ -74,7 +83,7 @@ func (s *NotificationService) MarkAllNotificationsAsRead(userID uint) error {
 	return nil
 }
 
-func (s *NotificationService) GetUnreadNotificationsCount(userID uint) (int64, error) {
+func (s *notificationService) GetUnreadNotificationsCount(userID uint) (int64, error) {
 	count, err := s.repo.GetUnreadCount(userID)
 	if err != nil {
 		return 0, errors.New("failed to get unread notifications count")
@@ -83,7 +92,7 @@ func (s *NotificationService) GetUnreadNotificationsCount(userID uint) (int64, e
 	return count, nil
 }
 
-func (s *NotificationService) SendPushNotification(ctx context.Context, deviceToken string, notification *Notification) error {
+func (s *notificationService) SendPushNotification(ctx context.Context, deviceToken string, notification *Notification) error {
 	if deviceToken == "" {
 		return errors.New("device token is required")
 	}

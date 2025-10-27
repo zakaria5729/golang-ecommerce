@@ -8,17 +8,26 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type WishlistService struct {
-	repo *WishlistRepository
+type WishlistService interface {
+	GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	AddToWishlistsByUser(userID uint, productID uint) error
+	RemoveFromWishlistByUser(userID uint, productID uint) error
+	ClearUserWishlist(userID uint) error
+	DeleteWishlistById(id uint) error
+	UndoDeleteWishlistById(id uint) error
+	GetWishlistCount(userID uint) (int64, error)
+}
+type wishlistService struct {
+	repo WishlistRepository
 }
 
-func NewWishlistService(repo *WishlistRepository) *WishlistService {
-	return &WishlistService{
+func NewWishlistService(repo WishlistRepository) WishlistService {
+	return &wishlistService{
 		repo: repo,
 	}
 }
 
-func (s *WishlistService) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *wishlistService) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	wishlists, total, err := s.repo.GetAllWishlistsPaginated(showDeleted, userID, productID, page, pageSize, sortBy, sortOrder)
 	if err != nil {
@@ -28,7 +37,7 @@ func (s *WishlistService) GetAllWishlistsPaginated(showDeleted *bool, userID *ui
 	return utils.BuildPaginatedResponse(wishlists, total, page, pageSize), nil
 }
 
-func (s *WishlistService) AddToWishlistsByUser(userID uint, productID uint) error {
+func (s *wishlistService) AddToWishlistsByUser(userID uint, productID uint) error {
 	exists, err := s.repo.WishlistExists(userID, productID)
 	if err != nil {
 		return fmt.Errorf("failed to check existing wishlist: %w", err)
@@ -51,7 +60,7 @@ func (s *WishlistService) AddToWishlistsByUser(userID uint, productID uint) erro
 	return nil
 }
 
-func (s *WishlistService) RemoveFromWishlistByUser(userID uint, productID uint) error {
+func (s *wishlistService) RemoveFromWishlistByUser(userID uint, productID uint) error {
 	if err := s.repo.RemoveFromWishlistByUser(userID, productID); err != nil {
 		return fmt.Errorf("failed to delete wishlist: %w", err)
 	}
@@ -59,7 +68,7 @@ func (s *WishlistService) RemoveFromWishlistByUser(userID uint, productID uint) 
 	return nil
 }
 
-func (s *WishlistService) ClearUserWishlist(userID uint) error {
+func (s *wishlistService) ClearUserWishlist(userID uint) error {
 	if err := s.repo.ClearUserWishlist(userID); err != nil {
 		return fmt.Errorf("failed to clear wishlist: %w", err)
 	}
@@ -67,7 +76,7 @@ func (s *WishlistService) ClearUserWishlist(userID uint) error {
 	return nil
 }
 
-func (s *WishlistService) DeleteWishlistById(id uint) error {
+func (s *wishlistService) DeleteWishlistById(id uint) error {
 	if err := s.repo.DeleteWishlistById(id); err != nil {
 		return fmt.Errorf("failed to delete wishlist: %w", err)
 	}
@@ -75,7 +84,7 @@ func (s *WishlistService) DeleteWishlistById(id uint) error {
 	return nil
 }
 
-func (s *WishlistService) UndoDeleteWishlistById(id uint) error {
+func (s *wishlistService) UndoDeleteWishlistById(id uint) error {
 	if err := s.repo.UndoDeleteWishlistById(id); err != nil {
 		return fmt.Errorf("failed to delete wishlist: %w", err)
 	}
@@ -83,7 +92,7 @@ func (s *WishlistService) UndoDeleteWishlistById(id uint) error {
 	return nil
 }
 
-func (s *WishlistService) GetWishlistCount(userID uint) (int64, error) {
+func (s *wishlistService) GetWishlistCount(userID uint) (int64, error) {
 	count, err := s.repo.GetWishlistCount(userID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get wishlist count: %w", err)

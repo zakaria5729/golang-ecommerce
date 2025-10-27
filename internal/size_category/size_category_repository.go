@@ -7,17 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type SizeCategoryRepository struct {
+type SizeCategoryRepository interface {
+	GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error)
+	GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error)
+	CreateSizeCategory(sizeCategory *SizeCategoryEntity) (*SizeCategoryEntity, error)
+	UpdateSizeCategory(sizeCategory *SizeCategoryEntity) error
+	DeleteSizeCategory(id uint) error
+	UndoDeletedSizeCategory(id uint) error
+	SizeCategoryExists(id uint, showDeleted *bool) (bool, error)
+	SizeCategoryExistsByName(name string, excludeID ...uint) (bool, error)
+}
+
+type sizeCategoryRepository struct {
 	db *gorm.DB
 }
 
-func NewSizeCategoryRepository(db *gorm.DB) *SizeCategoryRepository {
-	return &SizeCategoryRepository{
+func NewSizeCategoryRepository(db *gorm.DB) SizeCategoryRepository {
+	return &sizeCategoryRepository{
 		db: db,
 	}
 }
 
-func (r *SizeCategoryRepository) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error) {
+func (r *sizeCategoryRepository) GetAllSizeCategories(showDeleted *bool, sortBy, sortOrder string) ([]SizeCategoryEntity, error) {
 	var sizeCategories []SizeCategoryEntity
 	query := r.db.Model(&SizeCategoryEntity{})
 
@@ -36,7 +47,7 @@ func (r *SizeCategoryRepository) GetAllSizeCategories(showDeleted *bool, sortBy,
 	return sizeCategories, err
 }
 
-func (r *SizeCategoryRepository) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error) {
+func (r *sizeCategoryRepository) GetSizeCategoryByID(id uint, showDeleted *bool) (*SizeCategoryEntity, error) {
 	var sizeCategory SizeCategoryEntity
 	query := r.db.Model(&SizeCategoryEntity{})
 
@@ -52,7 +63,7 @@ func (r *SizeCategoryRepository) GetSizeCategoryByID(id uint, showDeleted *bool)
 	return &sizeCategory, nil
 }
 
-func (r *SizeCategoryRepository) CreateSizeCategory(sizeCategory *SizeCategoryEntity) (*SizeCategoryEntity, error) {
+func (r *sizeCategoryRepository) CreateSizeCategory(sizeCategory *SizeCategoryEntity) (*SizeCategoryEntity, error) {
 	err := r.db.Create(sizeCategory).Error
 	if err != nil {
 		l.Logger.Error("Failed to create size category", "method", "CreateSizeCategory", "error", err, "sizeCategory", sizeCategory)
@@ -61,7 +72,7 @@ func (r *SizeCategoryRepository) CreateSizeCategory(sizeCategory *SizeCategoryEn
 	return sizeCategory, nil
 }
 
-func (r *SizeCategoryRepository) UpdateSizeCategory(sizeCategory *SizeCategoryEntity) error {
+func (r *sizeCategoryRepository) UpdateSizeCategory(sizeCategory *SizeCategoryEntity) error {
 	err := r.db.Save(sizeCategory).Error
 	if err != nil {
 		l.Logger.Error("Failed to update size category", "method", "UpdateSizeCategory", "error", err, "sizeCategory", sizeCategory)
@@ -69,7 +80,7 @@ func (r *SizeCategoryRepository) UpdateSizeCategory(sizeCategory *SizeCategoryEn
 	return err
 }
 
-func (r *SizeCategoryRepository) DeleteSizeCategory(id uint) error {
+func (r *sizeCategoryRepository) DeleteSizeCategory(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeCategoryEntity{}).Error
 	if err != nil {
 		l.Logger.Error("Failed to delete size category", "method", "DeleteSizeCategory", "error", err, "id", id)
@@ -78,7 +89,7 @@ func (r *SizeCategoryRepository) DeleteSizeCategory(id uint) error {
 	return err
 }
 
-func (r *SizeCategoryRepository) UndoDeletedSizeCategory(id uint) error {
+func (r *sizeCategoryRepository) UndoDeletedSizeCategory(id uint) error {
 	var sizeCategory SizeCategoryEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&sizeCategory).Error
 	if err != nil {
@@ -95,7 +106,7 @@ func (r *SizeCategoryRepository) UndoDeletedSizeCategory(id uint) error {
 	return err
 }
 
-func (r *SizeCategoryRepository) SizeCategoryExists(id uint, showDeleted *bool) (bool, error) {
+func (r *sizeCategoryRepository) SizeCategoryExists(id uint, showDeleted *bool) (bool, error) {
 	var sizeCategory SizeCategoryEntity
 	query := r.db.Model(&SizeCategoryEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -112,7 +123,7 @@ func (r *SizeCategoryRepository) SizeCategoryExists(id uint, showDeleted *bool) 
 	return sizeCategory.ID != 0, nil
 }
 
-func (r *SizeCategoryRepository) SizeCategoryExistsByName(name string, excludeID ...uint) (bool, error) {
+func (r *sizeCategoryRepository) SizeCategoryExistsByName(name string, excludeID ...uint) (bool, error) {
 	var sizeCategory SizeCategoryEntity
 	query := r.db.Model(&SizeCategoryEntity{}).Where(c.SizeCategoryName+" = ?", name)
 

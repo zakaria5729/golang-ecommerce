@@ -15,19 +15,33 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type UserService struct {
-	userRepo *UserRepository
-	roleRepo *role.RoleRepository
+type UserService interface {
+	UpdateProfile(userID uint, req *model.UpdateProfileRequest) error
+	ChangePassword(userID uint, req *model.ChangePasswordRequest) error
+	GetAllUsersPaginated(includeStr string, showDeletedStr string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	GetUserByID(userID uint, includeStr string, showDeletedStr string) (*model.UserResponse, error)
+	GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*UserEntity, error)
+	GetAuthUserStatusByID(userID uint) (banned bool, verified bool, refreshToken *string, err error)
+	DeleteUser(ctx context.Context, userID uint) error
+	UndoDeletedUser(ctx context.Context, userID uint) error
+	CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error)
+	UpdateUser(authUserID uint, updateUserID uint, req *model.UpdateUserRequest) error
+	UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error
 }
 
-func NewUserService(userRepo *UserRepository, roleRepo *role.RoleRepository) *UserService {
-	return &UserService{
+type userService struct {
+	userRepo UserRepository
+	roleRepo role.RoleRepository
+}
+
+func NewUserService(userRepo UserRepository, roleRepo role.RoleRepository) UserService {
+	return &userService{
 		userRepo: userRepo,
 		roleRepo: roleRepo,
 	}
 }
 
-func (uc *UserService) UpdateProfile(userID uint, req *model.UpdateProfileRequest) error {
+func (s *userService) UpdateProfile(userID uint, req *model.UpdateProfileRequest) error {
 	user := &UserEntity{
 		Name: req.Name,
 	}
@@ -37,7 +51,7 @@ func (uc *UserService) UpdateProfile(userID uint, req *model.UpdateProfileReques
 	}
 
 	user.Sanitize()
-	err := uc.userRepo.UpdateNameAndPathKey(userID, user.Name, user.PathKey)
+	err := s.userRepo.UpdateNameAndPathKey(userID, user.Name, user.PathKey)
 	if err != nil {
 		return fmt.Errorf("failed to update profile: %w", err)
 	}
@@ -45,25 +59,25 @@ func (uc *UserService) UpdateProfile(userID uint, req *model.UpdateProfileReques
 	return nil
 }
 
-func (uc *UserService) ChangePassword(userID uint, req *model.ChangePasswordRequest) error {
-	password, err := uc.userRepo.getUserPasswordByID(userID)
+func (s *userService) ChangePassword(userID uint, req *model.ChangePasswordRequest) error {
+	password, err := s.userRepo.getUserPasswordByID(userID)
 	if err != nil {
 		return errors.New("Failed to verify user current password")
 	}
 
-	if err := uc.userRepo.UpdateUserPassword(userID, password, req); err != nil {
+	if err := s.userRepo.UpdateUserPassword(userID, password, req); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (uc *UserService) GetAllUsersPaginated(includeStr string, showDeletedStr string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *userService) GetAllUsersPaginated(includeStr string, showDeletedStr string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
 
-	users, total, err := uc.userRepo.GetAllUsersPaginated(include, showDeleted, page, pageSize, sortBy, sortOrder)
+	users, total, err := s.userRepo.GetAllUsersPaginated(include, showDeleted, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch users: %w", err)
 	}
@@ -71,10 +85,10 @@ func (uc *UserService) GetAllUsersPaginated(includeStr string, showDeletedStr st
 	return utils.BuildPaginatedResponse(getUserResponses(users), total, page, pageSize), nil
 }
 
-func (uc *UserService) GetUserByID(userID uint, includeStr string, showDeletedStr string) (*model.UserResponse, error) {
+func (s *userService) GetUserByID(userID uint, includeStr string, showDeletedStr string) (*model.UserResponse, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
-	user, err := uc.userRepo.GetUserByID(userID, include, showDeleted)
+	user, err := s.userRepo.GetUserByID(userID, include, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
@@ -82,24 +96,24 @@ func (uc *UserService) GetUserByID(userID uint, includeStr string, showDeletedSt
 	return user.ToResponse(), nil
 }
 
-func (uc *UserService) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*UserEntity, error) {
+func (s *userService) GetAuthUserByID(userID uint, includeRoles bool, includePermissions bool) (*UserEntity, error) {
 	if userID <= 0 {
 		return nil, errors.New("invalid user ID")
 	}
 
-	user, err := uc.userRepo.GetAuthUserByID(userID, includeRoles, includePermissions)
+	user, err := s.userRepo.GetAuthUserByID(userID, includeRoles, includePermissions)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
 	return user, nil
 }
 
-func (uc *UserService) GetAuthUserStatusByID(userID uint) (bool, bool, *string, error) {
+func (s *userService) GetAuthUserStatusByID(userID uint) (bool, bool, *string, error) {
 	if userID <= 0 {
 		return false, false, nil, errors.New("invalid user ID")
 	}
 
-	banned, verified, refreshToken, err := uc.userRepo.GetAuthUserStatusByID(userID)
+	banned, verified, refreshToken, err := s.userRepo.GetAuthUserStatusByID(userID)
 	if err != nil {
 		return false, false, nil, errors.New("user not found")
 	}
@@ -107,38 +121,38 @@ func (uc *UserService) GetAuthUserStatusByID(userID uint) (bool, bool, *string, 
 	return banned, verified, refreshToken, nil
 }
 
-func (uc *UserService) DeleteUser(ctx context.Context, userID uint) error {
-	exists, err := uc.userRepo.UserExists(userID, nil)
+func (s *userService) DeleteUser(ctx context.Context, userID uint) error {
+	exists, err := s.userRepo.UserExists(userID, nil)
 	if err != nil || !exists {
 		return errors.New("user not found")
 	}
 
-	if err := uc.userRepo.DeleteUser(ctx, userID); err != nil {
+	if err := s.userRepo.DeleteUser(ctx, userID); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
 	return nil
 }
 
-func (uc *UserService) UndoDeletedUser(ctx context.Context, userID uint) error {
+func (s *userService) UndoDeletedUser(ctx context.Context, userID uint) error {
 	showDeleted := true
-	exists, err := uc.userRepo.UserExists(userID, &showDeleted)
+	exists, err := s.userRepo.UserExists(userID, &showDeleted)
 	if err != nil || !exists {
 		return errors.New("user not found")
 	}
 
-	if err := uc.userRepo.UndoDeletedUser(ctx, userID); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+	if err := s.userRepo.UndoDeletedUser(ctx, userID); err != nil {
+		return fmt.Errorf("failed to restore user: %w", err)
 	}
 
 	return nil
 }
 
-func (uc *UserService) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error) {
+func (s *userService) CreateUser(ctx context.Context, req *model.CreateUserRequest) (*model.UserResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Name = utils.Trim(req.Name)
 
-	exists, err := uc.userRepo.IsUserExists(req.Email)
+	exists, err := s.userRepo.IsUserExists(req.Email)
 	if exists {
 		return nil, errors.New("user with this email already exists")
 	}
@@ -158,13 +172,13 @@ func (uc *UserService) CreateUser(ctx context.Context, req *model.CreateUserRequ
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
 
-	fetchedRole, err := uc.roleRepo.GetRoleByID(req.RoleID, []string{c.RolePermissions}, nil)
+	fetchedRole, err := s.roleRepo.GetRoleByID(req.RoleID, []string{c.RolePermissions}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("no role found with this roleID: %w", err)
 	}
 
 	user.Roles = []role.RoleEntity{*fetchedRole}
-	createdUser, err := uc.userRepo.CreateUser(user)
+	createdUser, err := s.userRepo.CreateUser(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -172,11 +186,11 @@ func (uc *UserService) CreateUser(ctx context.Context, req *model.CreateUserRequ
 	return createdUser.ToResponse(), nil
 }
 
-func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *model.UpdateUserRequest) error {
+func (s *userService) UpdateUser(authUserID uint, updateUserID uint, req *model.UpdateUserRequest) error {
 	req.Name = utils.Trim(req.Name)
 	superAdminEmail := os.Getenv(c.EnvSuperAdminEmail)
 
-	email, err := uc.userRepo.GetUserEmail(updateUserID, nil)
+	email, err := s.userRepo.GetUserEmail(updateUserID, nil)
 	if err != nil {
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
@@ -199,7 +213,7 @@ func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *model
 	}
 	user.UpdatedBy = &authUserID
 
-	err = uc.userRepo.UpdateUserInfo(updateUserID, user)
+	err = s.userRepo.UpdateUserInfo(updateUserID, user)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
@@ -207,7 +221,7 @@ func (uc *UserService) UpdateUser(authUserID uint, updateUserID uint, req *model
 	return nil
 }
 
-func (uc *UserService) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
+func (uc *userService) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
 	err := uc.userRepo.UpdateUserPurchaseCountAndTotalSpent(userID, purchaseCount, totalSpent)
 	if err != nil {
 		return fmt.Errorf("failed to update user purchase count and total spent: %w", err)

@@ -12,17 +12,31 @@ import (
 	"gorm.io/gorm"
 )
 
-type ReviewRepository struct {
+type ReviewRepository interface {
+	GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error)
+	GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error)
+	CreateReview(review *ReviewEntity) error
+	UpdateReview(id uint, userID *uint, review *ReviewEntity) error
+	UndoDeletedReview(ctx context.Context, id uint) error
+	DeleteReview(ctx context.Context, id uint, userID *uint) error
+	GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error)
+	GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error)
+	GetAverageRating(productID uint, showDeleted *bool) (float64, error)
+	GetRatingCounts(productID uint, showDeleted *bool) (map[int]int, error)
+	CheckUserReviewExists(productID, userID uint) (bool, error)
+}
+
+type reviewRepository struct {
 	db *gorm.DB
 }
 
-func NewReviewRepository(db *gorm.DB) *ReviewRepository {
-	return &ReviewRepository{
+func NewReviewRepository(db *gorm.DB) ReviewRepository {
+	return &reviewRepository{
 		db: db,
 	}
 }
 
-func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+func (r *reviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *uint, userID *uint, ratingFrom *int, ratingTo *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
 	var reviews []ReviewEntity
 	var total int64
 	query := r.db.Model(&ReviewEntity{})
@@ -66,7 +80,7 @@ func (r *ReviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error) {
+func (r *reviewRepository) GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error) {
 	var review ReviewEntity
 	query := r.db.Model(&ReviewEntity{})
 
@@ -83,7 +97,7 @@ func (r *ReviewRepository) GetReviewByID(id uint, showDeleted *bool) (*ReviewEnt
 	return &review, nil
 }
 
-func (r *ReviewRepository) CreateReview(review *ReviewEntity) error {
+func (r *reviewRepository) CreateReview(review *ReviewEntity) error {
 	review.Sanitize()
 
 	err := r.db.Create(review).Error
@@ -95,7 +109,7 @@ func (r *ReviewRepository) CreateReview(review *ReviewEntity) error {
 	return nil
 }
 
-func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *ReviewEntity) error {
+func (r *reviewRepository) UpdateReview(id uint, userID *uint, review *ReviewEntity) error {
 	query := r.db.Model(&ReviewEntity{})
 
 	if userID != nil {
@@ -117,7 +131,7 @@ func (r *ReviewRepository) UpdateReview(id uint, userID *uint, review *ReviewEnt
 	return nil
 }
 
-func (r *ReviewRepository) UndoDeletedReview(ctx context.Context, id uint) error {
+func (r *reviewRepository) UndoDeletedReview(ctx context.Context, id uint) error {
 	review := &ReviewEntity{}
 	review.DeletedAt = nil
 	review.DeletedBy = nil
@@ -138,7 +152,7 @@ func (r *ReviewRepository) UndoDeletedReview(ctx context.Context, id uint) error
 	return nil
 }
 
-func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *uint) error {
+func (r *reviewRepository) DeleteReview(ctx context.Context, id uint, userID *uint) error {
 	query := r.db.Model(&ReviewEntity{})
 
 	if userID != nil {
@@ -164,7 +178,7 @@ func (r *ReviewRepository) DeleteReview(ctx context.Context, id uint, userID *ui
 	return nil
 }
 
-func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+func (r *reviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
 	var reviews []ReviewEntity
 	var total int64
 	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewProductID+" = ?", productID)
@@ -196,7 +210,7 @@ func (r *ReviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+func (r *reviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
 	var reviews []ReviewEntity
 	var total int64
 	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewUserID+" = ?", userID)
@@ -236,7 +250,7 @@ func (r *ReviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 	return reviews, total, nil
 }
 
-func (r *ReviewRepository) GetAverageRating(productID uint, showDeleted *bool) (float64, error) {
+func (r *reviewRepository) GetAverageRating(productID uint, showDeleted *bool) (float64, error) {
 	var avgRating float64
 	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewProductID+" = ?", productID)
 
@@ -253,7 +267,7 @@ func (r *ReviewRepository) GetAverageRating(productID uint, showDeleted *bool) (
 	return avgRating, nil
 }
 
-func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (map[int]int, error) {
+func (r *reviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (map[int]int, error) {
 	var results []struct {
 		Rating int
 		Count  int
@@ -284,7 +298,7 @@ func (r *ReviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 	return ratingCounts, nil
 }
 
-func (r *ReviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
+func (r *reviewRepository) CheckUserReviewExists(productID, userID uint) (bool, error) {
 	var review ReviewEntity
 	err := r.db.Model(&ReviewEntity{}).
 		Where(c.ReviewProductID+" = ? AND "+c.ReviewUserID+" = ?", productID, userID).

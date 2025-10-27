@@ -7,7 +7,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterFileRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterFileRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	storage, err := fs.NewObjectStorage()
 	if err != nil {
 		l.Logger.Error("❌ Failed to create object storage client", "error", err)

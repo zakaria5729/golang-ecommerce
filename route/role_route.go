@@ -9,7 +9,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterRoleRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterRoleRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	roleRepo := role.NewRoleRepository(db.GetDB())
 	permissionRepo := p.NewPermissionRepository(db.GetDB())
 	service := role.NewRoleService(roleRepo, permissionRepo)

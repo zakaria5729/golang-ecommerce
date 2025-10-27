@@ -13,24 +13,36 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type RoleService struct {
-	roleRepo       *RoleRepository
-	permissionRepo *permission.PermissionRepository
+type RoleService interface {
+	GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]RoleEntity, error)
+	GetRoleByID(id uint, includeStr string, showDeletedStr string) (*RoleEntity, error)
+	CreateRole(ctx context.Context, req *model.CreateRoleRequest) (*RoleEntity, error)
+	UpdateRole(ctx context.Context, id uint, req *model.UpdateRoleRequest) (*RoleEntity, error)
+	DeleteRole(ctx context.Context, id uint) error
+	UndoDeletedRole(ctx context.Context, id uint) error
+	AssignRoleToUser(userID uint, req *model.AssignRoleRequest) error
+	AddPermissionsToRole(roleID uint, req *model.AddPermissionsToRoleRequest) error
+	GetRoleByType(roleType string) (*RoleEntity, error)
 }
 
-func NewRoleService(roleRepo *RoleRepository, permissionRepo *permission.PermissionRepository) *RoleService {
-	return &RoleService{
+type roleService struct {
+	roleRepo       RoleRepository
+	permissionRepo permission.PermissionRepository
+}
+
+func NewRoleService(roleRepo RoleRepository, permissionRepo permission.PermissionRepository) RoleService {
+	return &roleService{
 		roleRepo:       roleRepo,
 		permissionRepo: permissionRepo,
 	}
 }
 
-func (s *RoleService) GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]RoleEntity, error) {
+func (s *roleService) GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]RoleEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
 
 	if roleTypeFilter != "" {
-		if !isValidRoleType(roleTypeFilter) {
+		if !s.isValidRoleType(roleTypeFilter) {
 			return nil, errors.New("invalid role type")
 		}
 	}
@@ -43,7 +55,7 @@ func (s *RoleService) GetAllRoles(includeStr string, showDeletedStr string, role
 	return roles, nil
 }
 
-func (s *RoleService) GetRoleByID(id uint, includeStr string, showDeletedStr string) (*RoleEntity, error) {
+func (s *roleService) GetRoleByID(id uint, includeStr string, showDeletedStr string) (*RoleEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
 
@@ -55,10 +67,10 @@ func (s *RoleService) GetRoleByID(id uint, includeStr string, showDeletedStr str
 	return role, nil
 }
 
-func (s *RoleService) CreateRole(ctx context.Context, req *model.CreateRoleRequest) (*RoleEntity, error) {
+func (s *roleService) CreateRole(ctx context.Context, req *model.CreateRoleRequest) (*RoleEntity, error) {
 	req.Sanitize()
 
-	if !isValidRoleType(req.RoleType) {
+	if !s.isValidRoleType(req.RoleType) {
 		return nil, errors.New("invalid role type")
 	}
 
@@ -97,7 +109,7 @@ func (s *RoleService) CreateRole(ctx context.Context, req *model.CreateRoleReque
 	return role, nil
 }
 
-func (s *RoleService) UpdateRole(ctx context.Context, id uint, req *model.UpdateRoleRequest) (*RoleEntity, error) {
+func (s *roleService) UpdateRole(ctx context.Context, id uint, req *model.UpdateRoleRequest) (*RoleEntity, error) {
 	req.Sanitize()
 
 	existingRole, err := s.roleRepo.GetRoleByID(id, nil, nil)
@@ -149,7 +161,7 @@ func (s *RoleService) UpdateRole(ctx context.Context, id uint, req *model.Update
 	return existingRole, nil
 }
 
-func (s *RoleService) DeleteRole(ctx context.Context, id uint) error {
+func (s *roleService) DeleteRole(ctx context.Context, id uint) error {
 	role, err := s.roleRepo.GetRoleByID(id, nil, nil)
 	if err != nil {
 		return fmt.Errorf("role not found: %w", err)
@@ -166,7 +178,7 @@ func (s *RoleService) DeleteRole(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *RoleService) UndoDeletedRole(ctx context.Context, id uint) error {
+func (s *roleService) UndoDeletedRole(ctx context.Context, id uint) error {
 	showDeleted := true
 	exists, err := s.roleRepo.RoleExists(id, &showDeleted)
 	if err != nil || !exists {
@@ -180,7 +192,7 @@ func (s *RoleService) UndoDeletedRole(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *RoleService) AssignRoleToUser(userID uint, req *model.AssignRoleRequest) error {
+func (s *roleService) AssignRoleToUser(userID uint, req *model.AssignRoleRequest) error {
 	if err := s.roleRepo.AssignRoleToUser(userID, req.RoleId); err != nil {
 		return fmt.Errorf("failed to assign role to user: %w", err)
 	}
@@ -188,7 +200,7 @@ func (s *RoleService) AssignRoleToUser(userID uint, req *model.AssignRoleRequest
 	return nil
 }
 
-func (s *RoleService) AddPermissionsToRole(roleID uint, req *model.AddPermissionsToRoleRequest) error {
+func (s *roleService) AddPermissionsToRole(roleID uint, req *model.AddPermissionsToRoleRequest) error {
 	if err := s.roleRepo.AddPermissionsToRoleByIds(roleID, req.PermissionIds, nil); err != nil {
 		return fmt.Errorf("failed to add permissions to role: %w", err)
 	}
@@ -196,7 +208,7 @@ func (s *RoleService) AddPermissionsToRole(roleID uint, req *model.AddPermission
 	return nil
 }
 
-func (s *RoleService) GetRoleByType(roleType string) (*RoleEntity, error) {
+func (s *roleService) GetRoleByType(roleType string) (*RoleEntity, error) {
 	role, err := s.roleRepo.GetRoleByType(roleType, nil)
 	if err != nil {
 		return nil, errors.New("role not found")
@@ -205,7 +217,7 @@ func (s *RoleService) GetRoleByType(roleType string) (*RoleEntity, error) {
 	return role, nil
 }
 
-func isValidRoleType(roleType string) bool {
+func (s *roleService) isValidRoleType(roleType string) bool {
 	switch roleType {
 	case c.RoleTypeSuperAdmin, c.RoleTypeAdmin, c.RoleTypeMaintainer, c.RoleTypeSeller, c.RoleTypeUser:
 		return true

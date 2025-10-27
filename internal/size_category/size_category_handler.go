@@ -11,39 +11,50 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type SizeCategoryHandler struct {
-	service *SizeCategoryService
+type SizeCategoryHandler interface {
+	GetAllSizeCategoriesPublic(w http.ResponseWriter, r *http.Request)
+	GetSizeCategoryByIDPublic(w http.ResponseWriter, r *http.Request)
+	GetAllSizeCategories(w http.ResponseWriter, r *http.Request)
+	GetSizeCategoryByID(w http.ResponseWriter, r *http.Request)
+	CreateSizeCategory(w http.ResponseWriter, r *http.Request)
+	UpdateSizeCategory(w http.ResponseWriter, r *http.Request)
+	DeleteSizeCategory(w http.ResponseWriter, r *http.Request)
+	UndoDeletedSizeCategory(w http.ResponseWriter, r *http.Request)
 }
 
-func NewSizeCategoryHandler(service *SizeCategoryService) *SizeCategoryHandler {
-	return &SizeCategoryHandler{
+type sizeCategoryHandler struct {
+	service SizeCategoryService
+}
+
+func NewSizeCategoryHandler(service SizeCategoryService) SizeCategoryHandler {
+	return &sizeCategoryHandler{
 		service: service,
 	}
 }
 
-func (h *SizeCategoryHandler) GetAllSizeCategoriesPublic(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) GetAllSizeCategoriesPublic(w http.ResponseWriter, r *http.Request) {
 	err, sizeCategories := getAllSizeCategoriesData(r, nil, h.service)
 	response.SendResponse(w, sizeCategories, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) GetSizeCategoryByIDPublic(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) GetSizeCategoryByIDPublic(w http.ResponseWriter, r *http.Request) {
 	err, sizeCategory := getSizeCategoryDataById(r, nil, h.service)
 	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) GetAllSizeCategories(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) GetAllSizeCategories(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, sizeCategories := getAllSizeCategoriesData(r, showDeleted, h.service)
 	response.SendResponse(w, sizeCategories, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) GetSizeCategoryByID(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) GetSizeCategoryByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, sizeCategory := getSizeCategoryDataById(r, showDeleted, h.service)
 	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.Request) {
 	var req m.CreateSizeCategoryRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateSizeCategory") {
 		return
@@ -58,7 +69,7 @@ func (h *SizeCategoryHandler) CreateSizeCategory(w http.ResponseWriter, r *http.
 	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size category ID", http.StatusBadRequest)
@@ -79,7 +90,7 @@ func (h *SizeCategoryHandler) UpdateSizeCategory(w http.ResponseWriter, r *http.
 	response.SendResponse(w, sizeCategory, err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) DeleteSizeCategory(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) DeleteSizeCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size category ID", http.StatusBadRequest)
@@ -90,7 +101,7 @@ func (h *SizeCategoryHandler) DeleteSizeCategory(w http.ResponseWriter, r *http.
 	response.SendResponse(w, "Size category deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *SizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *http.Request) {
+func (h *sizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid size category ID", http.StatusBadRequest)
@@ -101,7 +112,7 @@ func (h *SizeCategoryHandler) UndoDeletedSizeCategory(w http.ResponseWriter, r *
 	response.SendResponse(w, "Size category restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, []SizeCategoryEntity) {
+func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service SizeCategoryService) (error, []SizeCategoryEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -114,7 +125,7 @@ func getAllSizeCategoriesData(r *http.Request, showDeleted *bool, service *SizeC
 	return nil, sizeCategories
 }
 
-func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service *SizeCategoryService) (error, *SizeCategoryEntity) {
+func getSizeCategoryDataById(r *http.Request, showDeleted *bool, service SizeCategoryService) (error, *SizeCategoryEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid size category ID"), nil

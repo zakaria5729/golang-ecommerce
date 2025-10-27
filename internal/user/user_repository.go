@@ -17,17 +17,47 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepository struct {
+type UserRepository interface {
+	GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int, error)
+	GetUserByID(id uint, include []string, showDeleted *bool) (*UserEntity, error)
+	GetAuthUserByID(id uint, includeRoles bool, includePermissions bool) (*UserEntity, error)
+	GetAuthUserStatusByID(id uint) (banned bool, verified bool, refreshToken *string, err error)
+	GetUserIdByEmail(email string) (*uint, error)
+	GetFullUserByEmail(email string) (*UserEntity, error)
+	CreateUser(user *UserEntity) (*UserEntity, error)
+	ResetPassword(userID uint, password string) error
+	UpdateUserInfo(userID uint, user *UserEntity) error
+	UpdateNameAndPathKey(userID uint, name string, pathKey *string) error
+	UpdateUserPassword(userID uint, password string, req *model.ChangePasswordRequest) error
+	DeleteUser(ctx context.Context, id uint) error
+	UndoDeletedUser(ctx context.Context, id uint) error
+	UserExists(id uint, showDeleted *bool) (bool, error)
+	GetUserEmail(id uint, showDeleted *bool) (*string, error)
+	GetUserIdAndVerifiedByEmail(email string, showDeleted *bool) (*uint, bool, error)
+	IsUserExists(email string) (bool, error)
+	getUserPasswordByID(id uint) (string, error)
+	UserExistsByEmailAndRoleId(email string, roleID uint, showDeleted *bool) (bool, error)
+	SetPasswordResetToken(userID uint, token string, expiresAt time.Time) error
+	GetUserByResetPasswordToken(token string) (*UserEntity, error)
+	SetRefreshTokenAndLastLoginAt(userID uint, token string, expiresAt time.Time) (lastLoginAt time.Time, err error)
+	SetRefreshToken(userID uint, token *string, expiresAt *time.Time) error
+	SetVerifiedAndVerificationToken(userID uint, verified bool, token *string, expiresAt *time.Time) error
+	GetUserByVerificationToken(token string) (*uint, error)
+	GetUserByRefreshToken(token string) (*UserEntity, error)
+	UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error
+}
+
+type userRepository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &userRepository{
 		db: db,
 	}
 }
 
-func (r *UserRepository) GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int, error) {
+func (r *userRepository) GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int, error) {
 	var users []UserEntity
 	var total int64
 
@@ -63,7 +93,7 @@ func (r *UserRepository) GetAllUsersPaginated(include []string, showDeleted *boo
 	return users, int(total), err
 }
 
-func (r *UserRepository) GetUserByID(id uint, include []string, showDeleted *bool) (*UserEntity, error) {
+func (r *userRepository) GetUserByID(id uint, include []string, showDeleted *bool) (*UserEntity, error) {
 	var user UserEntity
 
 	selectFields := getSelectableFields(include)
@@ -89,7 +119,7 @@ func (r *UserRepository) GetUserByID(id uint, include []string, showDeleted *boo
 	return &user, nil
 }
 
-func (r *UserRepository) GetAuthUserByID(id uint, includeRoles bool, includePermissions bool) (*UserEntity, error) {
+func (r *userRepository) GetAuthUserByID(id uint, includeRoles bool, includePermissions bool) (*UserEntity, error) {
 	var user UserEntity
 	query := r.db.Model(&UserEntity{}).
 		Select(getDefaultFields()).
@@ -111,7 +141,7 @@ func (r *UserRepository) GetAuthUserByID(id uint, includeRoles bool, includePerm
 	return &user, nil
 }
 
-func (r *UserRepository) GetAuthUserStatusByID(id uint) (bool, bool, *string, error) {
+func (r *userRepository) GetAuthUserStatusByID(id uint) (bool, bool, *string, error) {
 	var user UserEntity
 
 	if err := r.db.Model(&UserEntity{}).
@@ -125,7 +155,7 @@ func (r *UserRepository) GetAuthUserStatusByID(id uint) (bool, bool, *string, er
 	return user.Banned, user.Verified, user.RefreshToken, nil
 }
 
-func (r *UserRepository) GetUserIdByEmail(email string) (*uint, error) {
+func (r *userRepository) GetUserIdByEmail(email string) (*uint, error) {
 	var user UserEntity
 
 	if err := r.db.Select(c.FieldID).Where(c.UserEmail+" = ?", email).First(&user).Error; err != nil {
@@ -141,7 +171,7 @@ func (r *UserRepository) GetUserIdByEmail(email string) (*uint, error) {
 	return &user.ID, nil
 }
 
-func (r *UserRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
+func (r *userRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
 	var user UserEntity
 
 	if err := r.db.Model(&UserEntity{}).Where(c.UserEmail+" = ?", email).
@@ -159,7 +189,7 @@ func (r *UserRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) CreateUser(user *UserEntity) (*UserEntity, error) {
+func (r *userRepository) CreateUser(user *UserEntity) (*UserEntity, error) {
 	err := r.db.Create(user).Error
 	if err != nil {
 		l.Logger.Error("❌ Failed to create user", "method", "CreateUser", "error", err, "user", user)
@@ -173,7 +203,7 @@ func (r *UserRepository) CreateUser(user *UserEntity) (*UserEntity, error) {
 	return user, nil
 }
 
-func (r *UserRepository) ResetPassword(userID uint, password string) error {
+func (r *userRepository) ResetPassword(userID uint, password string) error {
 	user := &UserEntity{
 		Password:             password,
 		PasswordResetToken:   nil,
@@ -194,7 +224,7 @@ func (r *UserRepository) ResetPassword(userID uint, password string) error {
 	return err
 }
 
-func (r *UserRepository) UpdateUserInfo(userID uint, user *UserEntity) error {
+func (r *userRepository) UpdateUserInfo(userID uint, user *UserEntity) error {
 	updatedUser := &UserEntity{
 		Name:     user.Name,
 		Banned:   user.Banned,
@@ -210,7 +240,7 @@ func (r *UserRepository) UpdateUserInfo(userID uint, user *UserEntity) error {
 	return err
 }
 
-func (r *UserRepository) UpdateNameAndPathKey(userID uint, name string, pathKey *string) error {
+func (r *userRepository) UpdateNameAndPathKey(userID uint, name string, pathKey *string) error {
 	user := &UserEntity{
 		Name:    name,
 		PathKey: pathKey,
@@ -225,7 +255,7 @@ func (r *UserRepository) UpdateNameAndPathKey(userID uint, name string, pathKey 
 	return err
 }
 
-func (r *UserRepository) UpdateUserPassword(userID uint, password string, req *model.ChangePasswordRequest) error {
+func (r *userRepository) UpdateUserPassword(userID uint, password string, req *model.ChangePasswordRequest) error {
 	user := &UserEntity{
 		Password:             password,
 		PasswordResetToken:   nil,
@@ -254,7 +284,7 @@ func (r *UserRepository) UpdateUserPassword(userID uint, password string, req *m
 	return err
 }
 
-func (r *UserRepository) DeleteUser(ctx context.Context, id uint) error {
+func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
 	user := &UserEntity{}
 	user.DeletedAt = timeutil.GormNowUTC()
 	userID, _ := cu.GetUserIDFromContext(ctx)
@@ -267,7 +297,7 @@ func (r *UserRepository) DeleteUser(ctx context.Context, id uint) error {
 	return err
 }
 
-func (r *UserRepository) UndoDeletedUser(ctx context.Context, id uint) error {
+func (r *userRepository) UndoDeletedUser(ctx context.Context, id uint) error {
 	user := &UserEntity{}
 	user.DeletedAt = nil
 	user.DeletedBy = nil
@@ -284,7 +314,7 @@ func (r *UserRepository) UndoDeletedUser(ctx context.Context, id uint) error {
 	return err
 }
 
-func (r *UserRepository) UserExists(id uint, showDeleted *bool) (bool, error) {
+func (r *userRepository) UserExists(id uint, showDeleted *bool) (bool, error) {
 	var user UserEntity
 	query := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -301,7 +331,7 @@ func (r *UserRepository) UserExists(id uint, showDeleted *bool) (bool, error) {
 	return user.ID != 0, nil
 }
 
-func (r *UserRepository) GetUserEmail(id uint, showDeleted *bool) (*string, error) {
+func (r *userRepository) GetUserEmail(id uint, showDeleted *bool) (*string, error) {
 	var user UserEntity
 	query := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -318,7 +348,7 @@ func (r *UserRepository) GetUserEmail(id uint, showDeleted *bool) (*string, erro
 	return &user.Email, nil
 }
 
-func (r *UserRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *bool) (*uint, bool, error) {
+func (r *userRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *bool) (*uint, bool, error) {
 	var user UserEntity
 	query := r.db.Model(&UserEntity{}).Where(c.UserEmail+" = ?", email)
 
@@ -340,7 +370,7 @@ func (r *UserRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *
 	return &user.ID, user.Verified, nil
 }
 
-func (r *UserRepository) IsUserExists(email string) (bool, error) {
+func (r *userRepository) IsUserExists(email string) (bool, error) {
 	var user UserEntity
 
 	err := r.db.Model(&UserEntity{}).Where(c.UserEmail+" = ?", email).Select(c.FieldID).Take(&user).Error
@@ -357,7 +387,7 @@ func (r *UserRepository) IsUserExists(email string) (bool, error) {
 	return user.ID != 0, nil
 }
 
-func (r *UserRepository) getUserPasswordByID(id uint) (string, error) {
+func (r *userRepository) getUserPasswordByID(id uint) (string, error) {
 	var user UserEntity
 
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", id).Select(c.UserPassword).Take(&user).Error
@@ -369,7 +399,7 @@ func (r *UserRepository) getUserPasswordByID(id uint) (string, error) {
 	return user.Password, nil
 }
 
-func (r *UserRepository) UserExistsByEmailAndRoleId(email string, roleID uint, showDeleted *bool) (bool, error) {
+func (r *userRepository) UserExistsByEmailAndRoleId(email string, roleID uint, showDeleted *bool) (bool, error) {
 	var user UserEntity
 	query := r.db.Model(&UserEntity{})
 
@@ -390,7 +420,7 @@ func (r *UserRepository) UserExistsByEmailAndRoleId(email string, roleID uint, s
 	return user.ID != 0, nil
 }
 
-func (r *UserRepository) SetPasswordResetToken(userID uint, token string, expiresAt time.Time) error {
+func (r *userRepository) SetPasswordResetToken(userID uint, token string, expiresAt time.Time) error {
 	user := &UserEntity{
 		PasswordResetToken:   &token,
 		PasswordResetExpires: &expiresAt,
@@ -407,7 +437,7 @@ func (r *UserRepository) SetPasswordResetToken(userID uint, token string, expire
 	return err
 }
 
-func (r *UserRepository) GetUserByResetPasswordToken(token string) (*UserEntity, error) {
+func (r *userRepository) GetUserByResetPasswordToken(token string) (*UserEntity, error) {
 	var user UserEntity
 	err := r.db.Where(c.UserPasswordResetToken+" = ? AND "+c.UserPasswordResetExpires+" > ?", token, timeutil.NowUTC()).
 		Select(c.FieldID, c.UserEmail, c.UserPasswordResetExpires).
@@ -424,7 +454,7 @@ func (r *UserRepository) GetUserByResetPasswordToken(token string) (*UserEntity,
 	return &user, nil
 }
 
-func (r *UserRepository) SetRefreshTokenAndLastLoginAt(userID uint, token string, expiresAt time.Time) (lastLoginAt time.Time, err error) {
+func (r *userRepository) SetRefreshTokenAndLastLoginAt(userID uint, token string, expiresAt time.Time) (lastLoginAt time.Time, err error) {
 	lastLoginAt = timeutil.NowUTC()
 	user := &UserEntity{
 		RefreshToken:        &token,
@@ -443,7 +473,7 @@ func (r *UserRepository) SetRefreshTokenAndLastLoginAt(userID uint, token string
 	return lastLoginAt, err
 }
 
-func (r *UserRepository) SetRefreshToken(userID uint, token *string, expiresAt *time.Time) error {
+func (r *userRepository) SetRefreshToken(userID uint, token *string, expiresAt *time.Time) error {
 	user := &UserEntity{
 		RefreshToken:        token,
 		RefreshTokenExpires: expiresAt,
@@ -461,7 +491,7 @@ func (r *UserRepository) SetRefreshToken(userID uint, token *string, expiresAt *
 	return err
 }
 
-func (r *UserRepository) SetVerifiedAndVerificationToken(userID uint, verified bool, token *string, expiresAt *time.Time) error {
+func (r *userRepository) SetVerifiedAndVerificationToken(userID uint, verified bool, token *string, expiresAt *time.Time) error {
 	user := &UserEntity{
 		VerificationToken:   token,
 		VerificationExpires: expiresAt,
@@ -480,7 +510,7 @@ func (r *UserRepository) SetVerifiedAndVerificationToken(userID uint, verified b
 	return errors.New("failed to set verified and verification token")
 }
 
-func (r *UserRepository) GetUserByVerificationToken(token string) (*uint, error) {
+func (r *userRepository) GetUserByVerificationToken(token string) (*uint, error) {
 	if token == "" {
 		return nil, errors.New("verification token is required")
 	}
@@ -504,7 +534,7 @@ func (r *UserRepository) GetUserByVerificationToken(token string) (*uint, error)
 	return &user.ID, nil
 }
 
-func (r *UserRepository) GetUserByRefreshToken(token string) (*UserEntity, error) {
+func (r *userRepository) GetUserByRefreshToken(token string) (*UserEntity, error) {
 	if token == "" {
 		return nil, errors.New("refresh token is required")
 	}
@@ -527,7 +557,7 @@ func (r *UserRepository) GetUserByRefreshToken(token string) (*UserEntity, error
 	return &user, nil
 }
 
-func (r *UserRepository) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
+func (r *userRepository) UpdateUserPurchaseCountAndTotalSpent(userID uint, purchaseCount uint, totalSpent uint) error {
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(map[string]any{
 		c.UserPurchaseCount: gorm.Expr(c.UserPurchaseCount+" + ?", purchaseCount),
 		c.UserTotalSpent:    gorm.Expr(c.UserTotalSpent+" + ?", totalSpent),

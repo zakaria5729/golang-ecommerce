@@ -11,39 +11,50 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type BrandHandler struct {
-	service *BrandService
+type BrandHandler interface {
+	GetAllBrandsPublic(w http.ResponseWriter, r *http.Request)
+	GetBrandByIDPublic(w http.ResponseWriter, r *http.Request)
+	GetAllBrands(w http.ResponseWriter, r *http.Request)
+	GetBrandByID(w http.ResponseWriter, r *http.Request)
+	CreateBrand(w http.ResponseWriter, r *http.Request)
+	UpdateBrand(w http.ResponseWriter, r *http.Request)
+	DeleteBrand(w http.ResponseWriter, r *http.Request)
+	UndoDeletedBrand(w http.ResponseWriter, r *http.Request)
 }
 
-func NewBrandHandler(service *BrandService) *BrandHandler {
-	return &BrandHandler{
+type brandHandler struct {
+	service BrandService
+}
+
+func NewBrandHandler(service BrandService) BrandHandler {
+	return &brandHandler{
 		service: service,
 	}
 }
 
-func (h *BrandHandler) GetAllBrandsPublic(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) GetAllBrandsPublic(w http.ResponseWriter, r *http.Request) {
 	err, brands := getAllBrandsData(r, nil, h.service)
 	response.SendResponse(w, brands, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) GetBrandByIDPublic(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) GetBrandByIDPublic(w http.ResponseWriter, r *http.Request) {
 	err, brand := getBrandDataById(r, nil, h.service)
 	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) GetAllBrands(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) GetAllBrands(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, brands := getAllBrandsData(r, showDeleted, h.service)
 	response.SendResponse(w, brands, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) GetBrandByID(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) GetBrandByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, brand := getBrandDataById(r, showDeleted, h.service)
 	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
 	var req m.CreateBrandRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateBrand") {
 		return
@@ -58,7 +69,7 @@ func (h *BrandHandler) CreateBrand(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid brand ID", http.StatusBadRequest)
@@ -79,7 +90,7 @@ func (h *BrandHandler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, brand, err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid brand ID", http.StatusBadRequest)
@@ -90,7 +101,7 @@ func (h *BrandHandler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Brand deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *BrandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) {
+func (h *brandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid brand ID", http.StatusBadRequest)
@@ -101,7 +112,7 @@ func (h *BrandHandler) UndoDeletedBrand(w http.ResponseWriter, r *http.Request) 
 	response.SendResponse(w, "Brand restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllBrandsData(r *http.Request, showDeleted *bool, service *BrandService) (error, []BrandEntity) {
+func getAllBrandsData(r *http.Request, showDeleted *bool, service BrandService) (error, []BrandEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -114,7 +125,7 @@ func getAllBrandsData(r *http.Request, showDeleted *bool, service *BrandService)
 	return nil, brands
 }
 
-func getBrandDataById(r *http.Request, showDeleted *bool, service *BrandService) (error, *BrandEntity) {
+func getBrandDataById(r *http.Request, showDeleted *bool, service BrandService) (error, *BrandEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid brand ID"), nil

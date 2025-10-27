@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterCategoryRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterCategoryRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := category.NewCategoryRepository(db.GetDB())
 	service := category.NewCategoryService(repo)
 	h := category.NewCategoryHandler(service)

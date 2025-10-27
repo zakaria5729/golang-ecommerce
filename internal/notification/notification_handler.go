@@ -10,17 +10,25 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type NotificationHandler struct {
-	service *NotificationService
+type NotificationHandler interface {
+	GetNotifications(w http.ResponseWriter, r *http.Request)
+	MarkAsRead(w http.ResponseWriter, r *http.Request)
+	MarkAllAsRead(w http.ResponseWriter, r *http.Request)
+	GetUnreadCount(w http.ResponseWriter, r *http.Request)
+	SendPush(w http.ResponseWriter, r *http.Request)
 }
 
-func NewNotificationHandler(service *NotificationService) *NotificationHandler {
-	return &NotificationHandler{
+type notificationHandler struct {
+	service NotificationService
+}
+
+func NewNotificationHandler(service NotificationService) NotificationHandler {
+	return &notificationHandler{
 		service: service,
 	}
 }
 
-func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
+func (h *notificationHandler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
@@ -38,7 +46,7 @@ func (h *NotificationHandler) GetNotifications(w http.ResponseWriter, r *http.Re
 	response.SendResponse(w, notifications, err, http.StatusInternalServerError)
 }
 
-func (h *NotificationHandler) MarkAsRead(w http.ResponseWriter, r *http.Request) {
+func (h *notificationHandler) MarkAsRead(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
@@ -55,7 +63,7 @@ func (h *NotificationHandler) MarkAsRead(w http.ResponseWriter, r *http.Request)
 	response.SendResponse(w, "Notification marked as read", err, http.StatusInternalServerError)
 }
 
-func (h *NotificationHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Request) {
+func (h *notificationHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
@@ -66,7 +74,7 @@ func (h *NotificationHandler) MarkAllAsRead(w http.ResponseWriter, r *http.Reque
 	response.SendResponse(w, "All notifications marked as read", err, http.StatusInternalServerError)
 }
 
-func (h *NotificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Request) {
+func (h *notificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Request) {
 	userID, err := cu.GetUserIDFromContext(r.Context())
 	if err != nil {
 		response.SendErrorJSON(w, "Authentication Required", http.StatusUnauthorized)
@@ -77,7 +85,7 @@ func (h *NotificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Requ
 	response.SendResponse(w, map[string]int64{"count": count}, err, http.StatusInternalServerError)
 }
 
-func (h *NotificationHandler) SendPush(w http.ResponseWriter, r *http.Request) {
+func (h *notificationHandler) SendPush(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	userID, err := cu.GetUserIDFromContext(ctx)

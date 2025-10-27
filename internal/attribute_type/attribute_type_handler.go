@@ -11,39 +11,50 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type AttributeTypeHandler struct {
-	service *AttributeTypeService
+type AttributeTypeHandler interface {
+	GetAllAttributeTypesPublic(w http.ResponseWriter, r *http.Request)
+	GetAttributeTypeByIDPublic(w http.ResponseWriter, r *http.Request)
+	GetAllAttributeTypes(w http.ResponseWriter, r *http.Request)
+	GetAttributeTypeByID(w http.ResponseWriter, r *http.Request)
+	CreateAttributeType(w http.ResponseWriter, r *http.Request)
+	UpdateAttributeType(w http.ResponseWriter, r *http.Request)
+	DeleteAttributeType(w http.ResponseWriter, r *http.Request)
+	UndoDeletedAttributeType(w http.ResponseWriter, r *http.Request)
 }
 
-func NewAttributeTypeHandler(service *AttributeTypeService) *AttributeTypeHandler {
-	return &AttributeTypeHandler{
+type attributeTypeHandler struct {
+	service AttributeTypeService
+}
+
+func NewAttributeTypeHandler(service AttributeTypeService) AttributeTypeHandler {
+	return &attributeTypeHandler{
 		service: service,
 	}
 }
 
-func (h *AttributeTypeHandler) GetAllAttributeTypesPublic(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) GetAllAttributeTypesPublic(w http.ResponseWriter, r *http.Request) {
 	err, attributeTypes := getAllAttributeTypesData(r, nil, h.service)
 	response.SendResponse(w, attributeTypes, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) GetAttributeTypeByIDPublic(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) GetAttributeTypeByIDPublic(w http.ResponseWriter, r *http.Request) {
 	err, attributeType := getAttributeTypeDataById(r, nil, h.service)
 	response.SendResponse(w, attributeType, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) GetAllAttributeTypes(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) GetAllAttributeTypes(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, attributeTypes := getAllAttributeTypesData(r, showDeleted, h.service)
 	response.SendResponse(w, attributeTypes, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) GetAttributeTypeByID(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) GetAttributeTypeByID(w http.ResponseWriter, r *http.Request) {
 	showDeleted := utils.ParseBoolPtr(r.URL.Query().Get(c.ShowDeleted))
 	err, attributeType := getAttributeTypeDataById(r, showDeleted, h.service)
 	response.SendResponse(w, attributeType, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) CreateAttributeType(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) CreateAttributeType(w http.ResponseWriter, r *http.Request) {
 	var req m.CreateAttributeTypeRequest
 	if !utils.DecodeJSON(w, r, &req, "CreateAttributeType") {
 		return
@@ -58,7 +69,7 @@ func (h *AttributeTypeHandler) CreateAttributeType(w http.ResponseWriter, r *htt
 	response.SendResponse(w, attributeType, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) UpdateAttributeType(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) UpdateAttributeType(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid attribute type ID", http.StatusBadRequest)
@@ -79,7 +90,7 @@ func (h *AttributeTypeHandler) UpdateAttributeType(w http.ResponseWriter, r *htt
 	response.SendResponse(w, attributeType, err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) DeleteAttributeType(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) DeleteAttributeType(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid attribute type ID", http.StatusBadRequest)
@@ -90,7 +101,7 @@ func (h *AttributeTypeHandler) DeleteAttributeType(w http.ResponseWriter, r *htt
 	response.SendResponse(w, "Attribute type deleted successfully", err, http.StatusInternalServerError)
 }
 
-func (h *AttributeTypeHandler) UndoDeletedAttributeType(w http.ResponseWriter, r *http.Request) {
+func (h *attributeTypeHandler) UndoDeletedAttributeType(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		response.SendErrorJSON(w, "Invalid attribute type ID", http.StatusBadRequest)
@@ -101,7 +112,7 @@ func (h *AttributeTypeHandler) UndoDeletedAttributeType(w http.ResponseWriter, r
 	response.SendResponse(w, "Attribute type restored successfully", err, http.StatusInternalServerError)
 }
 
-func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, []AttributeTypeEntity) {
+func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service AttributeTypeService) (error, []AttributeTypeEntity) {
 	q := r.URL.Query()
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
@@ -114,7 +125,7 @@ func getAllAttributeTypesData(r *http.Request, showDeleted *bool, service *Attri
 	return nil, attributeTypes
 }
 
-func getAttributeTypeDataById(r *http.Request, showDeleted *bool, service *AttributeTypeService) (error, *AttributeTypeEntity) {
+func getAttributeTypeDataById(r *http.Request, showDeleted *bool, service AttributeTypeService) (error, *AttributeTypeEntity) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
 		return errors.New("invalid attribute type ID"), nil

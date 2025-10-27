@@ -7,16 +7,20 @@ import (
 	"github.com/easy-comerce/backend/internal/mail/provider"
 )
 
-type MailRepository struct {
+type MailRepository interface {
+	SendEmail(ctx context.Context, req *m.SendEmailRequest) (*m.SendEmailResponse, error)
+}
+
+type mailRepository struct {
 	client *provider.SmtpMailProvider
 }
 
-func NewMailRepository(client *provider.SmtpMailProvider) *MailRepository {
-	return &MailRepository{
+func NewMailRepository(client *provider.SmtpMailProvider) MailRepository {
+	return &mailRepository{
 		client: client,
 	}
 }
 
-func (r *MailRepository) SendEmail(ctx context.Context, req *m.SendEmailRequest) (*m.SendEmailResponse, error) {
+func (r *mailRepository) SendEmail(ctx context.Context, req *m.SendEmailRequest) (*m.SendEmailResponse, error) {
 	return r.client.Send(ctx, req)
 }

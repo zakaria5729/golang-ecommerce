@@ -13,17 +13,34 @@ import (
 	"gorm.io/gorm"
 )
 
-type RoleRepository struct {
+type RoleRepository interface {
+	GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]RoleEntity, error)
+	GetRoleByID(id uint, include []string, showDeleted *bool) (*RoleEntity, error)
+	GetRoleWithPermissionsByType(roleType string) (*RoleEntity, error)
+	GetRoleByType(roleType string, showDeleted *bool) (*RoleEntity, error)
+	CreateRole(role *RoleEntity) (*RoleEntity, error)
+	UpdateRole(role *RoleEntity) error
+	UpdateRoleWithoutPermissions(role *RoleEntity) error
+	DeleteRole(ctx context.Context, id uint) error
+	UndoDeletedRole(ctx context.Context, id uint) error
+	AssignRoleToUser(userID uint, roleID uint) error
+	AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error
+	AddPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error
+	RoleExists(id uint, showDeleted *bool) (bool, error)
+	RoleExistsByName(name string, excludeID ...uint) (bool, error)
+}
+
+type roleRepository struct {
 	db *gorm.DB
 }
 
-func NewRoleRepository(db *gorm.DB) *RoleRepository {
-	return &RoleRepository{
+func NewRoleRepository(db *gorm.DB) RoleRepository {
+	return &roleRepository{
 		db: db,
 	}
 }
 
-func (r *RoleRepository) GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]RoleEntity, error) {
+func (r *roleRepository) GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]RoleEntity, error) {
 	var roles []RoleEntity
 	query := r.db.Model(&RoleEntity{})
 
@@ -51,7 +68,7 @@ func (r *RoleRepository) GetAllRoles(include []string, showDeleted *bool, roleTy
 	return roles, err
 }
 
-func (r *RoleRepository) GetRoleByID(id uint, include []string, showDeleted *bool) (*RoleEntity, error) {
+func (r *roleRepository) GetRoleByID(id uint, include []string, showDeleted *bool) (*RoleEntity, error) {
 	var role RoleEntity
 	query := r.db.Model(&RoleEntity{})
 
@@ -71,7 +88,7 @@ func (r *RoleRepository) GetRoleByID(id uint, include []string, showDeleted *boo
 	return &role, nil
 }
 
-func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*RoleEntity, error) {
+func (r *roleRepository) GetRoleWithPermissionsByType(roleType string) (*RoleEntity, error) {
 	var role RoleEntity
 
 	if err := r.db.Model(&RoleEntity{}).
@@ -90,7 +107,7 @@ func (r *RoleRepository) GetRoleWithPermissionsByType(roleType string) (*RoleEnt
 	return &role, nil
 }
 
-func (r *RoleRepository) GetRoleByType(roleType string, showDeleted *bool) (*RoleEntity, error) {
+func (r *roleRepository) GetRoleByType(roleType string, showDeleted *bool) (*RoleEntity, error) {
 	var role RoleEntity
 
 	query := r.db.Model(&RoleEntity{}).Where(c.RoleRoleType+" = ?", roleType)
@@ -106,7 +123,7 @@ func (r *RoleRepository) GetRoleByType(roleType string, showDeleted *bool) (*Rol
 	return &role, nil
 }
 
-func (r *RoleRepository) CreateRole(role *RoleEntity) (*RoleEntity, error) {
+func (r *roleRepository) CreateRole(role *RoleEntity) (*RoleEntity, error) {
 	err := r.db.Create(role).Error
 	if err != nil {
 		l.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
@@ -115,7 +132,7 @@ func (r *RoleRepository) CreateRole(role *RoleEntity) (*RoleEntity, error) {
 	return role, nil
 }
 
-func (r *RoleRepository) UpdateRole(role *RoleEntity) error {
+func (r *roleRepository) UpdateRole(role *RoleEntity) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(role).Error; err != nil {
 			return err
@@ -135,7 +152,7 @@ func (r *RoleRepository) UpdateRole(role *RoleEntity) error {
 	return err
 }
 
-func (r *RoleRepository) UpdateRoleWithoutPermissions(role *RoleEntity) error {
+func (r *roleRepository) UpdateRoleWithoutPermissions(role *RoleEntity) error {
 	var updatedRole = RoleEntity{
 		RoleName:    role.RoleName,
 		RoleType:    role.RoleType,
@@ -150,7 +167,7 @@ func (r *RoleRepository) UpdateRoleWithoutPermissions(role *RoleEntity) error {
 	return err
 }
 
-func (r *RoleRepository) DeleteRole(ctx context.Context, id uint) error {
+func (r *roleRepository) DeleteRole(ctx context.Context, id uint) error {
 	role := &RoleEntity{}
 	role.DeletedAt = timeutil.GormNowUTC()
 	userID, ok := ctx.Value(c.UserIDContextKey).(*uint)
@@ -166,7 +183,7 @@ func (r *RoleRepository) DeleteRole(ctx context.Context, id uint) error {
 	return err
 }
 
-func (r *RoleRepository) UndoDeletedRole(ctx context.Context, id uint) error {
+func (r *roleRepository) UndoDeletedRole(ctx context.Context, id uint) error {
 	role := &RoleEntity{}
 	role.DeletedAt = nil
 	role.DeletedBy = nil
@@ -186,7 +203,7 @@ func (r *RoleRepository) UndoDeletedRole(ctx context.Context, id uint) error {
 	return err
 }
 
-func (r *RoleRepository) AssignRoleToUser(userID uint, roleID uint) error {
+func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var role RoleEntity
 		if err := tx.Where(c.FieldID+" = ?", roleID).First(&role).Error; err != nil {
@@ -214,15 +231,15 @@ func (r *RoleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	return err
 }
 
-func (r *RoleRepository) AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error {
+func (r *roleRepository) AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error {
 	return addPermissionsToRole(r.db, roleID, &permissionNames, nil, showDeleted)
 }
 
-func (r *RoleRepository) AddPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error {
+func (r *roleRepository) AddPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error {
 	return addPermissionsToRole(r.db, roleID, nil, &permissionIds, showDeleted)
 }
 
-func (r *RoleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
+func (r *roleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
 	var role RoleEntity
 	query := r.db.Model(&RoleEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -239,7 +256,7 @@ func (r *RoleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
 	return role.ID != 0, nil
 }
 
-func (r *RoleRepository) RoleExistsByName(name string, excludeID ...uint) (bool, error) {
+func (r *roleRepository) RoleExistsByName(name string, excludeID ...uint) (bool, error) {
 	var role RoleEntity
 	query := r.db.Model(&RoleEntity{}).Where(c.RoleRoleName+" = ?", name)
 

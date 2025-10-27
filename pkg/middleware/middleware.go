@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"slices"
 	"time"
 
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -55,17 +56,11 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 }
 
 func isExcludedPath(path string) bool {
-	for _, excludedPath := range []string{
+	return slices.Contains([]string{
 		"/favicon.ico",
 		"/app-health",
 		"/metrics",
 		"/auth/social-flow",
 		"/auth/social-flow/callback",
-	} {
-		if path == excludedPath {
-			return true
-		}
-	}
-
-	return false
+	}, path)
 }

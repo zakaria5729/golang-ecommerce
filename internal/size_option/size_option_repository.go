@@ -7,17 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
-type SizeOptionRepository struct {
+type SizeOptionRepository interface {
+	GetAllSizeOptions(showDeleted *bool, sizeCategoryID *uint, sortBy, sortOrder string) ([]SizeOptionEntity, error)
+	GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error)
+	CreateSizeOption(sizeOption *SizeOptionEntity) (*SizeOptionEntity, error)
+	UpdateSizeOption(sizeOption *SizeOptionEntity) error
+	DeleteSizeOption(id uint) error
+	UndoDeletedSizeOption(id uint) error
+	SizeOptionExists(id uint, showDeleted *bool) (bool, error)
+	SizeOptionExistsByName(name string, sizeCategoryID uint, excludeID ...uint) (bool, error)
+}
+
+type sizeOptionRepository struct {
 	db *gorm.DB
 }
 
-func NewSizeOptionRepository(db *gorm.DB) *SizeOptionRepository {
-	return &SizeOptionRepository{
+func NewSizeOptionRepository(db *gorm.DB) SizeOptionRepository {
+	return &sizeOptionRepository{
 		db: db,
 	}
 }
 
-func (r *SizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategoryID *uint, sortBy, sortOrder string) ([]SizeOptionEntity, error) {
+func (r *sizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategoryID *uint, sortBy, sortOrder string) ([]SizeOptionEntity, error) {
 	var sizeOptions []SizeOptionEntity
 	query := r.db.Model(&SizeOptionEntity{})
 
@@ -40,7 +51,7 @@ func (r *SizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategory
 	return sizeOptions, err
 }
 
-func (r *SizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error) {
+func (r *sizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*SizeOptionEntity, error) {
 	var sizeOption SizeOptionEntity
 	query := r.db.Model(&SizeOptionEntity{})
 
@@ -56,7 +67,7 @@ func (r *SizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*S
 	return &sizeOption, nil
 }
 
-func (r *SizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*SizeOptionEntity, error) {
+func (r *sizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*SizeOptionEntity, error) {
 	err := r.db.Create(sizeOption).Error
 	if err != nil {
 		l.Logger.Error("Failed to create size option", "method", "CreateSizeOption", "error", err, "sizeOption", sizeOption)
@@ -65,7 +76,7 @@ func (r *SizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*
 	return sizeOption, nil
 }
 
-func (r *SizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) error {
+func (r *sizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) error {
 	err := r.db.Save(sizeOption).Error
 	if err != nil {
 		l.Logger.Error("Failed to update size option", "method", "UpdateSizeOption", "error", err, "sizeOption", sizeOption)
@@ -73,7 +84,7 @@ func (r *SizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) er
 	return err
 }
 
-func (r *SizeOptionRepository) DeleteSizeOption(id uint) error {
+func (r *sizeOptionRepository) DeleteSizeOption(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeOptionEntity{}).Error
 	if err != nil {
 		l.Logger.Error("Failed to delete size option", "method", "DeleteSizeOption", "error", err, "id", id)
@@ -82,7 +93,7 @@ func (r *SizeOptionRepository) DeleteSizeOption(id uint) error {
 	return err
 }
 
-func (r *SizeOptionRepository) UndoDeletedSizeOption(id uint) error {
+func (r *sizeOptionRepository) UndoDeletedSizeOption(id uint) error {
 	var sizeOption SizeOptionEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&sizeOption).Error
 	if err != nil {
@@ -99,7 +110,7 @@ func (r *SizeOptionRepository) UndoDeletedSizeOption(id uint) error {
 	return err
 }
 
-func (r *SizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (bool, error) {
+func (r *sizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (bool, error) {
 	var sizeOption SizeOptionEntity
 	query := r.db.Model(&SizeOptionEntity{}).Where(c.FieldID+" = ?", id)
 
@@ -116,7 +127,7 @@ func (r *SizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (boo
 	return sizeOption.ID != 0, nil
 }
 
-func (r *SizeOptionRepository) SizeOptionExistsByName(name string, sizeCategoryID uint, excludeID ...uint) (bool, error) {
+func (r *sizeOptionRepository) SizeOptionExistsByName(name string, sizeCategoryID uint, excludeID ...uint) (bool, error) {
 	var sizeOption SizeOptionEntity
 	query := r.db.Model(&SizeOptionEntity{}).Where(c.SizeOptionName+" = ? AND "+c.SizeOptionSizeCategoryID+" = ?", name, sizeCategoryID)
 

@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterColorRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterColorRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := color.NewColorRepository(db.GetDB())
 	service := color.NewColorService(repo)
 	h := color.NewColorHandler(service)

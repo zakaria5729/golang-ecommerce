@@ -7,17 +7,26 @@ import (
 	m "github.com/easy-comerce/backend/internal/color/model"
 )
 
-type ColorService struct {
-	colorRepo *ColorRepository
+type ColorService interface {
+	GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]ColorEntity, error)
+	GetColorByID(id uint, showDeleted *bool) (*ColorEntity, error)
+	CreateColor(req *m.CreateColorRequest) (*ColorEntity, error)
+	UpdateColor(id uint, req *m.UpdateColorRequest) (*ColorEntity, error)
+	DeleteColor(id uint) error
+	UndoDeletedColor(id uint) error
 }
 
-func NewColorService(repo *ColorRepository) *ColorService {
-	return &ColorService{
+type colorService struct {
+	colorRepo ColorRepository
+}
+
+func NewColorService(repo ColorRepository) ColorService {
+	return &colorService{
 		colorRepo: repo,
 	}
 }
 
-func (s *ColorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]ColorEntity, error) {
+func (s *colorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string) ([]ColorEntity, error) {
 	colors, err := s.colorRepo.GetAllColors(showDeleted, sortBy, sortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch colors: %w", err)
@@ -26,7 +35,7 @@ func (s *ColorService) GetAllColors(showDeleted *bool, sortBy, sortOrder string)
 	return colors, nil
 }
 
-func (s *ColorService) GetColorByID(id uint, showDeleted *bool) (*ColorEntity, error) {
+func (s *colorService) GetColorByID(id uint, showDeleted *bool) (*ColorEntity, error) {
 	color, err := s.colorRepo.GetColorByID(id, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("color not found: %w", err)
@@ -35,7 +44,7 @@ func (s *ColorService) GetColorByID(id uint, showDeleted *bool) (*ColorEntity, e
 	return color, nil
 }
 
-func (s *ColorService) CreateColor(req *m.CreateColorRequest) (*ColorEntity, error) {
+func (s *colorService) CreateColor(req *m.CreateColorRequest) (*ColorEntity, error) {
 	req.Sanitize()
 
 	exists, err := s.colorRepo.ColorExistsByName(req.Name)
@@ -58,7 +67,7 @@ func (s *ColorService) CreateColor(req *m.CreateColorRequest) (*ColorEntity, err
 	return color, nil
 }
 
-func (s *ColorService) UpdateColor(id uint, req *m.UpdateColorRequest) (*ColorEntity, error) {
+func (s *colorService) UpdateColor(id uint, req *m.UpdateColorRequest) (*ColorEntity, error) {
 	req.Sanitize()
 
 	existingColor, err := s.colorRepo.GetColorByID(id, nil)
@@ -84,7 +93,7 @@ func (s *ColorService) UpdateColor(id uint, req *m.UpdateColorRequest) (*ColorEn
 	return existingColor, nil
 }
 
-func (s *ColorService) DeleteColor(id uint) error {
+func (s *colorService) DeleteColor(id uint) error {
 	_, err := s.colorRepo.GetColorByID(id, nil)
 	if err != nil {
 		return fmt.Errorf("color not found: %w", err)
@@ -97,7 +106,7 @@ func (s *ColorService) DeleteColor(id uint) error {
 	return nil
 }
 
-func (s *ColorService) UndoDeletedColor(id uint) error {
+func (s *colorService) UndoDeletedColor(id uint) error {
 	showDeleted := true
 	exists, err := s.colorRepo.ColorExists(id, &showDeleted)
 	if err != nil || !exists {

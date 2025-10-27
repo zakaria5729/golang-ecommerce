@@ -38,7 +38,7 @@ func InitRoleAndSuperAdmin() error {
 	return nil
 }
 
-func createSuperAdminRoleAndUserIfNotExists(pr *p.PermissionRepository, rr *role.RoleRepository, ur *user.UserRepository, allPermissionNames []string, showDeleted *bool) error {
+func createSuperAdminRoleAndUserIfNotExists(pr p.PermissionRepository, rr role.RoleRepository, ur user.UserRepository, allPermissionNames []string, showDeleted *bool) error {
 	superAdminEmail, superAdminPassword, err := getSuperAdminCredentials()
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func getSuperAdminCredentials() (string, string, error) {
 	return superAdminEmail, superAdminPassword, nil
 }
 
-func createAllPermissionsIfNotExists(permissionRepo *p.PermissionRepository, allPermissionNames []string, showDeleted *bool) error {
+func createAllPermissionsIfNotExists(permissionRepo p.PermissionRepository, allPermissionNames []string, showDeleted *bool) error {
 	err := permissionRepo.CreatePermissionsIfNotExists(allPermissionNames, showDeleted)
 	if err != nil {
 		logger.Logger.Error("❌ Failed to create all permissions if not exists", "method", "createAllPermissionsIfNotExists", "error", err)
@@ -102,7 +102,7 @@ func createAllPermissionsIfNotExists(permissionRepo *p.PermissionRepository, all
 	return nil
 }
 
-func createSuperAdminUser(userRepo *user.UserRepository, email, password string, superAdminRole *role.RoleEntity) error {
+func createSuperAdminUser(userRepo user.UserRepository, email, password string, superAdminRole *role.RoleEntity) error {
 	userModel := &user.UserEntity{
 		Email:    email,
 		Password: password,
@@ -120,7 +120,7 @@ func createSuperAdminUser(userRepo *user.UserRepository, email, password string,
 	return nil
 }
 
-func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, allPermissionNames []string, showDeleted *bool) (*role.RoleEntity, error) {
+func createSuperAdminRoleIfNotExists(roleRepo role.RoleRepository, permissionRepo p.PermissionRepository, allPermissionNames []string, showDeleted *bool) (*role.RoleEntity, error) {
 	superAdminRole, err := roleRepo.GetRoleByType(c.RoleTypeSuperAdmin, showDeleted)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("❌ Failed to get super admin role", "method", "createSuperAdminRoleIfNotExists", "error", err)
@@ -161,7 +161,7 @@ func createSuperAdminRoleIfNotExists(roleRepo *role.RoleRepository, permissionRe
 	return superAdminRole, nil
 }
 
-func createUserRoleIfNotExists(roleRepo *role.RoleRepository, permissionRepo *p.PermissionRepository, showDeleted *bool) error {
+func createUserRoleIfNotExists(roleRepo role.RoleRepository, permissionRepo p.PermissionRepository, showDeleted *bool) error {
 	userRole, err := roleRepo.GetRoleByType(c.RoleTypeUser, showDeleted)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Logger.Error("❌ Failed to get user role", "method", "createUserRoleIfNotExists", "error", err)

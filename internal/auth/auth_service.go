@@ -25,25 +25,37 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthService struct {
+type AuthService interface {
+	Login(req *model.LoginRequest) (*model.LoginResponse, error)
+	SocialLogin(req *model.SocialLoginRequest) (*model.LoginResponse, error)
+	Register(req *model.RegisterRequest) (*userModel.UserResponse, error)
+	ForgotPassword(req *model.ForgotPasswordRequest) (string, error)
+	ResetPassword(req *model.ResetPasswordRequest) error
+	RefreshToken(req *model.RefreshTokenRequest) (*model.LoginResponse, error)
+	Logout(userID uint) error
+	VerifyEmail(token string) error
+	ResendVerifyLink(req *model.ResendVerifyLinkRequest) (verificationLink string, verified bool, err error)
+}
+
+type authService struct {
 	jwtSecret string
-	userRepo  *user.UserRepository
-	roleRepo  *role.RoleRepository
+	userRepo  user.UserRepository
+	roleRepo  role.RoleRepository
 }
 
 func NewAuthService(
 	jwtSecret string,
-	userRepo *user.UserRepository,
-	roleRepo *role.RoleRepository,
-) *AuthService {
-	return &AuthService{
+	userRepo user.UserRepository,
+	roleRepo role.RoleRepository,
+) AuthService {
+	return &authService{
 		jwtSecret: jwtSecret,
 		userRepo:  userRepo,
 		roleRepo:  roleRepo,
 	}
 }
 
-func (s *AuthService) Login(req *model.LoginRequest) (*model.LoginResponse, error) {
+func (s *authService) Login(req *model.LoginRequest) (*model.LoginResponse, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 	req.Password = utils.Trim(req.Password)
 
@@ -63,7 +75,7 @@ func (s *AuthService) Login(req *model.LoginRequest) (*model.LoginResponse, erro
 	return createLoginResponse(userEntity, s.userRepo, s.jwtSecret)
 }
 
-func (s *AuthService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginResponse, error) {
+func (s *authService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginResponse, error) {
 	var err error
 	var name string
 	var email string
@@ -107,7 +119,7 @@ func (s *AuthService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginRe
 	return createLoginResponse(newUser, s.userRepo, s.jwtSecret)
 }
 
-func (s *AuthService) Register(req *model.RegisterRequest) (*userModel.UserResponse, error) {
+func (s *authService) Register(req *model.RegisterRequest) (*userModel.UserResponse, error) {
 	req.Name = utils.Trim(req.Name)
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
@@ -143,7 +155,7 @@ func (s *AuthService) Register(req *model.RegisterRequest) (*userModel.UserRespo
 	return userResponse, nil
 }
 
-func (s *AuthService) ForgotPassword(req *model.ForgotPasswordRequest) (string, error) {
+func (s *authService) ForgotPassword(req *model.ForgotPasswordRequest) (string, error) {
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
 	userID, err := s.userRepo.GetUserIdByEmail(req.Email)
@@ -164,7 +176,7 @@ func (s *AuthService) ForgotPassword(req *model.ForgotPasswordRequest) (string, 
 	return token, nil
 }
 
-func (s *AuthService) ResetPassword(req *model.ResetPasswordRequest) error {
+func (s *authService) ResetPassword(req *model.ResetPasswordRequest) error {
 	user, err := s.userRepo.GetUserByResetPasswordToken(req.Token)
 	if err != nil || user == nil || user.PasswordResetExpires.Before(timeutil.NowUTC()) {
 		return e.NewServerError("invalid or expired reset token")
@@ -186,7 +198,7 @@ func (s *AuthService) ResetPassword(req *model.ResetPasswordRequest) error {
 	return nil
 }
 
-func (s *AuthService) RefreshToken(req *model.RefreshTokenRequest) (*model.LoginResponse, error) {
+func (s *authService) RefreshToken(req *model.RefreshTokenRequest) (*model.LoginResponse, error) {
 	user, err := s.userRepo.GetUserByRefreshToken(req.RefreshToken)
 	if err != nil {
 		return nil, errors.New("invalid or expired refresh token")
@@ -221,14 +233,14 @@ func (s *AuthService) RefreshToken(req *model.RefreshTokenRequest) (*model.Login
 	}, nil
 }
 
-func (s *AuthService) Logout(userID uint) error {
+func (s *authService) Logout(userID uint) error {
 	if err := s.userRepo.SetRefreshToken(userID, nil, nil); err != nil {
 		return e.WrapServerError("failed to clear refresh token", err)
 	}
 	return nil
 }
 
-func (s *AuthService) VerifyEmail(token string) error {
+func (s *authService) VerifyEmail(token string) error {
 	userID, err := s.userRepo.GetUserByVerificationToken(token)
 	if err != nil || userID == nil {
 		return err
@@ -241,7 +253,7 @@ func (s *AuthService) VerifyEmail(token string) error {
 	return nil
 }
 
-func (s *AuthService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
+func (s *authService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (verificationLink string, verified bool, err error) {
 	userID, verified, err := s.userRepo.GetUserIdAndVerifiedByEmail(req.Email, nil)
 	if err != nil || userID == nil {
 		return "", false, e.NewServerError("failed to get user id and verified")
@@ -261,7 +273,7 @@ func (s *AuthService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (veri
 	return "", verified, nil
 }
 
-func createLoginResponse(user *user.UserEntity, userRepo *user.UserRepository, jwtSecret string) (*model.LoginResponse, error) {
+func createLoginResponse(user *user.UserEntity, userRepo user.UserRepository, jwtSecret string) (*model.LoginResponse, error) {
 	if user.Banned {
 		return nil, errors.New("account is banned")
 	}
@@ -290,7 +302,7 @@ func createLoginResponse(user *user.UserEntity, userRepo *user.UserRepository, j
 	}, nil
 }
 
-func createRegisterResponse(user *user.UserEntity, userRepo *user.UserRepository, roleRepo *role.RoleRepository) (*user.UserEntity, error) {
+func createRegisterResponse(user *user.UserEntity, userRepo user.UserRepository, roleRepo role.RoleRepository) (*user.UserEntity, error) {
 	if err := user.HashPassword(); err != nil {
 		return nil, apperror.WrapServerError("failed to process password", err)
 	}
@@ -309,7 +321,7 @@ func createRegisterResponse(user *user.UserEntity, userRepo *user.UserRepository
 	return createdUser, nil
 }
 
-func setVerificationToken(userID uint, userRepo *user.UserRepository) (string, error) {
+func setVerificationToken(userID uint, userRepo user.UserRepository) (string, error) {
 	verificationToken, expiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.VerificationTokenExpiryHours)
 	if err != nil {
 		l.Logger.Error("❌ Failed to generate verification token", "method", "Register", "error", err, "userID", userID)

@@ -8,7 +8,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/router"
 )
 
-func RegisterSizeOptionRoute(r *router.Router, pm *middleware.PermissionMiddleware) {
+func RegisterSizeOptionRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	repo := so.NewSizeOptionRepository(db.GetDB())
 	service := so.NewSizeOptionService(repo)
 	h := so.NewSizeOptionHandler(service)
