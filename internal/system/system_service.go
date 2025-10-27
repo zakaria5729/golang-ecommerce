@@ -22,17 +22,28 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
-type SystemService struct {
+type SystemService interface {
+	SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse
+	GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error)
+	DownloadSystemLogFile(fileName string) ([]byte, error)
+	DeleteSystemLogFile(fileName string) error
+	HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request)
+	HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *http.Request)
+	HandleFacebookLoginTemp(w http.ResponseWriter, r *http.Request)
+	HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r *http.Request)
+}
+
+type systemService struct {
 	cfg *config.Config
 }
 
-func NewSystemService(cfg *config.Config) *SystemService {
-	return &SystemService{
+func NewSystemService(cfg *config.Config) SystemService {
+	return &systemService{
 		cfg: cfg,
 	}
 }
 
-func (s *SystemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
+func (s *systemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
 	dbStatus := "healthy"
 
 	sqlDB, err := db.GetDB().DB()
@@ -54,7 +65,7 @@ func (s *SystemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthRe
 	}
 }
 
-func (s *SystemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error) {
+func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error) {
 	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
 	files, err := os.ReadDir(logsDir)
 	if err != nil {
@@ -91,7 +102,7 @@ func (s *SystemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileRes
 	return logFiles, nil
 }
 
-func (s *SystemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
+func (s *systemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
 	if !strings.HasSuffix(fileName, ".log") {
 		return nil, fmt.Errorf("invalid log file name")
 	}
@@ -105,7 +116,7 @@ func (s *SystemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
 	return content, nil
 }
 
-func (s *SystemService) DeleteSystemLogFile(fileName string) error {
+func (s *systemService) DeleteSystemLogFile(fileName string) error {
 	if !strings.HasSuffix(fileName, ".log") {
 		return fmt.Errorf("invalid log file name")
 	}
@@ -128,7 +139,7 @@ func (s *SystemService) DeleteSystemLogFile(fileName string) error {
 	return nil
 }
 
-func (s *SystemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
+func (s *systemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		conf := &oauth2.Config{
 			ClientID:     s.cfg.GoogleClientID,
@@ -143,7 +154,7 @@ func (s *SystemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (s *SystemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *http.Request) {
+func (s *systemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		code := r.URL.Query().Get("code")
 		if code == "" {
@@ -173,7 +184,7 @@ func (s *SystemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 	}
 }
 
-func (s *SystemService) HandleFacebookLoginTemp(w http.ResponseWriter, r *http.Request) {
+func (s *systemService) HandleFacebookLoginTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		conf := &oauth2.Config{
 			ClientID:     s.cfg.FacebookAppID,
@@ -188,7 +199,7 @@ func (s *SystemService) HandleFacebookLoginTemp(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (s *SystemService) HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r *http.Request) {
+func (s *systemService) HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		code := r.URL.Query().Get("code")
 		if code == "" {

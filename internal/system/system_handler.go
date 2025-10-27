@@ -11,17 +11,26 @@ import (
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
-type SystemHandler struct {
-	service *SystemService
+type SystemHandler interface {
+	SystemHealthCheck(w http.ResponseWriter, r *http.Request)
+	GetSystemLogFiles(w http.ResponseWriter, r *http.Request)
+	DownloadSystemLogFile(w http.ResponseWriter, r *http.Request)
+	DeleteSystemLogFile(w http.ResponseWriter, r *http.Request)
+	HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request)
+	HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *http.Request)
 }
 
-func NewSystemHandler(service *SystemService) *SystemHandler {
-	return &SystemHandler{
+type systemHandler struct {
+	service SystemService
+}
+
+func NewSystemHandler(service SystemService) SystemHandler {
+	return &systemHandler{
 		service: service,
 	}
 }
 
-func (h *SystemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request) {
 	var req m.SystemHealthRequest
 	if !utils.DecodeJSON(w, r, &req, "SystemHealthCheck") {
 		return
@@ -36,13 +45,13 @@ func (h *SystemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request
 	response.SendErrorJSON(w, "Invalid health token", http.StatusForbidden)
 }
 
-func (h *SystemHandler) GetSystemLogFiles(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) GetSystemLogFiles(w http.ResponseWriter, r *http.Request) {
 	fileName := r.URL.Query().Get(c.FileName)
 	logFiles, err := h.service.GetSystemLogFiles(fileName)
 	response.SendResponse(w, logFiles, err, http.StatusInternalServerError)
 }
 
-func (h *SystemHandler) DownloadSystemLogFile(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) DownloadSystemLogFile(w http.ResponseWriter, r *http.Request) {
 	filename := r.PathValue(c.FileName)
 	if filename == "" {
 		response.SendErrorJSON(w, "filename parameter is required", http.StatusBadRequest)
@@ -60,7 +69,7 @@ func (h *SystemHandler) DownloadSystemLogFile(w http.ResponseWriter, r *http.Req
 	w.Write(content)
 }
 
-func (h *SystemHandler) DeleteSystemLogFile(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) DeleteSystemLogFile(w http.ResponseWriter, r *http.Request) {
 	fileName := r.PathValue(c.FileName)
 	err := h.service.DeleteSystemLogFile(fileName)
 	var msg string
@@ -70,7 +79,7 @@ func (h *SystemHandler) DeleteSystemLogFile(w http.ResponseWriter, r *http.Reque
 	response.SendResponse(w, msg, err, http.StatusInternalServerError)
 }
 
-func (h *SystemHandler) HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		authType := r.URL.Query().Get("auth_type")
 
@@ -83,7 +92,7 @@ func (h *SystemHandler) HandleSocialFlowTemp(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (h *SystemHandler) HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) HandleSocialFlowCallbackTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		authType := r.URL.Query().Get("auth_type")
 
