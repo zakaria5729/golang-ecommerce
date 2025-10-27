@@ -14,17 +14,29 @@ import (
 	"github.com/easy-comerce/backend/pkg/validator"
 )
 
-type AuthHandler struct {
+type AuthHandler interface {
+	Login(w http.ResponseWriter, r *http.Request)
+	SocialLogin(w http.ResponseWriter, r *http.Request)
+	Register(w http.ResponseWriter, r *http.Request)
+	ForgotPassword(w http.ResponseWriter, r *http.Request)
+	ResetPassword(w http.ResponseWriter, r *http.Request)
+	RefreshToken(w http.ResponseWriter, r *http.Request)
+	Logout(w http.ResponseWriter, r *http.Request)
+	VerifyAccount(w http.ResponseWriter, r *http.Request)
+	ResendVerifyLink(w http.ResponseWriter, r *http.Request)
+}
+
+type authHandler struct {
 	service AuthService
 }
 
-func NewAuthHandler(service AuthService) *AuthHandler {
-	return &AuthHandler{
+func NewAuthHandler(service AuthService) AuthHandler {
+	return &authHandler{
 		service: service,
 	}
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req model.LoginRequest
 	if !utils.DecodeJSON(w, r, &req, "Login") {
 		return
@@ -39,7 +51,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, loginResponse, err)
 }
 
-func (h *AuthHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	var req model.SocialLoginRequest
 	if !utils.DecodeJSON(w, r, &req, "SocialLogin") {
 		return
@@ -54,7 +66,7 @@ func (h *AuthHandler) SocialLogin(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, loginResponse, err)
 }
 
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req model.RegisterRequest
 	if !utils.DecodeJSON(w, r, &req, "Register") {
 		return
@@ -77,7 +89,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, msg, err)
 }
 
-func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req model.ForgotPasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ForgotPassword") {
 		return
@@ -96,7 +108,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, msg, err)
 }
 
-func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req model.ResetPasswordRequest
 	if !utils.DecodeJSON(w, r, &req, "ResetPassword") {
 		return
@@ -111,7 +123,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, "Password reset successfully", err)
 }
 
-func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req model.RefreshTokenRequest
 	if !utils.DecodeJSON(w, r, &req, "RefreshToken") {
 		return
@@ -126,7 +138,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, loginResponse, err)
 }
 
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userID, err := utils.ParseUint(r.PathValue(c.FieldUserID))
 	if err != nil || userID == nil || *userID == 0 {
 		response.SendErrorJSON(w, "Invalid user ID", http.StatusBadRequest)
@@ -137,7 +149,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, "Logged out successfully", err)
 }
 
-func (h *AuthHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
 	var req model.ResendVerifyLinkRequest
 	if !utils.DecodeJSON(w, r, &req, "ResendVerifyLink") {
 		return
@@ -165,7 +177,7 @@ func (h *AuthHandler) ResendVerifyLink(w http.ResponseWriter, r *http.Request) {
 	response.SendApiResponse(w, msg, err)
 }
 
-func (h *AuthHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 	verificationToken := r.URL.Query().Get(c.UserVerificationToken)
 	if verificationToken == "" {
 		renderVerificationTemplate(w, false, "Verification token is required")

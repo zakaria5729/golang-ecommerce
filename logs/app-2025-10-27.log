@@ -162,3 +162,12 @@
 {"time":"2025-10-27T18:27:22.916916+06:00","level":"INFO","msg":"✅ END-REQUEST ✅","path":"/users/profile","http-method":"GET","duration":"1.641ms"}
 {"time":"2025-10-27T18:27:30.882658+06:00","level":"INFO","msg":"🟢 START-REQUEST 🟢","path":"/users/profile","http-method":"GET"}
 {"time":"2025-10-27T18:27:30.891272+06:00","level":"INFO","msg":"✅ END-REQUEST ✅","path":"/users/profile","http-method":"GET","duration":"8.615ms"}
+{"time":"2025-10-27T18:46:54.356667+06:00","level":"WARN","msg":"Environment file not found","file":".env.dev","path":"/Users/zakaria/Documents/Easy-Comerce/backend/.env.dev","error":"open /Users/zakaria/Documents/Easy-Comerce/backend/.env.dev: no such file or directory"}
+{"time":"2025-10-27T18:47:23.933291+06:00","level":"INFO","msg":"Config initialized successfully","env":"dev"}
+{"time":"2025-10-27T18:47:23.945072+06:00","level":"INFO","msg":"Database connected successfully","host":"localhost","port":"5432","username":"postgres","dbname":"easy_commerce_temp","env":"dev","show_log":"true"}
+{"time":"2025-10-27T18:47:23.953049+06:00","level":"INFO","msg":"User role ALREADY EXISTS","method":"createUserRoleIfNotExists","type":"USER"}
+{"time":"2025-10-27T18:47:24.024153+06:00","level":"INFO","msg":"Super Admin role ALREADY EXISTS","method":"createSuperAdminRoleIfNotExists","type":"SUPER_ADMIN"}
+{"time":"2025-10-27T18:47:24.025738+06:00","level":"INFO","msg":"Super Admin user ALREADY EXISTS","method":"createSuperAdminRoleAndUserIfNotExists","email":"super123@admin.com"}
+{"time":"2025-10-27T18:47:24.02723+06:00","level":"INFO","msg":"Server starting","port":"8080"}
+{"time":"2025-10-27T18:47:28.483031+06:00","level":"INFO","msg":"🟢 START-REQUEST 🟢","path":"/users/profile","http-method":"GET"}
+{"time":"2025-10-27T18:47:28.493305+06:00","level":"INFO","msg":"✅ END-REQUEST ✅","path":"/users/profile","http-method":"GET","duration":"10.282ms"}
