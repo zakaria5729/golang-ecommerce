@@ -1,5 +1,5 @@
 __debug_bin*
-*.log
+# *.log
 api-doc/*
 postman/*
 main

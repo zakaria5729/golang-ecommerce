@@ -7,8 +7,8 @@ const (
 	UserIDContextKey           StringKey = "user_id"
 	ObjStoreProviderR2         string    = "cloudflare_r2"
 	ProjectName                string    = "Easy-Commerce"
-	AppHealthCheckToken        string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
-	SocialLoginDefaultPassword string    = "social@login#password"
+	AppHealthCheckToken        string    = "abc3WZ2dfdfdfdfdfdfd9@ld!43~r3_ew*qT#yz"
+	SocialLoginDefaultPassword string    = "wew@logeewewein#passwoewewerd"
 )
 
 const (
