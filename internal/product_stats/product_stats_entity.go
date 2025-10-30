@@ -6,7 +6,7 @@ import (
 )
 
 type ProductStatsEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	ProductID               uint `gorm:"not null; column:product_id"`
 	ViewCount               uint `gorm:"not null; default:0; column:view_count"`
 	AddToCartCount          uint `gorm:"not null; default:0; column:add_to_cart_count"`

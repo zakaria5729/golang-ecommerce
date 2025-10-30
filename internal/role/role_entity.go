@@ -8,7 +8,7 @@ import (
 )
 
 type RoleEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	Description *string                       `json:"description" gorm:"column:description"`
 	RoleName    string                        `json:"role_name" gorm:"not null; column:role_name"`
 	RoleType    string                        `json:"role_type" gorm:"not null; column:role_type"`

@@ -7,7 +7,7 @@ import (
 )
 
 type BrandEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	Name        string  `gorm:"not null; column:name"`
 	Description *string `gorm:"column:description"`
 }

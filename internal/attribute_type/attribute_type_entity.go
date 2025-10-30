@@ -7,7 +7,7 @@ import (
 )
 
 type AttributeTypeEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	Name string `gorm:"column:name"`
 }
 

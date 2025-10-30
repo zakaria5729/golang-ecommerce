@@ -109,3 +109,8 @@ const (
 	MaxPriorityLimit       int = 100
 	SubcategoryDepthLimit  int = 10
 )
+
+const (
+	PhoneNumRegex string = `^(88)?01\d{9}$`
+	EmailRegex    string = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+)

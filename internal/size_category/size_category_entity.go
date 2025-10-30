@@ -7,7 +7,7 @@ import (
 )
 
 type SizeCategoryEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	Name string `gorm:"not null; column:name"`
 }
 

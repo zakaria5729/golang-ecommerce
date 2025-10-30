@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
+
+	c "github.com/easy-comerce/backend/pkg/constants"
 )
 
 type ValidationError struct {
@@ -52,7 +55,7 @@ func ValidateRequiredBool(value bool, fieldName string) ValidationErrors {
 func ValidateMinLength(value, fieldName string, minLength int) ValidationErrors {
 	var errors ValidationErrors
 	if len(strings.TrimSpace(value)) < minLength {
-		errors.AddError(fieldName, fmt.Sprintf("%s must be at least %d characters long", fieldName, minLength))
+		errors.AddError(fieldName, fmt.Sprintf("Invalid %s at least %d characters long", fieldName, minLength))
 	}
 	return errors
 }
@@ -69,7 +72,7 @@ func ValidateURL(value, fieldName string) ValidationErrors {
 	var errors ValidationErrors
 	if value != "" {
 		if _, err := url.ParseRequestURI(value); err != nil {
-			errors.AddError(fieldName, fmt.Sprintf("%s must be a valid URL", fieldName))
+			errors.AddError(fieldName, fmt.Sprintf("Invalid  a valid URL", fieldName))
 		}
 	}
 	return errors
@@ -86,10 +89,28 @@ func ValidateRegex(value, fieldName, pattern, message string) ValidationErrors {
 	return errors
 }
 
+func ValidateEmail(value string, fieldName string) ValidationErrors {
+	return ValidateRegex(value, fieldName, c.EmailRegex, "Invalid email format")
+}
+
+func ValidatePhone(value string, fieldName string) ValidationErrors {
+	return ValidateRegex(value, fieldName, c.PhoneNumRegex, "Invalid phone number format")
+}
+
+func ValidateContainsString(value string, fieldName string, strings []string) ValidationErrors {
+	var errors ValidationErrors
+
+	if !slices.Contains(strings, value) {
+		errors.AddError(fieldName, fmt.Sprintf("Invalid type %s", value))
+	}
+
+	return errors
+}
+
 func ValidatePositiveInteger(value uint, fieldName string) ValidationErrors {
 	var errors ValidationErrors
 	if value <= 0 {
-		errors.AddError(fieldName, fmt.Sprintf("%s must be a positive integer and greater than 0", fieldName))
+		errors.AddError(fieldName, fmt.Sprintf("Invalid  a positive integer and greater than 0", fieldName))
 	}
 	return errors
 }

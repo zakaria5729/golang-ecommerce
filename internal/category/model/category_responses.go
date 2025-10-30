@@ -3,7 +3,7 @@ package category
 import "github.com/easy-comerce/backend/pkg/base"
 
 type CategoryResponse struct {
-	base.BaseEntity
+	base.AuditEntity
 	SubTitle *string `json:"sub_title"`
 	ImageURL *string `json:"image_url"`
 	ParentID *uint   `json:"parent_id"`

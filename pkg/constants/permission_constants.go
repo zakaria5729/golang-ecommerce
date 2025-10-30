@@ -77,6 +77,11 @@ const (
 	PermissionSizeOptionUpdate     string = "size_option.update"
 	PermissionSizeOptionDelete     string = "size_option.delete"
 	PermissionSizeOptionUndoDelete string = "size_option.undo_delete"
+
+	PermissionContactInfoRead       string = "contact_info.read"
+	PermissionContactInfoUpdate     string = "contact_info.update"
+	PermissionContactInfoDelete     string = "contact_info.delete"
+	PermissionContactInfoUndoDelete string = "contact_info.undo_delete"
 )
 
 type PermissionDetails struct {
@@ -361,5 +366,23 @@ var PermissionMap = map[string]PermissionDetails{
 	PermissionSizeOptionUndoDelete: {
 		Desc:      "Undo Delete Size Option",
 		GroupName: "Size Option",
+	},
+
+	// Contact Info
+	PermissionContactInfoRead: {
+		Desc:      "Read Contact Info",
+		GroupName: "Contact Info",
+	},
+	PermissionContactInfoUpdate: {
+		Desc:      "Update Contact Info",
+		GroupName: "Contact Info",
+	},
+	PermissionContactInfoDelete: {
+		Desc:      "Delete Contact Info",
+		GroupName: "Contact Info",
+	},
+	PermissionContactInfoUndoDelete: {
+		Desc:      "Undo Delete Contact Info",
+		GroupName: "Contact Info",
 	},
 }

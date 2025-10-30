@@ -8,7 +8,7 @@ import (
 )
 
 type AttributeOptionEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	AttributeTypeID     *uint                               `gorm:"column:attribute_type_id"`
 	AttributeOptionName string                              `gorm:"column:attribute_option_name"`
 	AttributeType       *attribute_type.AttributeTypeEntity `gorm:"foreignKey:AttributeTypeID;references:ID"`

@@ -336,3 +336,15 @@ func GetProjectRootPath() string {
 	_, filename, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(filename), "..", "..")
 }
+
+func ExtractNameFromEmail(email string, capitalize bool) string {
+	at := strings.Index(email, "@")
+	if at == -1 {
+		return ""
+	}
+	name := email[:at]
+	if capitalize {
+		name = CapitalizeFirst(name)
+	}
+	return name
+}

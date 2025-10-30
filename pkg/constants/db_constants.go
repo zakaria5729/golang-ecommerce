@@ -30,7 +30,7 @@ const (
 	TableAttributeOption string = "attribute_options"
 	TableSizeCategory    string = "size_categories"
 	TableSizeOption      string = "size_options"
-	TableAnalytics       string = "analytics"
+	TableContactInfo     string = "contact_infos"
 )
 
 const (
@@ -150,4 +150,9 @@ const (
 const (
 	NotificationUserID string = "user_id"
 	NotificationIsRead string = "is_read"
+)
+
+const (
+	ContactInfoEmail string = "email"
+	ContactInfoType  string = "type"
 )

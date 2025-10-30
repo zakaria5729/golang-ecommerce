@@ -34,4 +34,5 @@ func RegisterAllRoutes(r *router.Router) {
 	RegisterSizeCategoryRoute(r, pm)
 	RegisterSizeOptionRoute(r, pm)
 	RegisterNotificationRoute(r, pm)
+	RegisterContactInfoRoute(r, pm)
 }

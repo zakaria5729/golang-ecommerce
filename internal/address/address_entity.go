@@ -6,7 +6,7 @@ import (
 )
 
 type AddressEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	UserID      uint    `gorm:"not null; column:user_id"`
 	State       *string `gorm:"column:state"`
 	ZipCode     *string `gorm:"column:zip_code"`

@@ -6,7 +6,7 @@ import (
 )
 
 type Notification struct {
-	base.BaseEntity
+	base.AuditEntity
 	UserID  uint   `json:"user_id" gorm:"index; column:user_id"`
 	Title   string `json:"title" gorm:"column:message"`
 	Message string `json:"message" gorm:"column:message"`
@@ -25,7 +25,3 @@ type FCMPayload struct {
 	Title string `json:"title"`
 	Body  string `json:"body"`
 }
-
-const (
-	TypeGeneral string = "GENERAL"
-)

@@ -14,7 +14,7 @@ import (
 )
 
 type UserEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	PasswordResetExpires *time.Time        `gorm:"column:password_reset_expires"`
 	VerificationExpires  *time.Time        `gorm:"column:verification_expires"`
 	RefreshTokenExpires  *time.Time        `gorm:"column:refresh_token_expires"`

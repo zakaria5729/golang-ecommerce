@@ -6,7 +6,7 @@ import (
 )
 
 type WishlistEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	UserID    uint `gorm:"not null; column:user_id"`
 	ProductID uint `gorm:"not null; column:product_id"`
 }

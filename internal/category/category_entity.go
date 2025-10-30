@@ -9,7 +9,7 @@ import (
 )
 
 type CategoryEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	SubTitle *string `gorm:"column:sub_title"`
 	ParentID *uint   `gorm:"column:parent_id"`
 	Priority *uint   `gorm:"column:priority"`
@@ -36,11 +36,11 @@ func (c *CategoryEntity) Sanitize() {
 
 func (c *CategoryEntity) ToResponse() *m.CategoryResponse {
 	return &m.CategoryResponse{
-		BaseEntity: c.BaseEntity,
-		Title:      c.Title,
-		SubTitle:   c.SubTitle,
-		ParentID:   c.ParentID,
-		Priority:   c.Priority,
-		ImageURL:   utils.BuildFullImageURL(config.GetStorageDomain(), c.PathKey),
+		AuditEntity: c.AuditEntity,
+		Title:       c.Title,
+		SubTitle:    c.SubTitle,
+		ParentID:    c.ParentID,
+		Priority:    c.Priority,
+		ImageURL:    utils.BuildFullImageURL(config.GetStorageDomain(), c.PathKey),
 	}
 }

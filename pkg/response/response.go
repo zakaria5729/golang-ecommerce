@@ -33,7 +33,7 @@ func SendErrorJSON(w http.ResponseWriter, message string, statusCode ...int) {
 	sendJSON(w, response, code)
 }
 
-func SendValidationErrorJSON(w http.ResponseWriter, message string, validationErrors []validator.ValidationError, statusCode ...int) {
+func SendValidationErrorJSON(w http.ResponseWriter, message string, validationErrors validator.ValidationErrors, statusCode ...int) {
 	code := http.StatusBadRequest
 	if len(statusCode) > 0 {
 		code = statusCode[0]

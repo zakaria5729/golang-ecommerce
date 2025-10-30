@@ -7,7 +7,7 @@ import (
 )
 
 type ReviewEntity struct {
-	base.BaseEntity
+	base.AuditEntity
 	ProductID uint    `gorm:"not null; column:product_id"`
 	UserID    uint    `gorm:"not null; column:user_id"`
 	Comment   *string `gorm:"column:comment"`
