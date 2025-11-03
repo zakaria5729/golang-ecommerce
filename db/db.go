@@ -33,6 +33,26 @@ func GetDB() *gorm.DB {
 	return db
 }
 
+func CloseDB() {
+	if db == nil {
+		return
+	}
+
+	sqlDb, err := db.DB()
+	if err != nil {
+		logger.Logger.Error("❌ Failed to get database instance", "error", err)
+		return
+	}
+
+	if err := sqlDb.Close(); err != nil {
+		logger.Logger.Error("❌ Database connection closing failed", "error", err)
+		return
+	}
+
+	logger.Logger.Info("Database connection closed successfully")
+	db = nil
+}
+
 func loadDB() *gorm.DB {
 	cfg := config.GetConfig()
 	dsn := fmt.Sprintf(
@@ -50,7 +70,6 @@ func loadDB() *gorm.DB {
 		logMode = gormLogger.Info
 	}
 
-	var err error
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormLogger.Default.LogMode(logMode),
 		NowFunc: func() time.Time {
