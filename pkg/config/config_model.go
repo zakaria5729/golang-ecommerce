@@ -9,6 +9,7 @@ type Config struct {
 }
 
 type AppConfig struct {
+	Host                       string
 	Port                       string
 	DomainURL                  string
 	SuperAdminEmail            string
@@ -17,13 +18,13 @@ type AppConfig struct {
 }
 
 type DBConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
-	ShowLog  string
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPassword string
+	DBName     string
+	DBSSLMode  string
+	DBShowLog  string
 }
 
 type SecretConfig struct {
