@@ -1,7 +1,6 @@
 package constants
 
 const (
-	EnvKeyPort       string = "PORT"
 	EnvKeyDBHost     string = "DB_HOST"
 	EnvKeyDBPort     string = "DB_PORT"
 	EnvKeyDBUser     string = "DB_USER"

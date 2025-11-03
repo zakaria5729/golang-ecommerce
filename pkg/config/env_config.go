@@ -32,11 +32,12 @@ func GetConfig() *Config {
 }
 
 func GetActiveProfile() string {
-	return getEnv(c.EnvKeyActiveProfile, c.EnvDev)
+	return getEnv(c.EnvKeyActiveProfile, c.EnvStage)
 }
 
 func loadConfig() *Config {
 	envVars := []string{
+		c.EnvKeyHost,
 		c.EnvKeyPort,
 		c.EnvKeyDBHost,
 		c.EnvKeyDBPort,
@@ -50,12 +51,17 @@ func loadConfig() *Config {
 		c.EnvKeyFcmServerKey,
 		c.EnvKeyFcmUrl,
 		c.EnvKeyGoogleClientID,
+		c.EnvKeyFacebookAppID,
 		c.EnvKeyObjStoreRegion,
 		c.EnvKeyObjStoreBucketName,
 		c.EnvKeyObjStoreAccountID,
 		c.EnvKeyObjStoreAccessKeyID,
 		c.EnvKeyObjStoreAccessKeySecret,
 		c.EnvKeyObjStorePublicDomain,
+		c.EnvKeySocialLoginDefaultPassword,
+		c.EnvKeyAppHealthCheckToken,
+		c.EnvSuperAdminEmail,
+		c.EnvSuperAdminPassword,
 	}
 	for _, envVar := range envVars {
 		os.Unsetenv(envVar)
@@ -80,6 +86,7 @@ func loadConfig() *Config {
 
 	config := &Config{
 		AppConfig: AppConfig{
+			Host:                       getEnvWithPanic(c.EnvKeyHost),
 			Port:                       getEnvWithPanic(c.EnvKeyPort),
 			DomainURL:                  getEnv(c.EnvKeyDomainURL, ""),
 			SuperAdminEmail:            getEnvWithPanic(c.EnvSuperAdminEmail),
@@ -87,17 +94,17 @@ func loadConfig() *Config {
 			SocialLoginDefaultPassword: getEnvWithPanic(c.EnvKeySocialLoginDefaultPassword),
 		},
 		DBConfig: DBConfig{
-			Host:     getEnvWithPanic(c.EnvKeyDBHost),
-			Port:     getEnvWithPanic(c.EnvKeyDBPort),
-			User:     getEnvWithPanic(c.EnvKeyDBUser),
-			Password: getEnvWithPanic(c.EnvKeyDBPassword),
-			Name:     getEnvWithPanic(c.EnvKeyDBName),
-			SSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
-			ShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
+			DBHost:     getEnvWithPanic(c.EnvKeyDBHost),
+			DBPort:     getEnvWithPanic(c.EnvKeyDBPort),
+			DBUser:     getEnvWithPanic(c.EnvKeyDBUser),
+			DBPassword: getEnvWithPanic(c.EnvKeyDBPassword),
+			DBName:     getEnvWithPanic(c.EnvKeyDBName),
+			DBSSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
+			DBShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
 		},
 		SecretConfig: SecretConfig{
 			JWTSecret:           getEnvWithPanic(c.EnvKeyJWTSecret),
-			AppHealthCheckToken: getEnv(c.EnvKeyAppHealthCheckToken, ""),
+			AppHealthCheckToken: getEnvWithPanic(c.EnvKeyAppHealthCheckToken),
 		},
 		ExtServiceConfig: ExternalServiceConfig{
 			FcmServerKey:   getEnv(c.EnvKeyFcmServerKey, ""),

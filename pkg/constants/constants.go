@@ -10,6 +10,8 @@ const (
 )
 
 const (
+	EnvKeyPort             string = "PORT"
+	EnvKeyHost             string = "HOST"
 	EnvKeyActiveProfile    string = "ACTIVE_PROFILE"
 	EnvActiveObjectStorage string = ObjStoreProviderR2
 )
