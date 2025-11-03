@@ -54,19 +54,19 @@ func CloseDB() {
 }
 
 func loadDB() *gorm.DB {
-	cfg := config.GetConfig()
+	cfg := config.GetConfig().DBConfig
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
-		cfg.DBHost,
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DBName,
-		cfg.DBPort,
-		cfg.DBSSLMode,
+		cfg.Host,
+		cfg.User,
+		cfg.Password,
+		cfg.Name,
+		cfg.Port,
+		cfg.SSLMode,
 	)
 
 	logMode := gormLogger.Error
-	if cfg.DBShowLog == "true" {
+	if cfg.ShowLog == "true" {
 		logMode = gormLogger.Info
 	}
 
@@ -78,10 +78,10 @@ func loadDB() *gorm.DB {
 	})
 
 	if err != nil {
-		logger.Logger.Error("❌ Database connection failed", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
+		logger.Logger.Error("❌ Database connection failed", "error", err, "host", cfg.Host, "port", cfg.Port, "username", cfg.User, "dbname", cfg.Name, "env", config.GetActiveProfile(), "show_log", cfg.ShowLog)
 		panic(err)
 	}
 
-	logger.Logger.Info("Database connection successful", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
+	logger.Logger.Info("Database connection successful", "host", cfg.Host, "port", cfg.Port, "username", cfg.User, "dbname", cfg.Name, "env", config.GetActiveProfile(), "show_log", cfg.ShowLog)
 	return gormDB
 }

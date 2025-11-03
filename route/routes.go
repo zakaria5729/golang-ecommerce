@@ -14,7 +14,7 @@ func RegisterAllRoutes(r *router.Router) {
 	cfg := config.GetConfig()
 	userRepo := user.NewUserRepository(db)
 	permissionRepo := p.NewPermissionRepository(db)
-	pm := m.NewPermissionMiddleware(cfg.JWTSecret, userRepo, permissionRepo)
+	pm := m.NewPermissionMiddleware(cfg.SecretConfig.JWTSecret, userRepo, permissionRepo)
 
 	RegisterSystemRoute(r, pm)
 	RegisterAuthRoute(r, pm)

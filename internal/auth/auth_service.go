@@ -101,7 +101,7 @@ func (s *authService) SocialLogin(req *model.SocialLoginRequest) (*model.LoginRe
 
 	newUser := &user.UserEntity{
 		Email:    email,
-		Password: c.SocialLoginDefaultPassword,
+		Password: config.GetConfig().AppConfig.SocialLoginDefaultPassword,
 		Name:     name,
 		Verified: true,
 		Banned:   false,
@@ -145,7 +145,7 @@ func (s *authService) Register(req *model.RegisterRequest) (*userModel.UserRespo
 	verificationToken, _ := setVerificationToken(createdUser.ID, s.userRepo)
 	userResponse := createdUser.ToResponse()
 	if config.GetActiveProfile() != c.EnvProd {
-		link := config.GetConfig().DomainURL + "/auth/verify-account?verification_token=" + verificationToken
+		link := config.GetConfig().AppConfig.DomainURL + "/auth/verify-account?verification_token=" + verificationToken
 		userResponse.VerificationLink = &link
 	}
 
@@ -179,7 +179,7 @@ func (s *authService) ResetPassword(req *model.ResetPasswordRequest) error {
 		return e.NewServerError("invalid or expired reset token")
 	}
 
-	if user.Email == config.GetConfig().SuperAdminEmail {
+	if user.Email == config.GetConfig().AppConfig.SuperAdminEmail {
 		return errors.New("can not reset super admin password")
 	}
 
@@ -263,7 +263,7 @@ func (s *authService) ResendVerifyLink(req *model.ResendVerifyLinkRequest) (veri
 		}
 
 		if config.GetActiveProfile() != c.EnvProd {
-			return config.GetConfig().DomainURL + "/auth/verify-account?verification_token=" + verificationToken, false, nil
+			return config.GetConfig().AppConfig.DomainURL + "/auth/verify-account?verification_token=" + verificationToken, false, nil
 		}
 	}
 
@@ -341,7 +341,7 @@ func setVerificationToken(userID uint, userRepo user.UserRepository) (string, er
 }
 
 func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl *string, err error) {
-	googleClientId := config.GetConfig().GoogleClientID
+	googleClientId := config.GetConfig().ExtServiceConfig.GoogleClientID
 	if googleClientId == "" {
 		return "", "", nil, errors.New("Google login is not properly configured")
 	}
@@ -376,7 +376,7 @@ func getUserInfoFromGoogle(idToken string) (name string, email string, imageUrl 
 }
 
 func getUserInfoFromFacebook(accessToken string) (name string, email string, imageUrl *string, err error) {
-	facebookAppID := config.GetConfig().FacebookAppID
+	facebookAppID := config.GetConfig().ExtServiceConfig.FacebookAppID
 	if facebookAppID == "" {
 		return "", "", nil, errors.New("Facebook login is not properly configured")
 	}

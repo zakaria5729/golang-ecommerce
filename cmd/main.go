@@ -38,11 +38,11 @@ func main() {
 
 	server := &http.Server{
 		Handler: handler,
-		Addr:    ":" + cfg.Port,
+		Addr:    ":" + cfg.AppConfig.Port,
 	}
 
 	go func() {
-		l.Logger.Info("Server starting", "port", cfg.Port)
+		l.Logger.Info("Server starting", "port", cfg.AppConfig.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			l.Logger.Error("❌ Server error", "error", err)
 		}

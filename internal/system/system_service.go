@@ -142,9 +142,9 @@ func (s *systemService) DeleteSystemLogFile(fileName string) error {
 func (s *systemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		conf := &oauth2.Config{
-			ClientID:     s.cfg.GoogleClientID,
+			ClientID:     s.cfg.ExtServiceConfig.GoogleClientID,
 			ClientSecret: "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",
-			RedirectURL:  fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeGoogle),
+			RedirectURL:  fmt.Sprintf(s.cfg.AppConfig.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeGoogle),
 			Scopes:       []string{"openid", "email", "profile"},
 			Endpoint:     google.Endpoint,
 		}
@@ -162,9 +162,9 @@ func (s *systemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 			return
 		}
 
-		clientID := s.cfg.GoogleClientID
+		clientID := s.cfg.ExtServiceConfig.GoogleClientID
 		clientSecret := "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"
-		redirectURL := fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeGoogle)
+		redirectURL := fmt.Sprintf(s.cfg.AppConfig.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeGoogle)
 
 		conf := &oauth2.Config{
 			ClientID:     clientID,
@@ -187,9 +187,9 @@ func (s *systemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 func (s *systemService) HandleFacebookLoginTemp(w http.ResponseWriter, r *http.Request) {
 	if config.GetActiveProfile() != c.EnvProd {
 		conf := &oauth2.Config{
-			ClientID:     s.cfg.FacebookAppID,
+			ClientID:     s.cfg.ExtServiceConfig.FacebookAppID,
 			ClientSecret: "ce26f2b347e99cc70d4c9f3b4b8b0bbd",
-			RedirectURL:  fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
+			RedirectURL:  fmt.Sprintf(s.cfg.AppConfig.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
 			Scopes:       []string{"email"},
 			Endpoint:     facebook.Endpoint,
 		}
@@ -208,9 +208,9 @@ func (s *systemService) HandleFacebookLoginCallbackTemp(w http.ResponseWriter, r
 		}
 
 		conf := &oauth2.Config{
-			ClientID:     s.cfg.FacebookAppID,
+			ClientID:     s.cfg.ExtServiceConfig.FacebookAppID,
 			ClientSecret: "ce26f2b347e99cc70d4c9f3b4b8b0bbd",
-			RedirectURL:  fmt.Sprintf(s.cfg.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
+			RedirectURL:  fmt.Sprintf(s.cfg.AppConfig.DomainURL+"/system/social-flow/callback?auth_type=%s", c.AuthTypeFacebook),
 			Scopes:       []string{"email"},
 			Endpoint:     facebook.Endpoint,
 		}

@@ -36,7 +36,7 @@ func (h *systemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if req.HealthToken != nil && *req.HealthToken == c.AppHealthCheckToken {
+	if req.HealthToken != nil && *req.HealthToken == config.GetConfig().SecretConfig.AppHealthCheckToken {
 		healthResponse := h.service.SystemHealthCheck(r.Context())
 		response.SendResponse(w, healthResponse, nil, http.StatusOK)
 		return

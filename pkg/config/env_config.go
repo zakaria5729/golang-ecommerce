@@ -66,6 +66,8 @@ func loadConfig() *Config {
 		envFileName = ".env.stage"
 	case c.EnvProd:
 		envFileName = ".env.prod"
+	case c.EnvLocal:
+		envFileName = ".env.local"
 	default:
 		envFileName = ".env.dev"
 	}
@@ -77,23 +79,33 @@ func loadConfig() *Config {
 	}
 
 	config := &Config{
-		Port:               getEnvWithPanic(c.EnvKeyPort),
-		DBHost:             getEnvWithPanic(c.EnvKeyDBHost),
-		DBPort:             getEnvWithPanic(c.EnvKeyDBPort),
-		DBUser:             getEnvWithPanic(c.EnvKeyDBUser),
-		DBPassword:         getEnvWithPanic(c.EnvKeyDBPassword),
-		DBName:             getEnvWithPanic(c.EnvKeyDBName),
-		DBSSLMode:          getEnvWithPanic(c.EnvKeyDBSSLMode),
-		DBShowLog:          getEnvWithPanic(c.EnvKeyDBShowLog),
-		JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
-		DomainURL:          getEnv(c.EnvKeyDomainURL, ""),
-		FcmServerKey:       getEnv(c.EnvKeyJWTSecret, ""),
-		FcmUrl:             getEnv(c.EnvKeyJWTSecret, ""),
-		GoogleClientID:     getEnv(c.EnvKeyGoogleClientID, ""),
-		FacebookAppID:      getEnv(c.EnvKeyFacebookAppID, ""),
-		SuperAdminEmail:    getEnvWithPanic(c.EnvSuperAdminEmail),
-		SuperAdminPassword: getEnvWithPanic(c.EnvSuperAdminPassword),
-		ObjStore: ObjectStoreConfig{
+		AppConfig: AppConfig{
+			Port:                       getEnvWithPanic(c.EnvKeyPort),
+			DomainURL:                  getEnv(c.EnvKeyDomainURL, ""),
+			SuperAdminEmail:            getEnvWithPanic(c.EnvSuperAdminEmail),
+			SuperAdminPassword:         getEnvWithPanic(c.EnvSuperAdminPassword),
+			SocialLoginDefaultPassword: getEnvWithPanic(c.EnvKeySocialLoginDefaultPassword),
+		},
+		DBConfig: DBConfig{
+			Host:     getEnvWithPanic(c.EnvKeyDBHost),
+			Port:     getEnvWithPanic(c.EnvKeyDBPort),
+			User:     getEnvWithPanic(c.EnvKeyDBUser),
+			Password: getEnvWithPanic(c.EnvKeyDBPassword),
+			Name:     getEnvWithPanic(c.EnvKeyDBName),
+			SSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
+			ShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
+		},
+		SecretConfig: SecretConfig{
+			JWTSecret:           getEnvWithPanic(c.EnvKeyJWTSecret),
+			AppHealthCheckToken: getEnv(c.EnvKeyAppHealthCheckToken, ""),
+		},
+		ExtServiceConfig: ExternalServiceConfig{
+			FcmServerKey:   getEnv(c.EnvKeyFcmServerKey, ""),
+			FcmUrl:         getEnv(c.EnvKeyFcmUrl, ""),
+			GoogleClientID: getEnv(c.EnvKeyGoogleClientID, ""),
+			FacebookAppID:  getEnv(c.EnvKeyFacebookAppID, ""),
+		},
+		ObjStoreConfig: ObjectStoreConfig{
 			Region:          getEnvWithPanic(c.EnvKeyObjStoreRegion),
 			BucketName:      getEnvWithPanic(c.EnvKeyObjStoreBucketName),
 			AccountID:       getEnvWithPanic(c.EnvKeyObjStoreAccountID),
@@ -103,12 +115,39 @@ func loadConfig() *Config {
 		},
 	}
 
+	// config := &Config{
+	// 	Port:               getEnvWithPanic(c.EnvKeyPort),
+	// 	DBHost:             getEnvWithPanic(c.EnvKeyDBHost),
+	// 	DBPort:             getEnvWithPanic(c.EnvKeyDBPort),
+	// 	DBUser:             getEnvWithPanic(c.EnvKeyDBUser),
+	// 	DBPassword:         getEnvWithPanic(c.EnvKeyDBPassword),
+	// 	DBName:             getEnvWithPanic(c.EnvKeyDBName),
+	// 	DBSSLMode:          getEnvWithPanic(c.EnvKeyDBSSLMode),
+	// 	DBShowLog:          getEnvWithPanic(c.EnvKeyDBShowLog),
+	// 	JWTSecret:          getEnvWithPanic(c.EnvKeyJWTSecret),
+	// 	DomainURL:          getEnv(c.EnvKeyDomainURL, ""),
+	// 	FcmServerKey:       getEnv(c.EnvKeyJWTSecret, ""),
+	// 	FcmUrl:             getEnv(c.EnvKeyJWTSecret, ""),
+	// 	GoogleClientID:     getEnv(c.EnvKeyGoogleClientID, ""),
+	// 	FacebookAppID:      getEnv(c.EnvKeyFacebookAppID, ""),
+	// 	SuperAdminEmail:    getEnvWithPanic(c.EnvSuperAdminEmail),
+	// 	SuperAdminPassword: getEnvWithPanic(c.EnvSuperAdminPassword),
+	// 	ObjStore: ObjectStoreConfig{
+	// 		Region:          getEnvWithPanic(c.EnvKeyObjStoreRegion),
+	// 		BucketName:      getEnvWithPanic(c.EnvKeyObjStoreBucketName),
+	// 		AccountID:       getEnvWithPanic(c.EnvKeyObjStoreAccountID),
+	// 		AccessKeyID:     getEnvWithPanic(c.EnvKeyObjStoreAccessKeyID),
+	// 		AccessKeySecret: getEnvWithPanic(c.EnvKeyObjStoreAccessKeySecret),
+	// 		PublicDomain:    getEnvWithPanic(c.EnvKeyObjStorePublicDomain),
+	// 	},
+	// }
+
 	l.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
 	return config
 }
 
 func GetStorageDomain() string {
-	storageDomain := GetConfig().ObjStore.PublicDomain
+	storageDomain := GetConfig().ObjStoreConfig.PublicDomain
 	if storageDomain == "" {
 		storageDomain = getEnv(c.EnvKeyObjStorePublicDomain, "")
 	}

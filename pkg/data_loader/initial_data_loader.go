@@ -75,8 +75,8 @@ func createSuperAdminRoleAndUserIfNotExists(pr p.PermissionRepository, rr role.R
 
 func getSuperAdminCredentials() (string, string, error) {
 	cfg := config.GetConfig()
-	superAdminEmail := cfg.SuperAdminEmail
-	superAdminPassword := cfg.SuperAdminPassword
+	superAdminEmail := cfg.AppConfig.SuperAdminEmail
+	superAdminPassword := cfg.AppConfig.SuperAdminPassword
 
 	err, hashedPassword := utils.HashPassword(superAdminPassword)
 	if err != nil || hashedPassword == "" {

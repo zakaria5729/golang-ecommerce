@@ -3,12 +3,10 @@ package constants
 type StringKey string
 
 const (
-	UserContextKey             StringKey = "user"
-	UserIDContextKey           StringKey = "user_id"
-	ObjStoreProviderR2         string    = "cloudflare_r2"
-	ProjectName                string    = "Easy-Commerce"
-	AppHealthCheckToken        string    = "abc3WZ29@ld!43~r3_ew*qT#yz"
-	SocialLoginDefaultPassword string    = "social@login#password"
+	UserContextKey     StringKey = "user"
+	UserIDContextKey   StringKey = "user_id"
+	ObjStoreProviderR2 string    = "cloudflare_r2"
+	ProjectName        string    = "Easy-Commerce"
 )
 
 const (
@@ -17,14 +15,16 @@ const (
 )
 
 const (
-	EnvSuperAdminEmail    string = "SUPER_ADMIN_EMAIL"
-	EnvSuperAdminPassword string = "SUPER_ADMIN_PASSWORD"
-	EnvKeyDomainURL       string = "DOMAIN_URL"
-	EnvKeyJWTSecret       string = "JWT_SECRET"
-	EnvKeyFcmUrl          string = "FCM_URL"
-	EnvKeyFcmServerKey    string = "FCM_SERVER_KEY"
-	EnvKeyFacebookAppID   string = "FACEBOOK_APP_ID"
-	EnvKeyGoogleClientID  string = "GOOGLE_CLIENT_ID"
+	EnvSuperAdminEmail               string = "SUPER_ADMIN_EMAIL"
+	EnvSuperAdminPassword            string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyDomainURL                  string = "DOMAIN_URL"
+	EnvKeyJWTSecret                  string = "JWT_SECRET"
+	EnvKeyFcmUrl                     string = "FCM_URL"
+	EnvKeyFcmServerKey               string = "FCM_SERVER_KEY"
+	EnvKeyFacebookAppID              string = "FACEBOOK_APP_ID"
+	EnvKeyGoogleClientID             string = "GOOGLE_CLIENT_ID"
+	EnvKeyAppHealthCheckToken        string = "APP_HEALTH_CHECK_TOKEN"
+	EnvKeySocialLoginDefaultPassword string = "SOCIAL_LOGIN_DEFAULT_PASSWORD"
 )
 
 const (
@@ -61,6 +61,7 @@ const (
 )
 
 const (
+	EnvLocal string = "local"
 	EnvDev   string = "dev"
 	EnvStage string = "stage"
 	EnvProd  string = "prod"

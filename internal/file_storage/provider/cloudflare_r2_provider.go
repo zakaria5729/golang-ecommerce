@@ -28,7 +28,7 @@ type CloudflareR2Provider struct {
 }
 
 func NewCloudflareR2Provider() (*CloudflareR2Provider, error) {
-	cfg := config.GetConfig().ObjStore
+	cfg := config.GetConfig().ObjStoreConfig
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(),
 		awsconfig.WithRegion(cfg.Region),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(

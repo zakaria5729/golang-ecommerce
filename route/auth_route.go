@@ -15,7 +15,7 @@ func RegisterAuthRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	cfg := config.GetConfig()
 	userRepo := user.NewUserRepository(db)
 	roleRepo := role.NewRoleRepository(db)
-	service := auth.NewAuthService(cfg.JWTSecret, userRepo, roleRepo)
+	service := auth.NewAuthService(cfg.SecretConfig.JWTSecret, userRepo, roleRepo)
 	h := auth.NewAuthHandler(service)
 
 	r.POST("/auth/login", h.Login).Register()
