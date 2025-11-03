@@ -124,9 +124,6 @@ func (s *authService) Register(req *model.RegisterRequest) (*userModel.UserRespo
 	req.Email = utils.Trim(strings.ToLower(req.Email))
 
 	exists, err := s.userRepo.IsUserExists(req.Email)
-	if err != nil {
-		return nil, err
-	}
 	if exists {
 		return nil, errors.New("user with this email already exists")
 	}
