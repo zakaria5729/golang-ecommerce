@@ -37,6 +37,6 @@ func main() {
 
 	l.Logger.Info("Server starting", "port", cfg.Port)
 	if err := server.ListenAndServe(); err != nil {
-		l.Logger.Error("❌ Failed to start server", "error", err, "port", cfg.Port)
+		l.Logger.Error("❌ Server starting failed", "error", err, "port", cfg.Port)
 	}
 }
