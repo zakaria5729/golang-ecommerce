@@ -82,6 +82,17 @@ func loadDB() *gorm.DB {
 		panic(err)
 	}
 
+	sqlDB, err := gormDB.DB()
+	if err != nil || sqlDB == nil {
+		logger.Logger.Error("❌ Failed to get database instance", "error", err)
+		panic(err)
+	}
+
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(20)
+	sqlDB.SetConnMaxLifetime(1 * time.Hour)
+	sqlDB.SetConnMaxIdleTime(15 * time.Minute)
+
 	logger.Logger.Info("Database connection successful", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 	return gormDB
 }
