@@ -88,8 +88,8 @@ func loadDB() *gorm.DB {
 		panic(err)
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(35)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(20)
 	sqlDB.SetConnMaxLifetime(1 * time.Hour)
 	sqlDB.SetConnMaxIdleTime(15 * time.Minute)
 
