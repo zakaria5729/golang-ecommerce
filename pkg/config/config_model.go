@@ -46,6 +46,7 @@ type ObjectStoreConfig struct {
 	AccessKeySecret string
 	PublicDomain    string
 }
+<<<<<<< HEAD
 
 // type Config struct {
 // 	Port                       string
@@ -77,3 +78,5 @@ type ObjectStoreConfig struct {
 // 	AccessKeySecret string
 // 	PublicDomain    string
 // }
+=======
+>>>>>>> 930864ae816b312ba19eeb0fd7b8763f7726aac3
