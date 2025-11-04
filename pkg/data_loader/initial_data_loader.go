@@ -149,7 +149,7 @@ func createSuperAdminRoleIfNotExists(roleRepo role.RoleRepository, permissionRep
 
 		logger.Logger.Info("Super Admin role CREATED SUCCESSFULLY", "method", "createSuperAdminRoleIfNotExists", "type", c.RoleTypeSuperAdmin)
 	} else {
-		err = roleRepo.AddPermissionsToRole(superAdminRole.ID, allPermissionNames, showDeleted)
+		err = roleRepo.AppendPermissionsToRole(superAdminRole.ID, allPermissionNames, showDeleted)
 		if err != nil {
 			logger.Logger.Error("❌ Failed to add permissions to super admin role", "method", "createSuperAdminRoleIfNotExists", "error", err)
 			return nil, err
@@ -190,7 +190,7 @@ func createUserRoleIfNotExists(roleRepo role.RoleRepository, permissionRepo p.Pe
 
 		logger.Logger.Info("User role CREATED SUCCESSFULLY", "method", "createUserRoleIfNotExists", "type", c.RoleTypeUser)
 	} else {
-		err = roleRepo.AddPermissionsToRole(userRole.ID, []string{c.PermissionGeneralUser}, showDeleted)
+		err = roleRepo.AppendPermissionsToRole(userRole.ID, []string{c.PermissionGeneralUser}, showDeleted)
 		if err != nil {
 			logger.Logger.Error("❌ Failed to add permissions to user role", "method", "createUserRoleIfNotExists", "error", err)
 			return err

@@ -18,7 +18,7 @@ type RoleHandler interface {
 	DeleteRole(w http.ResponseWriter, r *http.Request)
 	UndoDeletedRole(w http.ResponseWriter, r *http.Request)
 	AssignRoleToUser(w http.ResponseWriter, r *http.Request)
-	AddPermissionsToRole(w http.ResponseWriter, r *http.Request)
+	AppendPermissionsToRole(w http.ResponseWriter, r *http.Request)
 }
 
 type roleHandler struct {
@@ -131,19 +131,19 @@ func (h *roleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 	response.SendResponse(w, "Roles assigned successfully", err, http.StatusInternalServerError)
 }
 
-func (h *roleHandler) AddPermissionsToRole(w http.ResponseWriter, r *http.Request) {
-	var req model.AddPermissionsToRoleRequest
-	if !utils.DecodeJSON(w, r, &req, "AddPermissionsToRole") {
+func (h *roleHandler) AppendPermissionsToRole(w http.ResponseWriter, r *http.Request) {
+	var req model.AppendPermissionsToRoleRequest
+	if !utils.DecodeJSON(w, r, &req, "AppendPermissionsToRole") {
 		return
 	}
 
-	if validationErrors := validateAddPermissionsToRoleRequest(&req); len(validationErrors) > 0 {
+	if validationErrors := validateAppendPermissionsToRoleRequest(&req); len(validationErrors) > 0 {
 		response.SendValidationErrorJSON(w, "Validation failed", validationErrors)
 		return
 	}
 
-	err := h.service.AddPermissionsToRole(req.RoleID, &req)
-	response.SendResponse(w, "Permissions added to role successfully", err, http.StatusInternalServerError)
+	err := h.service.AppendPermissionsToRole(req.RoleID, &req)
+	response.SendResponse(w, "Permissions appended to role successfully", err, http.StatusInternalServerError)
 }
 
 func validateCreateRoleRequest(req *model.CreateRoleRequest) validator.ValidationErrors {
@@ -170,7 +170,7 @@ func validateAssignRoleRequest(req *model.AssignRoleRequest) validator.Validatio
 	)
 }
 
-func validateAddPermissionsToRoleRequest(req *model.AddPermissionsToRoleRequest) validator.ValidationErrors {
+func validateAppendPermissionsToRoleRequest(req *model.AppendPermissionsToRoleRequest) validator.ValidationErrors {
 	return validator.MergeValidationErrors(
 		validator.ValidatePositiveInteger(req.RoleID, "role_id"),
 		validator.ValidateRequiredBool(len(req.PermissionIds) > 0, "permission_ids"),
