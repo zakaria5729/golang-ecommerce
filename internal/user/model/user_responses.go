@@ -8,7 +8,7 @@ import (
 )
 
 type UserResponse struct {
-	base.BaseEntity
+	AuditEntity      base.AuditEntity
 	LastLoginAt      *time.Time        `json:"last_login_at"`
 	ImageURL         *string           `json:"image_url"`
 	Roles            []role.RoleEntity `json:"roles"`

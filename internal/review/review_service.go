@@ -18,8 +18,8 @@ type ReviewService interface {
 	UpdateReview(ctx context.Context, id uint, userID *uint, rating int, comment string) error
 	UndoDeletedReview(ctx context.Context, idStr string) error
 	DeleteReview(ctx context.Context, idStr string, userID *uint) error
-	GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
-	GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error)
+	GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy string, sortOrder string) (*r.PaginatedResponse, error)
+	GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy string, sortOrder string) (*r.PaginatedResponse, error)
 	GetProductRatingStats(productID uint, showDeleted *bool) (*m.ProductRatingStatsResponse, error)
 }
 
@@ -146,7 +146,7 @@ func (s *reviewService) DeleteReview(ctx context.Context, idStr string, userID *
 	return nil
 }
 
-func (s *reviewService) GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
+func (s *reviewService) GetReviewsByProduct(productID uint, showDeleted *bool, ratingFilter string, pageStr string, pageSizeStr string, sortBy string, sortOrder string) (*r.PaginatedResponse, error) {
 	rating, _ := utils.ParseInt(ratingFilter)
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 

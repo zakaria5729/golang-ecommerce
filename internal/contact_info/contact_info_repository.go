@@ -35,9 +35,9 @@ func (r *contactInfoRepository) CreateContactInfo(contactInfo *ContactInfoEntity
 
 func (r *contactInfoRepository) UpdateContactInfo(id uint, contactInfo *ContactInfoEntity) error {
 	if err := r.db.Where(c.FieldID+" = ?", id).Updates(contactInfo).Error; err != nil {
-		l.Logger.Error("❌ Failed to update contact info", "method", "UpdateContactInfo", "error", err)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			l.Logger.Error("❌ Failed to update contact info", "method", "UpdateContactInfo", "error", err)
 			return e.WrapServerError("Failed to update contact info", err)
 		}
 		return err
@@ -48,9 +48,9 @@ func (r *contactInfoRepository) UpdateContactInfo(id uint, contactInfo *ContactI
 func (r *contactInfoRepository) GetContactInfoByEmail(email string) (*ContactInfoEntity, error) {
 	var contactInfo ContactInfoEntity
 	if err := r.db.Where(c.ContactInfoEmail+" = ?", email).First(&contactInfo).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch contact info", "method", "GetContactInfoByEmail", "error", err)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			l.Logger.Error("❌ Failed to fetch contact info", "method", "GetContactInfoByEmail", "error", err)
 			return nil, e.WrapServerError("Failed to fetch contact info by email", err)
 		}
 		return nil, err

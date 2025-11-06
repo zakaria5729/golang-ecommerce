@@ -64,7 +64,7 @@ func (u *UserEntity) CheckPassword(password string) bool {
 
 func (u *UserEntity) ToResponse() *model.UserResponse {
 	return &model.UserResponse{
-		BaseEntity:    u.BaseEntity,
+		AuditEntity:   u.AuditEntity,
 		LastLoginAt:   u.LastLoginAt,
 		ImageURL:      utils.BuildFullImageURL(config.GetStorageDomain(), u.PathKey),
 		Roles:         u.Roles,
