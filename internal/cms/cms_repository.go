@@ -15,7 +15,9 @@ import (
 
 type CmsRepository interface {
 	CreatePage(page *en.CmsPageEntity) (uint, error)
+	UpdatePage(pageID uint, page *en.CmsPageEntity) (*uint, error)
 	GetPageByTag(tag string) (*en.CmsPageEntity, error)
+	GetPageByID(id uint) (*en.CmsPageEntity, error)
 	ExistsPageByTag(tag string) (bool, error)
 	ExistsPageByTagAndIdNot(tag string, id uint) (bool, error)
 	GetSectionsByPageID(pageId uint, title *string, sortBy string, sortOrder string, showDeleted *bool) ([]m.CmsSectionResponse, error)
@@ -44,6 +46,17 @@ func (r *cmsRepository) CreatePage(page *en.CmsPageEntity) (uint, error) {
 	return page.ID, nil
 }
 
+func (r *cmsRepository) UpdatePage(pageID uint, page *en.CmsPageEntity) (*uint, error) {
+	err := r.db.Where(c.FieldID+" = ?", pageID).Updates(page).Error
+
+	if err != nil {
+		l.Logger.Error("Failed to update page", "error", err)
+		return nil, e.WrapServerError("Failed to update page", err)
+	}
+
+	return &page.ID, nil
+}
+
 func (r *cmsRepository) GetPageByTag(tag string) (*en.CmsPageEntity, error) {
 	var page en.CmsPageEntity
 	err := r.db.Where(c.PageTag+" = ?", tag).First(&page).Error
@@ -55,6 +68,22 @@ func (r *cmsRepository) GetPageByTag(tag string) (*en.CmsPageEntity, error) {
 		}
 
 		return nil, errors.New("Page not found with this tag")
+	}
+
+	return &page, nil
+}
+
+func (r *cmsRepository) GetPageByID(id uint) (*en.CmsPageEntity, error) {
+	var page en.CmsPageEntity
+	err := r.db.Where(c.FieldID+" = ?", id).First(&page).Error
+
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			l.Logger.Error("Failed to get page by id", "error", err)
+			return nil, e.WrapServerError("Failed to get page by id", err)
+		}
+
+		return nil, errors.New("Page not found with this id")
 	}
 
 	return &page, nil
@@ -181,8 +210,13 @@ func (r *cmsRepository) UpsertSections(sections *[]en.CmsSectionEntity) error {
 		return nil
 	}
 	err := r.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: c.FieldID}},
-		DoUpdates: clause.AssignmentColumns([]string{c.SectionTitle, c.SectionDescription, c.SectionContent, c.SectionLink, c.SectionImageUrls, c.PagePageID, c.FieldCreatedAt, c.FieldUpdatedBy}),
+		Columns: []clause.Column{{Name: c.FieldID}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			c.SectionTitle, c.SectionDescription,
+			c.SectionContent, c.SectionLink,
+			c.SectionImageUrls, c.PagePageID,
+			c.FieldCreatedAt, c.FieldUpdatedBy,
+		}),
 	}).CreateInBatches(*sections, 100).Error
 
 	if err != nil {

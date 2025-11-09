@@ -14,7 +14,9 @@ import (
 type CmsService interface {
 	CreatePageIfNotExists(tag string, title string)
 	CreatePageSection(ctx context.Context, request *m.CmsPageRequest) (*m.CmsPageResponse, error)
+	UpdatePageSection(ctx context.Context, pageID uint, request *m.CmsPageRequest) (*m.CmsPageResponse, error)
 	GetByTag(tag string, title *string, includeSections *bool, sortBy string, sortOrder string, showDeleted *bool) (*m.CmsPageResponse, error)
+	GetSectionsDataWithPageID(ctx context.Context, pageID uint, sectionRequests *[]m.CmsSectionRequest, isFromUpdate bool) (*[]en.CmsSectionEntity, error)
 }
 
 type cmsService struct {
@@ -49,7 +51,7 @@ func (s *cmsService) GetByTag(tag string, title *string, includeSections *bool, 
 		sections, _ := s.repo.GetSectionsByPageID(page.ID, title, sortBy, sortOrder, showDeleted)
 		if sections != nil {
 			pageResponse := page.ToResponse()
-			pageResponse.Sections = sections
+			pageResponse.Sections = &sections
 			return pageResponse, nil
 		}
 	}
@@ -58,10 +60,6 @@ func (s *cmsService) GetByTag(tag string, title *string, includeSections *bool, 
 }
 
 func (s *cmsService) CreatePageSection(ctx context.Context, request *m.CmsPageRequest) (*m.CmsPageResponse, error) {
-	if request == nil {
-		return nil, errors.New("Request body is required")
-	}
-
 	exists, _ := s.repo.ExistsPageByTag(request.Tag)
 	if exists {
 		return nil, errors.New("This tag (" + request.Tag + ") already exists with other page. Please try with a different one")
@@ -81,27 +79,45 @@ func (s *cmsService) CreatePageSection(ctx context.Context, request *m.CmsPageRe
 		return nil, err
 	}
 
-	sections, err := s.upsertSectionsWithPageID(ctx, pageID, request.Sections, false)
+	sections, err := s.GetSectionsDataWithPageID(ctx, pageID, request.Sections, false)
 	if err != nil {
-		s.repo.DeletePageByID(pageID, true)
 		return nil, err
 	}
 
-	if sections != nil && len(*sections) > 0 {
-		sectionsResponses := []m.CmsSectionResponse{}
-		for _, section := range *sections {
-			sectionsResponses = append(sectionsResponses, *section.ToResponse())
-		}
-
-		pageResponse := page.ToResponse()
-		pageResponse.Sections = sectionsResponses
-		return pageResponse, nil
-	}
-
-	return page.ToResponse(), nil
+	return upsertSectionsByPage(s.repo, page, sections)
 }
 
-func (s *cmsService) upsertSectionsWithPageID(ctx context.Context, pageID uint, sectionRequests *[]m.CmsSectionRequest, isFromUpdate bool) (*[]en.CmsSectionEntity, error) {
+func (s *cmsService) UpdatePageSection(ctx context.Context, pageID uint, request *m.CmsPageRequest) (*m.CmsPageResponse, error) {
+	exists, err := s.repo.ExistsPageByTagAndIdNot(request.Tag, pageID)
+	if exists {
+		return nil, errors.New("This tag (" + request.Tag + ") already exists with other page. Please try with a different one")
+	}
+
+	page, err := s.repo.GetPageByID(pageID)
+	if err != nil || page == nil {
+		return nil, err
+	}
+
+	userID, _ := cu.GetUserIDFromContext(ctx)
+	page.UpdatedBy = userID
+	page.Tag = request.Tag
+	page.Name = request.Name
+	page.Description = request.Description
+
+	_, err = s.repo.UpdatePage(pageID, page)
+	if err != nil {
+		return nil, err
+	}
+
+	sections, err := s.GetSectionsDataWithPageID(ctx, pageID, request.Sections, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return upsertSectionsByPage(s.repo, page, sections)
+}
+
+func (s *cmsService) GetSectionsDataWithPageID(ctx context.Context, pageID uint, sectionRequests *[]m.CmsSectionRequest, isFromUpdate bool) (*[]en.CmsSectionEntity, error) {
 	if sectionRequests == nil || len(*sectionRequests) == 0 {
 		return nil, nil
 	}
@@ -109,7 +125,11 @@ func (s *cmsService) upsertSectionsWithPageID(ctx context.Context, pageID uint, 
 
 	for _, secRequest := range *sectionRequests {
 		if isFromUpdate {
-			section, err := s.repo.GetSectionByIdAndPageID(secRequest.ID, pageID)
+			if secRequest.ID == nil || *secRequest.ID == 0 {
+				return nil, errors.New("Section id is required")
+			}
+
+			section, err := s.repo.GetSectionByIdAndPageID(*secRequest.ID, pageID)
 			if err != nil || section == nil {
 				return nil, errors.New("No section found with this id: " + fmt.Sprint(secRequest.ID) + " and page id: " + fmt.Sprint(pageID))
 			}
@@ -128,14 +148,32 @@ func (s *cmsService) upsertSectionsWithPageID(ctx context.Context, pageID uint, 
 		}
 	}
 
-	if len(sections) > 0 {
-		err := s.repo.UpsertSections(&sections)
+	return &sections, nil
+}
+
+func upsertSectionsByPage(repo CmsRepository, page *en.CmsPageEntity, sections *[]en.CmsSectionEntity) (*m.CmsPageResponse, error) {
+	if page == nil || sections == nil {
+		return nil, nil
+	}
+
+	if len(*sections) > 0 {
+		err := repo.UpsertSections(sections)
 		if err != nil {
 			return nil, err
 		}
+
+		sectionsResponses := []m.CmsSectionResponse{}
+		for _, section := range *sections {
+			sectionsResponses = append(sectionsResponses, *section.ToResponse())
+		}
+
+		pageResponse := page.ToResponse()
+		pageResponse.Sections = &sectionsResponses
+
+		return pageResponse, nil
 	}
 
-	return &sections, nil
+	return nil, nil
 }
 
 func getSectionData(ctx context.Context, pageId uint, section *en.CmsSectionEntity, request *m.CmsSectionRequest, isFromUpdate bool) (*en.CmsSectionEntity, error) {

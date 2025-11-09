@@ -19,4 +19,8 @@ func RegisterCmsRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 		pm.RequirePermission(c.PermissionCmsCreate),
 	).Register()
 
+	r.PUT("/cms/page/{id}", h.UpdatePageSection).Use(
+		pm.RequirePermission(c.PermissionCmsUpdate),
+	).Register()
+
 }
