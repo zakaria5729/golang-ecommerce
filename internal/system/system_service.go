@@ -15,6 +15,7 @@ import (
 	m "github.com/easy-comerce/backend/internal/system/model"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"golang.org/x/oauth2"
@@ -158,7 +159,7 @@ func (s *systemService) HandleGoogleLoginCallbackTemp(w http.ResponseWriter, r *
 	if config.GetActiveProfile() != c.EnvProd {
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			http.Error(w, "Missing authorization code", http.StatusBadRequest)
+			response.SendErrorJSON(w, "Missing authorization code", http.StatusBadRequest)
 			return
 		}
 

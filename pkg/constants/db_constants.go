@@ -154,8 +154,11 @@ const (
 )
 
 const (
-	ContactInfoEmail string = "email"
-	ContactInfoType  string = "type"
+	ContactInfoName    string = "name"
+	ContactInfoEmail   string = "email"
+	ContactInfoType    string = "type"
+	ContactInfoPhone   string = "phone"
+	ContactInfoMessage string = "message"
 )
 
 const (

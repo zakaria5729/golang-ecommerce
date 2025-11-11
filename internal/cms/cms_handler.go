@@ -31,7 +31,7 @@ func NewCmsHandler(service CmsService) CmsHandler {
 func (h *cmsHandler) GetPageByTag(w http.ResponseWriter, r *http.Request) {
 	tag := r.PathValue(c.PageTag)
 	if tag == "" {
-		http.Error(w, "Tag is required", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Tag is required", http.StatusBadRequest)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *cmsHandler) GetPageByTag(w http.ResponseWriter, r *http.Request) {
 func (h *cmsHandler) GetPageByID(w http.ResponseWriter, r *http.Request) {
 	id, err := utils.ParseUint(r.PathValue(c.FieldID))
 	if err != nil || id == nil || *id == 0 {
-		http.Error(w, "Invalid page ID", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid page ID", http.StatusBadRequest)
 		return
 	}
 

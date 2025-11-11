@@ -86,21 +86,23 @@ func (s *cmsService) GetPageByID(id uint, title *string, includeSections *bool, 
 func (s *cmsService) GetPagesPaginated(pageStr string, pageSizeStr string, sortBy string, sortOrder string, showDeleted *bool, title *string, includeSections *bool) (*response.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
 	pages, total, err := s.repo.GetPagesPaginated(page, pageSize, sortBy, sortOrder, showDeleted, title)
-	if err != nil || pages == nil {
+	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pages: %w", err)
 	}
 
 	var pageResponses []m.CmsPageResponse
-	for _, page := range *pages {
-		pageResponse := page.ToResponse()
+	if pages != nil && len(*pages) > 0 {
+		for _, page := range *pages {
+			pageResponse := page.ToResponse()
 
-		if includeSections != nil && *includeSections {
-			sections, _ := s.repo.GetSectionsByPageID(page.ID, title, sortBy, sortOrder, showDeleted)
-			if sections != nil {
-				pageResponse.Sections = sections
+			if includeSections != nil && *includeSections {
+				sections, _ := s.repo.GetSectionsByPageID(page.ID, title, sortBy, sortOrder, showDeleted)
+				if sections != nil {
+					pageResponse.Sections = sections
+				}
 			}
+			pageResponses = append(pageResponses, *pageResponse)
 		}
-		pageResponses = append(pageResponses, *pageResponse)
 	}
 
 	return utils.BuildPaginatedResponse(pageResponses, total, page, pageSize), nil

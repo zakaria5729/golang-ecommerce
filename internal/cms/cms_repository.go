@@ -112,7 +112,7 @@ func (r *cmsRepository) GetPagesPaginated(page int, pageSize int, sortBy string,
 	}
 
 	if title != nil && *title != "" {
-		query = query.Where(c.SectionTitle+" LIKE ?", "%"+*title+"%")
+		query = query.Where(c.SectionTitle+" ILIKE ?", *title+"%")
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {
@@ -191,7 +191,7 @@ func (r *cmsRepository) GetSectionsByPageID(pageId uint, title *string, sortBy s
 	query := r.db.Where(c.PagePageID+" = ?", pageId)
 
 	if title != nil && *title != "" {
-		query = query.Where(c.SectionTitle+" LIKE ?", "%"+*title+"%")
+		query = query.Where(c.SectionTitle+" ILIKE ?", *title+"%")
 	}
 
 	if orderClause := utils.BuildSortingOrder(sortBy, sortOrder, nil); orderClause != "" {

@@ -281,26 +281,6 @@ func GetStringValueOrDefault(m map[string]interface{}, key string, defaultValue 
 	return defaultValue
 }
 
-func ExtractPathParam(path, prefix string) string {
-	if !strings.HasPrefix(path, prefix) {
-		return ""
-	}
-
-	param := strings.TrimPrefix(path, prefix)
-	if param == "" {
-		return ""
-	}
-
-	param = strings.TrimPrefix(param, "/")
-
-	parts := strings.Split(param, "/")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-
-	return ""
-}
-
 func BuildFullImageURL(publicDomain string, pathKey *string) *string {
 	if pathKey == nil || *pathKey == "" || publicDomain == "" {
 		return nil
