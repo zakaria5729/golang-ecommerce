@@ -12,7 +12,7 @@ import (
 )
 
 type ProductStatsRepository interface {
-	GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int, error)
+	GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int64, error)
 	GetProductStatsByID(id uint) (*ProductStatsEntity, error)
 	IncreaseProductStats(ctx context.Context, productStats *ProductStatsEntity) error
 }
@@ -27,7 +27,7 @@ func NewProductStatsRepository(db *gorm.DB) ProductStatsRepository {
 	}
 }
 
-func (r *productStatsRepository) GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int, error) {
+func (r *productStatsRepository) GetAllProductStatsPaginated(page, pageSize int, productID *uint, dateFrom *time.Time, dateTo *time.Time, sortBy, sortOrder string) ([]ProductStatsEntity, int64, error) {
 	var history []ProductStatsEntity
 	var total int64
 
@@ -61,7 +61,7 @@ func (r *productStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 		l.Logger.Error("Failed to fetch product stats paginated", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return history, int(total), err
+	return history, total, err
 }
 
 func (r *productStatsRepository) GetProductStatsByID(id uint) (*ProductStatsEntity, error) {

@@ -9,7 +9,7 @@ import (
 
 type AddressRepository interface {
 	GetAllAddressesByUser(userID uint, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, error)
-	GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, int, error)
+	GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, int64, error)
 	GetAddressByID(id uint, userID *uint, showDeleted *bool) (*AddressEntity, error)
 	CreateAddress(address *AddressEntity) error
 	UpdateAddress(address *AddressEntity) error
@@ -54,7 +54,7 @@ func (r *addressRepository) GetAllAddressesByUser(userID uint, addressType *stri
 	return addresses, err
 }
 
-func (r *addressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, int, error) {
+func (r *addressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *uint, page, pageSize int, addressType *string, isDefault *bool, sortBy, sortOrder string) ([]AddressEntity, int64, error) {
 	var addresses []AddressEntity
 	var total int64
 
@@ -89,7 +89,7 @@ func (r *addressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *
 		l.Logger.Error("❌ Failed to fetch addresses paginated", "method", "GetAllAddressesPaginatedByUser", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return addresses, int(total), err
+	return addresses, total, err
 }
 
 func (r *addressRepository) GetAddressByID(id uint, userID *uint, showDeleted *bool) (*AddressEntity, error) {

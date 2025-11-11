@@ -160,7 +160,6 @@ const (
 
 const (
 	PageTag            string = "tag"
-	PageTitle          string = "title"
 	PageDescription    string = "description"
 	PagePageID         string = "page_id"
 	SectionTitle       string = "title"

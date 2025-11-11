@@ -7,5 +7,5 @@ type CmsPageResponse struct {
 	Tag         string                `json:"tag"`
 	Name        string                `json:"name"`
 	Description string                `json:"description"`
-	Sections    *[]CmsSectionResponse `json:"sections"`
+	Sections    *[]CmsSectionResponse `json:"sections,omitempty"`
 }

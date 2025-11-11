@@ -46,7 +46,7 @@ func (s *reviewService) GetAllReviewsPaginated(showDeleted *bool, productIDFilte
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
+	return utils.BuildPaginatedResponse(reviews, total, page, pageSize), nil
 }
 
 func (s *reviewService) GetReviewByID(id uint, showDeleted *bool) (*ReviewEntity, error) {
@@ -155,7 +155,7 @@ func (s *reviewService) GetReviewsByProduct(productID uint, showDeleted *bool, r
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
+	return utils.BuildPaginatedResponse(reviews, total, page, pageSize), nil
 }
 
 func (s *reviewService) GetReviewsByUser(userID uint, showDeleted *bool, productIDStr string, ratingFilter string, pageStr string, pageSizeStr string, sortBy, sortOrder string) (*r.PaginatedResponse, error) {
@@ -173,7 +173,7 @@ func (s *reviewService) GetReviewsByUser(userID uint, showDeleted *bool, product
 		return nil, fmt.Errorf("failed to fetch reviews: %w", err)
 	}
 
-	return utils.BuildPaginatedResponse(reviews, int(total), page, pageSize), nil
+	return utils.BuildPaginatedResponse(reviews, total, page, pageSize), nil
 }
 
 func (s *reviewService) GetProductRatingStats(productID uint, showDeleted *bool) (*m.ProductRatingStatsResponse, error) {
