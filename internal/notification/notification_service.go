@@ -56,7 +56,7 @@ func (s *notificationService) GetUserNotifications(showDeleted *bool, userID uin
 		return nil, errors.New("failed to get user notifications")
 	}
 
-	return utils.BuildPaginatedResponse(notifications, int(total), page, pageSize), nil
+	return utils.BuildPaginatedResponse(notifications, total, page, pageSize), nil
 }
 
 func (s *notificationService) MarkNotificationAsRead(notificationID uint, userID uint) error {

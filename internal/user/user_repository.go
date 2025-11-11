@@ -18,7 +18,7 @@ import (
 )
 
 type UserRepository interface {
-	GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int, error)
+	GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int64, error)
 	GetUserByID(id uint, include []string, showDeleted *bool) (*UserEntity, error)
 	GetAuthUserByID(id uint, includeRoles bool, includePermissions bool) (*UserEntity, error)
 	GetAuthUserStatusByID(id uint) (banned bool, verified bool, refreshToken *string, err error)
@@ -57,7 +57,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (r *userRepository) GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int, error) {
+func (r *userRepository) GetAllUsersPaginated(include []string, showDeleted *bool, page int, pageSize int, sortBy, sortOrder string) ([]UserEntity, int64, error) {
 	var users []UserEntity
 	var total int64
 
@@ -90,7 +90,7 @@ func (r *userRepository) GetAllUsersPaginated(include []string, showDeleted *boo
 		l.Logger.Error("❌ Failed to fetch users paginated", "method", "GetAllUsersPaginated", "error", err, "include", include, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return users, int(total), err
+	return users, total, err
 }
 
 func (r *userRepository) GetUserByID(id uint, include []string, showDeleted *bool) (*UserEntity, error) {

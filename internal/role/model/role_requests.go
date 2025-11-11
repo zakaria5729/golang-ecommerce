@@ -23,7 +23,7 @@ type AssignRoleRequest struct {
 	UserID uint `json:"user_id"`
 }
 
-type AddPermissionsToRoleRequest struct {
+type AppendPermissionsToRoleRequest struct {
 	RoleID        uint   `json:"role_id"`
 	PermissionIds []uint `json:"permission_ids"`
 }

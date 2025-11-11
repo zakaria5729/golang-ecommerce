@@ -30,6 +30,8 @@ const (
 	TableSizeCategory    string = "size_categories"
 	TableSizeOption      string = "size_options"
 	TableContactInfo     string = "contact_infos"
+	TableCmsPage         string = "cms_pages"
+	TableCmsSection      string = "cms_sections"
 )
 
 const (
@@ -152,6 +154,21 @@ const (
 )
 
 const (
-	ContactInfoEmail string = "email"
-	ContactInfoType  string = "type"
+	ContactInfoName    string = "name"
+	ContactInfoEmail   string = "email"
+	ContactInfoType    string = "type"
+	ContactInfoPhone   string = "phone"
+	ContactInfoMessage string = "message"
+)
+
+const (
+	PageTag            string = "tag"
+	PageDescription    string = "description"
+	PagePageID         string = "page_id"
+	SectionTitle       string = "title"
+	SectionDescription string = "description"
+	SectionContent     string = "content"
+	SectionLink        string = "link"
+	SectionImageUrls   string = "image_urls"
+	IncludeSections    string = "include_sections"
 )

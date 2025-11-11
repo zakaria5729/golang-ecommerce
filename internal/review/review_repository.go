@@ -210,7 +210,7 @@ func (r *reviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 	return reviews, total, nil
 }
 
-func (r *reviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy, sortOrder string) ([]ReviewEntity, int64, error) {
+func (r *reviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, productID *uint, rating *int, page, pageSize int, sortBy string, sortOrder string) ([]ReviewEntity, int64, error) {
 	var reviews []ReviewEntity
 	var total int64
 	query := r.db.Model(&ReviewEntity{}).Where(c.ReviewUserID+" = ?", userID)

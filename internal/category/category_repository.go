@@ -17,7 +17,7 @@ import (
 type CategoryRepository interface {
 	GetAllCategories(showDeleted *bool, parentID *uint, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, error)
 	GetAllCategoriesWithSubcategories(subcategoryDepth *int, showDeleted *bool, sortBy, sortOrder string) ([]m.CategorySubcategoriesResponse, error)
-	GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, int, error)
+	GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, int64, error)
 	GetCategoryByID(id uint, showDeleted *bool) (*CategoryEntity, error)
 	CreateCategory(category *CategoryEntity) (*CategoryEntity, error)
 	UpdateCategory(category *CategoryEntity) (*CategoryEntity, error)
@@ -70,7 +70,7 @@ func (r *categoryRepository) GetAllCategories(showDeleted *bool, parentID *uint,
 	return categories, err
 }
 
-func (r *categoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, int, error) {
+func (r *categoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parentID *uint, page int, pageSize int, priorityLimit *int, sortBy, sortOrder string) ([]CategoryEntity, int64, error) {
 	var categories []CategoryEntity
 	var total int64
 
@@ -106,7 +106,7 @@ func (r *categoryRepository) GetAllCategoriesPaginated(showDeleted *bool, parent
 		l.Logger.Error("❌ Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "parentID", parentID, "page", page, "pageSize", pageSize, "priorityLimit", priorityLimit, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
-	return categories, int(total), err
+	return categories, total, err
 }
 
 func (r *categoryRepository) GetCategoryByID(id uint, showDeleted *bool) (*CategoryEntity, error) {

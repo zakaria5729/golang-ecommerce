@@ -8,11 +8,11 @@ import (
 
 type ContactInfoEntity struct {
 	base.BaseEntity
-	Name    string `gorm:"not null; column:name"`
-	Email   string `gorm:"not null; column:email"`
-	Phone   string `gorm:"not null; column:phone"`
-	Message string `gorm:"not null; column:message"`
-	Type    string `gorm:"not null; column:type"`
+	Name    string `json:"name" gorm:"column:name"`
+	Email   string `json:"email" gorm:"not null; column:email"`
+	Phone   string `json:"phone" gorm:"column:phone"`
+	Message string `json:"message" gorm:"column:message"`
+	Type    string `json:"type" gorm:"not null; column:type"`
 }
 
 func (ContactInfoEntity) TableName() string {

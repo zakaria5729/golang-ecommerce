@@ -39,7 +39,7 @@ func RegisterRoleRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 		pm.RequirePermission(c.PermissionRoleAssign),
 	).Register()
 
-	r.POST("/roles/add-permissions", h.AddPermissionsToRole).Use(
+	r.POST("/roles/append-permissions", h.AppendPermissionsToRole).Use(
 		pm.RequirePermission(c.PermissionRoleToAddPermissions),
 	).Register()
 

@@ -1,10 +1,15 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
+	"runtime/debug"
 	"slices"
+	"strings"
 	"time"
 
+	"github.com/easy-comerce/backend/pkg/config"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/timeutil"
@@ -45,11 +50,28 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				l.Logger.Error("❌ Panic recovered", "error", err, "method", r.Method, "path", r.URL.Path)
+				errStack := string(debug.Stack())
+
+				if config.GetActiveProfile() == c.EnvLocal {
+					fmt.Printf(`"❌ Panic recovered", "error" %v, "method" %v, "path" %v`, errStack, r.Method, r.URL.Path)
+				} else {
+					l.Logger.Error("❌ Panic recovered", "error", errStack, "method", r.Method, "path", r.URL.Path)
+				}
+
 				w.Header().Set("Content-Type", "application/json")
 				response.SendErrorJSON(w, "Internal server error", http.StatusInternalServerError)
 			}
 		}()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func TrailingSlashMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(r.URL.Path) > 1 && strings.HasSuffix(r.URL.Path, "/") {
+			r.URL.Path = strings.TrimRight(r.URL.Path, "/")
+		}
 
 		next.ServeHTTP(w, r)
 	})

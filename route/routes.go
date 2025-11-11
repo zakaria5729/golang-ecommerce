@@ -35,4 +35,5 @@ func RegisterAllRoutes(r *router.Router) {
 	RegisterSizeOptionRoute(r, pm)
 	RegisterNotificationRoute(r, pm)
 	RegisterContactInfoRoute(r, pm)
+	RegisterCmsRoute(r, pm)
 }

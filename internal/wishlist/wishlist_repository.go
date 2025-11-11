@@ -10,7 +10,7 @@ import (
 )
 
 type WishlistRepository interface {
-	GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int, error)
+	GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int64, error)
 	AddToWishlistsByUser(wishlist *WishlistEntity) error
 	RemoveFromWishlistByUser(userID uint, productID uint) error
 	ClearUserWishlist(userID uint) error
@@ -30,7 +30,7 @@ func NewWishlistRepository(db *gorm.DB) WishlistRepository {
 	}
 }
 
-func (r *wishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int, error) {
+func (r *wishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID *uint, productID *uint, page, pageSize int, sortBy, sortOrder string) ([]WishlistEntity, int64, error) {
 	var wishlists []WishlistEntity
 	var total int64
 	query := r.db.Model(&WishlistEntity{})
@@ -61,7 +61,7 @@ func (r *wishlistRepository) GetAllWishlistsPaginated(showDeleted *bool, userID 
 		logger.Logger.Error("❌ Failed to fetch wishlists paginated", "method", "GetAllWishlistsPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "productID", productID, "sortBy", sortOrder, "sortOrder", sortOrder)
 	}
 
-	return wishlists, int(total), err
+	return wishlists, total, err
 }
 
 func (r *wishlistRepository) AddToWishlistsByUser(wishlist *WishlistEntity) error {

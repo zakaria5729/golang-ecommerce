@@ -21,7 +21,7 @@ type RoleService interface {
 	DeleteRole(ctx context.Context, id uint) error
 	UndoDeletedRole(ctx context.Context, id uint) error
 	AssignRoleToUser(userID uint, req *model.AssignRoleRequest) error
-	AddPermissionsToRole(roleID uint, req *model.AddPermissionsToRoleRequest) error
+	AppendPermissionsToRole(roleID uint, req *model.AppendPermissionsToRoleRequest) error
 	GetRoleByType(roleType string) (*RoleEntity, error)
 }
 
@@ -200,8 +200,8 @@ func (s *roleService) AssignRoleToUser(userID uint, req *model.AssignRoleRequest
 	return nil
 }
 
-func (s *roleService) AddPermissionsToRole(roleID uint, req *model.AddPermissionsToRoleRequest) error {
-	if err := s.roleRepo.AddPermissionsToRoleByIds(roleID, req.PermissionIds, nil); err != nil {
+func (s *roleService) AppendPermissionsToRole(roleID uint, req *model.AppendPermissionsToRoleRequest) error {
+	if err := s.roleRepo.AppendPermissionsToRoleByIds(roleID, req.PermissionIds, nil); err != nil {
 		return fmt.Errorf("failed to add permissions to role: %w", err)
 	}
 

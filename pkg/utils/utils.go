@@ -118,25 +118,33 @@ func ParsePagination(pageStr, pageSizeStr string) (page, pageSize int) {
 	return page, pageSize
 }
 
-func CalculatePagination(total, page, pageSize int) (totalPages, offset int) {
-	if pageSize <= 0 {
+func CalculatePagination(total int64, page int, pageSize int) (totalPages int, offset int) {
+	if pageSize <= 0 || total < 0 {
 		return 0, 0
 	}
 
-	totalPages = (total + pageSize - 1) / pageSize
 	if page < 1 {
 		page = 1
 	}
 
-	if totalPages > 0 && page > totalPages {
+	if total == 0 {
+		return 0, 0
+	}
+
+	totalPages = int((total + int64(pageSize) - 1) / int64(pageSize))
+	if page > totalPages {
 		page = totalPages
 	}
 
 	offset = (page - 1) * pageSize
+	if offset < 0 {
+		offset = 0
+	}
+
 	return totalPages, offset
 }
 
-func BuildPaginatedResponse(data any, total, page, pageSize int) *response.PaginatedResponse {
+func BuildPaginatedResponse(data any, total int64, page int, pageSize int) *response.PaginatedResponse {
 	totalPages, _ := CalculatePagination(total, page, pageSize)
 
 	return &response.PaginatedResponse{
@@ -271,26 +279,6 @@ func GetStringValueOrDefault(m map[string]interface{}, key string, defaultValue 
 		}
 	}
 	return defaultValue
-}
-
-func ExtractPathParam(path, prefix string) string {
-	if !strings.HasPrefix(path, prefix) {
-		return ""
-	}
-
-	param := strings.TrimPrefix(path, prefix)
-	if param == "" {
-		return ""
-	}
-
-	param = strings.TrimPrefix(param, "/")
-
-	parts := strings.Split(param, "/")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-
-	return ""
 }
 
 func BuildFullImageURL(publicDomain string, pathKey *string) *string {

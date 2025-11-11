@@ -82,6 +82,12 @@ const (
 	PermissionContactInfoUpdate     string = "contact_info.update"
 	PermissionContactInfoDelete     string = "contact_info.delete"
 	PermissionContactInfoUndoDelete string = "contact_info.undo_delete"
+
+	PermissionCmsCreate     string = "cms.create"
+	PermissionCmsRead       string = "cms.read"
+	PermissionCmsUpdate     string = "cms.update"
+	PermissionCmsDelete     string = "cms.delete"
+	PermissionCmsUndoDelete string = "cms.undo_delete"
 )
 
 type PermissionDetails struct {
@@ -384,5 +390,27 @@ var PermissionMap = map[string]PermissionDetails{
 	PermissionContactInfoUndoDelete: {
 		Desc:      "Undo Delete Contact Info",
 		GroupName: "Contact Info",
+	},
+
+	// CMS
+	PermissionCmsCreate: {
+		Desc:      "Create CMS",
+		GroupName: "CMS",
+	},
+	PermissionCmsRead: {
+		Desc:      "Read CMS",
+		GroupName: "CMS",
+	},
+	PermissionCmsUpdate: {
+		Desc:      "Update CMS",
+		GroupName: "CMS",
+	},
+	PermissionCmsDelete: {
+		Desc:      "Delete CMS",
+		GroupName: "CMS",
+	},
+	PermissionCmsUndoDelete: {
+		Desc:      "Undo Delete CMS",
+		GroupName: "CMS",
 	},
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/easy-comerce/backend/internal/permission"
 	e "github.com/easy-comerce/backend/pkg/app_error"
+	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
@@ -24,8 +25,8 @@ type RoleRepository interface {
 	DeleteRole(ctx context.Context, id uint) error
 	UndoDeletedRole(ctx context.Context, id uint) error
 	AssignRoleToUser(userID uint, roleID uint) error
-	AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error
-	AddPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error
+	AppendPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error
+	AppendPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error
 	RoleExists(id uint, showDeleted *bool) (bool, error)
 	RoleExistsByName(name string, excludeID ...uint) (bool, error)
 }
@@ -210,11 +211,15 @@ func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 			return errors.New("role not found")
 		}
 
-		var userExists bool
-		err := tx.Table(c.TableUser).Where(c.FieldID+" = ?", userID).Select(c.FieldID).Limit(1).Scan(&userExists).Error
+		var userEmail *string
+		err := tx.Table(c.TableUser).Where(c.FieldID+" = ?", userID).Select(c.UserEmail).Limit(1).Scan(&userEmail).Error
 
-		if err != nil || !userExists {
+		if err != nil || userEmail == nil {
 			return errors.New("user not found")
+		}
+
+		if *userEmail == config.GetConfig().AppConfig.SuperAdminEmail {
+			return errors.New("You can not assign/change super admin user role")
 		}
 
 		if err := tx.Exec("DELETE FROM "+c.TableUserRole+" WHERE "+c.FieldUserID+" = ?", userID).Error; err != nil {
@@ -231,12 +236,12 @@ func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	return err
 }
 
-func (r *roleRepository) AddPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error {
-	return addPermissionsToRole(r.db, roleID, &permissionNames, nil, showDeleted)
+func (r *roleRepository) AppendPermissionsToRole(roleID uint, permissionNames []string, showDeleted *bool) error {
+	return appendPermissionsToRole(r.db, roleID, &permissionNames, nil, showDeleted)
 }
 
-func (r *roleRepository) AddPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error {
-	return addPermissionsToRole(r.db, roleID, nil, &permissionIds, showDeleted)
+func (r *roleRepository) AppendPermissionsToRoleByIds(roleID uint, permissionIds []uint, showDeleted *bool) error {
+	return appendPermissionsToRole(r.db, roleID, nil, &permissionIds, showDeleted)
 }
 
 func (r *roleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
@@ -273,7 +278,7 @@ func (r *roleRepository) RoleExistsByName(name string, excludeID ...uint) (bool,
 	return role.ID != 0, nil
 }
 
-func addPermissionsToRole(db *gorm.DB, roleID uint, permissionNames *[]string, permissionIds *[]uint, showDeleted *bool) error {
+func appendPermissionsToRole(db *gorm.DB, roleID uint, permissionNames *[]string, permissionIds *[]uint, showDeleted *bool) error {
 	err := db.Transaction(func(tx *gorm.DB) error {
 		var role RoleEntity
 		query := tx.Where(c.FieldID+" = ?", roleID)
@@ -323,7 +328,7 @@ func addPermissionsToRole(db *gorm.DB, roleID uint, permissionNames *[]string, p
 	})
 
 	if err != nil {
-		l.Logger.Error("Failed to add permissions to role", "method", "AddPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", permissionNames)
+		l.Logger.Error("Failed to add permissions to role", "method", "AppendPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", permissionNames)
 	}
 
 	return err

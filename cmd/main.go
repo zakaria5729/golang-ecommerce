@@ -34,6 +34,7 @@ func main() {
 		m.CorsMiddleware,
 		m.RecoveryMiddleware,
 		m.LoggingMiddleware,
+		m.TrailingSlashMiddleware,
 	)
 
 	server := &http.Server{
