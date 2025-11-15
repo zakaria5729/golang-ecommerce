@@ -60,7 +60,7 @@ func (s *userService) UpdateProfile(userID uint, req *model.UpdateProfileRequest
 }
 
 func (s *userService) ChangePassword(userID uint, req *model.ChangePasswordRequest) error {
-	password, err := s.userRepo.getUserPasswordByID(userID)
+	password, err := s.userRepo.GetUserPasswordByID(userID)
 	if err != nil {
 		return errors.New("Failed to verify user current password")
 	}
