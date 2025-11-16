@@ -35,7 +35,7 @@ type UserRepository interface {
 	GetUserEmail(id uint, showDeleted *bool) (*string, error)
 	GetUserIdAndVerifiedByEmail(email string, showDeleted *bool) (*uint, bool, error)
 	IsUserExists(email string) (bool, error)
-	getUserPasswordByID(id uint) (string, error)
+	GetUserPasswordByID(id uint) (string, error)
 	UserExistsByEmailAndRoleId(email string, roleID uint, showDeleted *bool) (bool, error)
 	SetPasswordResetToken(userID uint, token string, expiresAt time.Time) error
 	GetUserByResetPasswordToken(token string) (*UserEntity, error)
@@ -387,12 +387,12 @@ func (r *userRepository) IsUserExists(email string) (bool, error) {
 	return user.ID != 0, nil
 }
 
-func (r *userRepository) getUserPasswordByID(id uint) (string, error) {
+func (r *userRepository) GetUserPasswordByID(id uint) (string, error) {
 	var user UserEntity
 
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", id).Select(c.UserPassword).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to get user password by ID", "method", "getUserPasswordByID", "error", err, "id", id)
+		l.Logger.Error("❌ Failed to get user password by ID", "method", "GetUserPasswordByID", "error", err, "id", id)
 		return "", err
 	}
 
