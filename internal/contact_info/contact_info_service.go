@@ -1,10 +1,13 @@
 package contact_info
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	m "github.com/easy-comerce/backend/internal/contact_info/model"
+	c "github.com/easy-comerce/backend/pkg/constants"
+	op "github.com/easy-comerce/backend/pkg/option"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/easy-comerce/backend/pkg/validator"
@@ -12,10 +15,10 @@ import (
 )
 
 type ContactInfoService interface {
-	PostNewsLetter(email string) error
-	CreateContactUs(req *m.CreateContactInfoRequest) error
-	GetContactInfoById(id uint) (*ContactInfoEntity, error)
-	GetContactInfosPaginated(pageStr string, pageSizeStr string, sortBy string, sortOrder string, contactType *string, showMessage *bool, showDeleted *bool) (*response.PaginatedResponse, error)
+	PostNewsLetter(ctx context.Context, email string) error
+	CreateContactUs(ctx context.Context, req *m.CreateContactInfoRequest) error
+	GetContactInfoById(ctx context.Context, id uint) (*ContactInfoEntity, error)
+	GetContactInfosPaginated(ctx context.Context, pageStr string, pageSizeStr string, sortBy string, sortOrder string, contactType *string, showMessage *bool, showDeleted *bool) (*response.PaginatedResponse, error)
 }
 
 type contactInfoService struct {
@@ -28,20 +31,25 @@ func NewContactInfoService(repo ContactInfoRepository) ContactInfoService {
 	}
 }
 
-func (s *contactInfoService) PostNewsLetter(email string) error {
-	contact, err := s.repo.GetContactInfoByEmail(email)
+func (s *contactInfoService) PostNewsLetter(ctx context.Context, email string) error {
+	option := op.QueryOptions{}
+	option.AddFilter(c.ContactInfoEmail+" = ?", email)
+	contact, err := s.repo.GetSingleBy(ctx, &option)
+
 	if contact == nil || errors.Is(err, gorm.ErrRecordNotFound) {
 		contactInfo := &ContactInfoEntity{
 			Email: email,
 			Name:  utils.ExtractNameFromEmail(email, true),
 			Type:  m.TypeNewsLetter,
 		}
-		return s.repo.CreateContactInfo(contactInfo)
+
+		return s.repo.Create(ctx, contactInfo)
 	}
+
 	return nil
 }
 
-func (s *contactInfoService) CreateContactUs(req *m.CreateContactInfoRequest) error {
+func (s *contactInfoService) CreateContactUs(ctx context.Context, req *m.CreateContactInfoRequest) error {
 	contactInfo := &ContactInfoEntity{
 		Name:    req.Name,
 		Email:   req.Email,
@@ -53,21 +61,24 @@ func (s *contactInfoService) CreateContactUs(req *m.CreateContactInfoRequest) er
 		contactInfo.Phone = req.Phone
 	}
 
-	contact, err := s.repo.GetContactInfoByEmail(req.Email)
+	option := op.QueryOptions{}
+	option.AddFilter(c.ContactInfoEmail+" = ?", req.Email)
+
+	contact, err := s.repo.GetSingleBy(ctx, &option)
 	if contact == nil || errors.Is(err, gorm.ErrRecordNotFound) {
-		return s.repo.CreateContactInfo(contactInfo)
+		return s.repo.Create(ctx, contactInfo)
 	}
 
-	return s.repo.UpdateContactInfo(contact.ID, contactInfo)
+	return s.repo.Update(ctx, contact.ID, contactInfo)
 }
 
-func (s *contactInfoService) GetContactInfoById(id uint) (*ContactInfoEntity, error) {
-	return s.repo.GetContactInfoById(id)
+func (s *contactInfoService) GetContactInfoById(ctx context.Context, id uint) (*ContactInfoEntity, error) {
+	return s.repo.GetSingleByID(ctx, id, nil)
 }
 
-func (s *contactInfoService) GetContactInfosPaginated(pageStr string, pageSizeStr string, sortBy string, sortOrder string, contactType *string, showMessage *bool, showDeleted *bool) (*response.PaginatedResponse, error) {
+func (s *contactInfoService) GetContactInfosPaginated(ctx context.Context, pageStr string, pageSizeStr string, sortBy string, sortOrder string, contactType *string, showMessage *bool, showDeleted *bool) (*response.PaginatedResponse, error) {
 	page, pageSize := utils.ParsePagination(pageStr, pageSizeStr)
-	contacts, total, err := s.repo.GetContactInfosPaginated(page, pageSize, sortBy, sortOrder, contactType, showMessage, showDeleted)
+	contacts, total, err := s.repo.GetContactInfosPaginated(ctx, page, pageSize, sortBy, sortOrder, contactType, showMessage, showDeleted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch contact infos: %w", err)
 	}

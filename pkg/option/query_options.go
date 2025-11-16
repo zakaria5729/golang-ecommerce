@@ -1,23 +1,22 @@
-package base
+package option
 
 import (
 	"strings"
-
-	l "github.com/easy-comerce/backend/pkg/logger"
 )
 
 type QueryOptions struct {
-	SortBy      string
-	SortOrder   string
-	Preloads    []string
-	ShowDeleted bool
-	Filters     map[string]any
+	ShowDeleted    *bool
+	SortBy         string
+	SortOrder      string
+	SortableFields []string
+	SortOptions    []SortOption
+	Preloads       []string
+	Filters        map[string]any
 }
 
 // USAGE: q.AddFilter("contact_type = ?", contactType)
 func (q *QueryOptions) AddFilter(condition string, value any) {
 	if q == nil || condition == "" || value == nil {
-		l.Logger.Warn("⚠️ Invalid condition or value", "method", "addFilter", "condition", condition, "value", value)
 		return
 	}
 
@@ -71,7 +70,6 @@ func (q *QueryOptions) AddSuffixLikeAndFilter(searchTerm string, fields ...strin
 
 func addLikeFilter(q *QueryOptions, searchTerm string, condition string, orAnd string, fields ...string) {
 	if q == nil || searchTerm == "" || len(fields) == 0 {
-		l.Logger.Warn("⚠️ Invalid search term or fields", "method", "addLikeFilter", "searchTerm", searchTerm, "fields", fields)
 		return
 	}
 
@@ -92,7 +90,6 @@ func addLikeFilter(q *QueryOptions, searchTerm string, condition string, orAnd s
 
 func addInNotInFilter(q *QueryOptions, field string, values []any, isNotIn bool) {
 	if q == nil || field == "" || len(values) == 0 {
-		l.Logger.Warn("⚠️ Invalid field or values", "method", "addInNotInFilter", "field", field, "values", values)
 		return
 	}
 

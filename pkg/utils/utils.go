@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
+	"github.com/easy-comerce/backend/pkg/option"
 	"github.com/easy-comerce/backend/pkg/response"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -192,7 +193,7 @@ func BuildSelectFields(defaultFields []string, optionalFields []string, include 
 }
 
 func BuildSortingOrder(sortBy string, sortOrder string, fields *[]string) string {
-	if sortBy == "" {
+	if sortBy == "" || sortOrder == "" {
 		return ""
 	}
 
@@ -217,6 +218,44 @@ func BuildSortingOrder(sortBy string, sortOrder string, fields *[]string) string
 	}
 
 	return sortBy + " " + c.SortOrderAsc
+}
+
+func BuildSortingOrders(sortables []option.SortOption, fields *[]string) string {
+	if len(sortables) == 0 {
+		return ""
+	}
+
+	allowedFields := map[string]bool{
+		c.FieldID:        true,
+		c.FieldCreatedAt: true,
+		c.FieldUpdatedAt: true,
+	}
+
+	if fields != nil && len(*fields) > 0 {
+		for _, f := range *fields {
+			allowedFields[f] = true
+		}
+	}
+	var parts []string
+
+	for _, s := range sortables {
+		if s.SortBy == "" || s.SortOrder == "" {
+			continue
+		}
+
+		if !allowedFields[s.SortBy] {
+			continue
+		}
+
+		order := c.SortOrderAsc
+		if strings.EqualFold(s.SortOrder, c.SortOrderDesc) {
+			order = c.SortOrderDesc
+		}
+
+		parts = append(parts, s.SortBy+" "+order)
+	}
+
+	return strings.Join(parts, ", ")
 }
 
 func GetOffset(page, pageSize int) int {
