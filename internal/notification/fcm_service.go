@@ -23,7 +23,7 @@ func NewFCMService() *FCMService {
 
 func (s *FCMService) SendNotification(deviceToken string, notification *Notification) error {
 	if s.serverKey == "" || s.fcmURL == "" {
-		logger.Logger.Warn("FCM configuration is missing")
+		logger.Warn("FCM configuration is missing")
 		return nil
 	}
 
@@ -61,7 +61,7 @@ func (s *FCMService) SendNotification(deviceToken string, notification *Notifica
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			return err
 		}
-		logger.Logger.Error("Failed to send FCM notification", "error", result)
+		logger.Error("Failed to send FCM notification", "error", result)
 		return err
 	}
 

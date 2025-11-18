@@ -49,10 +49,11 @@ const (
 )
 
 const (
-	DefaultDBTimeout       int = 30
-	MaxDBConnections       int = 100
-	DefaultRateLimit       int = 100
-	DefaultRateLimitWindow int = 60
+	DBMaxIdleConns               int   = 5
+	DBMaxOpenConns               int   = 20
+	DBConnMaxLifeTimeHour        int64 = 1
+	DBConnMaxIdleTimeMinute      int   = 15
+	LogFileDeleteProhibitedLimit int   = 2
 )
 
 const (
@@ -60,6 +61,8 @@ const (
 	AllowedImageTypes string = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
 	AllowedDocTypes   string = "application/pdf"
 	LogFileFormat     string = "2006-01-02"
+	LogFolderName     string = "logs"
+	LogFileExt        string = "jsonl"
 )
 
 const (

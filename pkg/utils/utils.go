@@ -364,6 +364,10 @@ func GetProjectRootPath() string {
 	return filepath.Join(filepath.Dir(filename), "..", "..")
 }
 
+func GetLogFolderPath() string {
+	return filepath.Join(GetProjectRootPath(), c.LogFolderName)
+}
+
 func ExtractNameFromEmail(email string, capitalize bool) string {
 	at := strings.Index(email, "@")
 	if at == -1 {

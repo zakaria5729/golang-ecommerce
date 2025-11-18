@@ -43,7 +43,7 @@ func (r *permissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 	}
 
 	if err := query.Where(c.PermissionName+" IN ?", permissionNames).Find(&existingPermissions).Error; err != nil {
-		l.Logger.Error("Failed to fetch existing permissions", "method", "CreatePermissionsIfNotExists", "error", err)
+		l.Error("Failed to fetch existing permissions", "method", "CreatePermissionsIfNotExists", "error", err)
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (r *permissionRepository) CreatePermissionsIfNotExists(permissionNames []st
 
 	if len(toCreatePermissions) > 0 {
 		if err := r.db.Create(&toCreatePermissions).Error; err != nil {
-			l.Logger.Error("Failed to create permissions", "method", "CreatePermissionsIfNotExists", "error", err)
+			l.Error("Failed to create permissions", "method", "CreatePermissionsIfNotExists", "error", err)
 			return err
 		}
 	}
@@ -82,7 +82,7 @@ func (r *permissionRepository) ExistsByName(permissionName string) (exists bool,
 	var permission PermissionEntity
 	err = r.db.Model(&PermissionEntity{}).Where(c.PermissionName+" = ?", permissionName).Select(c.FieldID).Take(&permission).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if permission exists", "method", "ExistsByName", "error", err, "permissionName", permissionName)
+		l.Error("Failed to check if permission exists", "method", "ExistsByName", "error", err, "permissionName", permissionName)
 		return false, err
 	}
 	return permission.ID != 0, nil
@@ -103,7 +103,7 @@ func (r *permissionRepository) GetAllPermissions(sortBy string, sortOrder string
 
 	err := query.Find(&permissions).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch permissions", "method", "GetAllPermissions", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return permissions, err
 }
@@ -123,7 +123,7 @@ func (r *permissionRepository) GetAllPermissionsGroup(sortBy string, sortOrder s
 
 	err := query.Select(c.FieldID, c.PermissionName, c.PermissionDescription, c.PermissionGroupName).Find(&permissions).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch permissions", "method", "GetAllPermissionsGroupMemory", "error", err)
+		l.Error("Failed to fetch permissions", "method", "GetAllPermissionsGroupMemory", "error", err)
 		return nil, err
 	}
 
@@ -158,7 +158,7 @@ func (r *permissionRepository) GetPermissionByID(id uint) (*PermissionEntity, er
 	var permission PermissionEntity
 
 	if err := r.db.Model(&PermissionEntity{}).Where(c.FieldID+" = ?", id).First(&permission).Error; err != nil {
-		l.Logger.Error("Failed to fetch permission by ID", "method", "GetPermissionByID", "error", err, "id", id)
+		l.Error("Failed to fetch permission by ID", "method", "GetPermissionByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -169,7 +169,7 @@ func (r *permissionRepository) GetPermissionByName(name string) (*PermissionEnti
 	var permission PermissionEntity
 
 	if err := r.db.Model(&PermissionEntity{}).Where(c.PermissionName+" = ?", name).First(&permission).Error; err != nil {
-		l.Logger.Error("Failed to fetch permission by name", "method", "GetPermissionByName", "error", err, "name", name)
+		l.Error("Failed to fetch permission by name", "method", "GetPermissionByName", "error", err, "name", name)
 		return nil, err
 	}
 
@@ -180,7 +180,7 @@ func (r *permissionRepository) GetPermissionsByIDs(ids []uint) ([]PermissionEnti
 	var permissions []PermissionEntity
 
 	if err := r.db.Model(&PermissionEntity{}).Where(c.FieldID+" IN ?", ids).Find(&permissions).Error; err != nil {
-		l.Logger.Error("Failed to fetch permissions by IDs", "method", "GetPermissionsByIDs", "error", err, "ids", ids)
+		l.Error("Failed to fetch permissions by IDs", "method", "GetPermissionsByIDs", "error", err, "ids", ids)
 		return nil, err
 	}
 
@@ -195,7 +195,7 @@ func (r *permissionRepository) HasPermission(userID uint, permission string) (bo
 		Count(&count).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to check user permission", "method", "HasPermission", "error", err, "userID", userID, "permission", permission)
+		l.Error("Failed to check user permission", "method", "HasPermission", "error", err, "userID", userID, "permission", permission)
 	}
 
 	return count > 0, err
@@ -212,7 +212,7 @@ func (r *permissionRepository) HasAnyPermission(userID uint, permissions []strin
 		Count(&count).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to check user permissions", "method", "HasAnyPermission", "error", err, "userID", userID, "permissions", permissions)
+		l.Error("Failed to check user permissions", "method", "HasAnyPermission", "error", err, "userID", userID, "permissions", permissions)
 	}
 
 	return count > 0, err
@@ -226,7 +226,7 @@ func (r *permissionRepository) GetUserStatusAndPermission(userID uint, permissio
 		First(&userStatus).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
+		l.Error("Failed to get user status", "method", "GetUserStatusAndPermission", "error", err, "userID", userID)
 		return false, false, nil, false, errors.New("failed to get user status")
 	}
 
@@ -244,7 +244,7 @@ func (r *permissionRepository) GetUserStatusAndPermission(userID uint, permissio
 
 	hasPermission, err = r.HasPermission(userID, permission)
 	if err != nil {
-		l.Logger.Error("Failed to check user permission", "method", "GetUserStatusAndPermission", "error", err, "userID", userID, "permission", permission)
+		l.Error("Failed to check user permission", "method", "GetUserStatusAndPermission", "error", err, "userID", userID, "permission", permission)
 		return false, false, nil, false, err
 	}
 
@@ -259,13 +259,13 @@ func (r *permissionRepository) GetUserStatusAndAnyPermission(userID uint, permis
 		First(&userStatus).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to get user status", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID)
+		l.Error("Failed to get user status", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID)
 		return false, false, nil, false, err
 	}
 
 	hasPermission, err = r.HasAnyPermission(userID, permissions)
 	if err != nil {
-		l.Logger.Error("Failed to check user permissions", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID, "permissions", permissions)
+		l.Error("Failed to check user permissions", "method", "GetUserStatusAndAnyPermission", "error", err, "userID", userID, "permissions", permissions)
 		return false, false, nil, false, err
 	}
 

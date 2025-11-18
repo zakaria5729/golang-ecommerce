@@ -63,7 +63,7 @@ func (r *reviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *
 
 	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo)
+		logger.Error("Failed to count reviews", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo)
 		return nil, 0, err
 	}
 
@@ -73,7 +73,7 @@ func (r *reviewRepository) GetAllReviewsPaginated(showDeleted *bool, productID *
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Error("Failed to fetch reviews paginated", "method", "GetAllReviewsPaginated", "error", err, "productID", productID, "userID", userID, "ratingFrom", ratingFrom, "ratingTo", ratingTo, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
@@ -90,7 +90,7 @@ func (r *reviewRepository) GetReviewByID(id uint, showDeleted *bool) (*ReviewEnt
 
 	err := query.Where(c.FieldID+" = ?", id).Take(&review).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id)
+		logger.Error("Failed to fetch review by ID", "method", "GetReviewByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (r *reviewRepository) CreateReview(review *ReviewEntity) error {
 
 	err := r.db.Create(review).Error
 	if err != nil {
-		logger.Logger.Error("Failed to create review", "method", "CreateReview", "error", err, "review", review)
+		logger.Error("Failed to create review", "method", "CreateReview", "error", err, "review", review)
 		return err
 	}
 
@@ -120,7 +120,7 @@ func (r *reviewRepository) UpdateReview(id uint, userID *uint, review *ReviewEnt
 
 	result := query.Updates(review)
 	if result.Error != nil {
-		logger.Logger.Error("Failed to update review", "method", "UpdateReview", "error", result.Error, "id", id, "userID", userID, "review", review)
+		logger.Error("Failed to update review", "method", "UpdateReview", "error", result.Error, "id", id, "userID", userID, "review", review)
 		return result.Error
 	}
 
@@ -141,7 +141,7 @@ func (r *reviewRepository) UndoDeletedReview(ctx context.Context, id uint) error
 		Select(c.FieldDeletedAt, c.FieldDeletedBy).
 		Where(c.FieldID+" = ?", id).Updates(review)
 	if result.Error != nil {
-		logger.Logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id)
+		logger.Error("Failed to undo deleted review", "method", "UndoDeletedReview", "error", result.Error, "id", id)
 		return result.Error
 	}
 
@@ -167,7 +167,7 @@ func (r *reviewRepository) DeleteReview(ctx context.Context, id uint, userID *ui
 
 	result := query.Omit(c.FieldUpdatedAt).Updates(review)
 	if result.Error != nil {
-		logger.Logger.Error("Failed to delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
+		logger.Error("Failed to delete review", "method", "DeleteReview", "error", result.Error, "id", id, "userID", userID)
 		return result.Error
 	}
 
@@ -193,7 +193,7 @@ func (r *reviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 
 	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating)
+		logger.Error("Failed to count reviews", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating)
 		return nil, 0, err
 	}
 
@@ -203,7 +203,7 @@ func (r *reviewRepository) GetReviewsByProduct(productID uint, showDeleted *bool
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by product paginated", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Error("Failed to fetch reviews by product paginated", "method", "GetReviewsByProduct", "error", err, "productID", productID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
@@ -233,7 +233,7 @@ func (r *reviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 
 	err := query.Count(&total).Error
 	if err != nil {
-		logger.Logger.Error("Failed to count reviews", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating)
+		logger.Error("Failed to count reviews", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating)
 		return nil, 0, err
 	}
 
@@ -243,7 +243,7 @@ func (r *reviewRepository) GetReviewsByUser(userID uint, showDeleted *bool, prod
 
 	err = query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&reviews).Error
 	if err != nil {
-		logger.Logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		logger.Error("Failed to fetch reviews by user paginated", "method", "GetReviewsByUser", "error", err, "productID", productID, "userID", userID, "rating", rating, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
@@ -260,7 +260,7 @@ func (r *reviewRepository) GetAverageRating(productID uint, showDeleted *bool) (
 
 	err := query.Select("AVG(rating)").Scan(&avgRating).Error
 	if err != nil {
-		logger.Logger.Error("Failed to get average rating", "method", "GetAverageRating", "error", err, "productID", productID)
+		logger.Error("Failed to get average rating", "method", "GetAverageRating", "error", err, "productID", productID)
 		return 0, err
 	}
 
@@ -286,7 +286,7 @@ func (r *reviewRepository) GetRatingCounts(productID uint, showDeleted *bool) (m
 		Scan(&results).Error
 
 	if err != nil {
-		logger.Logger.Error("Failed to get rating counts", "method", "GetRatingCounts", "error", err, "productID", productID)
+		logger.Error("Failed to get rating counts", "method", "GetRatingCounts", "error", err, "productID", productID)
 		return nil, err
 	}
 
@@ -306,7 +306,7 @@ func (r *reviewRepository) CheckUserReviewExists(productID, userID uint) (bool, 
 		Take(&review).Error
 
 	if err != nil {
-		logger.Logger.Error("Failed to check user review exists", "method", "CheckUserReviewExists", "error", err, "productID", productID, "userID", userID)
+		logger.Error("Failed to check user review exists", "method", "CheckUserReviewExists", "error", err, "productID", productID, "userID", userID)
 		return false, err
 	}
 

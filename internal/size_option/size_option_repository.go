@@ -46,7 +46,7 @@ func (r *sizeOptionRepository) GetAllSizeOptions(showDeleted *bool, sizeCategory
 
 	err := query.Find(&sizeOptions).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch size options", "method", "GetAllSizeOptions", "error", err, "sizeCategoryID", sizeCategoryID, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch size options", "method", "GetAllSizeOptions", "error", err, "sizeCategoryID", sizeCategoryID, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return sizeOptions, err
 }
@@ -60,7 +60,7 @@ func (r *sizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*S
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&sizeOption).Error; err != nil {
-		l.Logger.Error("Failed to fetch size option by ID", "method", "GetSizeOptionByID", "error", err, "id", id)
+		l.Error("Failed to fetch size option by ID", "method", "GetSizeOptionByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (r *sizeOptionRepository) GetSizeOptionByID(id uint, showDeleted *bool) (*S
 func (r *sizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*SizeOptionEntity, error) {
 	err := r.db.Create(sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to create size option", "method", "CreateSizeOption", "error", err, "sizeOption", sizeOption)
+		l.Error("Failed to create size option", "method", "CreateSizeOption", "error", err, "sizeOption", sizeOption)
 		return nil, err
 	}
 	return sizeOption, nil
@@ -79,7 +79,7 @@ func (r *sizeOptionRepository) CreateSizeOption(sizeOption *SizeOptionEntity) (*
 func (r *sizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) error {
 	err := r.db.Save(sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to update size option", "method", "UpdateSizeOption", "error", err, "sizeOption", sizeOption)
+		l.Error("Failed to update size option", "method", "UpdateSizeOption", "error", err, "sizeOption", sizeOption)
 	}
 	return err
 }
@@ -87,7 +87,7 @@ func (r *sizeOptionRepository) UpdateSizeOption(sizeOption *SizeOptionEntity) er
 func (r *sizeOptionRepository) DeleteSizeOption(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeOptionEntity{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete size option", "method", "DeleteSizeOption", "error", err, "id", id)
+		l.Error("Failed to delete size option", "method", "DeleteSizeOption", "error", err, "id", id)
 	}
 
 	return err
@@ -97,14 +97,14 @@ func (r *sizeOptionRepository) UndoDeletedSizeOption(id uint) error {
 	var sizeOption SizeOptionEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to find deleted size option", "method", "UndoDeletedSizeOption", "error", err, "id", id)
+		l.Error("Failed to find deleted size option", "method", "UndoDeletedSizeOption", "error", err, "id", id)
 		return err
 	}
 
 	sizeOption.DeletedAt = nil
 	err = r.db.Unscoped().Save(&sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted size option", "method", "UndoDeletedSizeOption", "error", err, "id", id)
+		l.Error("Failed to undo deleted size option", "method", "UndoDeletedSizeOption", "error", err, "id", id)
 	}
 
 	return err
@@ -120,7 +120,7 @@ func (r *sizeOptionRepository) SizeOptionExists(id uint, showDeleted *bool) (boo
 
 	err := query.Select(c.FieldID).Take(&sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if size option exists", "method", "SizeOptionExists", "error", err, "id", id)
+		l.Error("Failed to check if size option exists", "method", "SizeOptionExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -137,7 +137,7 @@ func (r *sizeOptionRepository) SizeOptionExistsByName(name string, sizeCategoryI
 
 	err := query.Select(c.FieldID).Take(&sizeOption).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if size option exists by name", "method", "SizeOptionExistsByName", "error", err, "name", name, "sizeCategoryID", sizeCategoryID)
+		l.Error("Failed to check if size option exists by name", "method", "SizeOptionExistsByName", "error", err, "name", name, "sizeCategoryID", sizeCategoryID)
 		return false, err
 	}
 

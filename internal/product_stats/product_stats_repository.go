@@ -52,13 +52,13 @@ func (r *productStatsRepository) GetAllProductStatsPaginated(page, pageSize int,
 	}
 
 	if err := query.Model(&ProductStatsEntity{}).Count(&total).Error; err != nil {
-		l.Logger.Error("Failed to count product stats", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to count product stats", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&history).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch product stats paginated", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch product stats paginated", "method", "GetAllProductStatsPaginated", "error", err, "page", page, "pageSize", pageSize, "productID", productID, "dateFrom", dateFrom, "dateTo", dateTo, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return history, total, err
@@ -68,7 +68,7 @@ func (r *productStatsRepository) GetProductStatsByID(id uint) (*ProductStatsEnti
 	var history ProductStatsEntity
 
 	if err := r.db.Model(&ProductStatsEntity{}).Where(c.FieldID+" = ?", id).First(&history).Error; err != nil {
-		l.Logger.Error("Failed to fetch product stats by ID", "method", "GetProductStatsByID", "error", err, "id", id)
+		l.Error("Failed to fetch product stats by ID", "method", "GetProductStatsByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (r *productStatsRepository) IncreaseProductStats(ctx context.Context, produ
 		err := r.db.Model(&ProductStatsEntity{}).Create(productStats).Error
 
 		if err != nil {
-			l.Logger.Error("Failed to create product stats", "method", "IncreaseProductStats", "error", err)
+			l.Error("Failed to create product stats", "method", "IncreaseProductStats", "error", err)
 		}
 		return err
 	}
@@ -91,7 +91,7 @@ func (r *productStatsRepository) IncreaseProductStats(ctx context.Context, produ
 	productStats.UpdatedBy = userID
 	err := r.db.Model(&ProductStatsEntity{}).Where(c.FieldID+" = ?", productStats.ID).Updates(productStats).Error
 	if err != nil {
-		l.Logger.Error("Failed to update product stats", "method", "IncreaseProductStats", "error", err)
+		l.Error("Failed to update product stats", "method", "IncreaseProductStats", "error", err)
 	}
 	return err
 }

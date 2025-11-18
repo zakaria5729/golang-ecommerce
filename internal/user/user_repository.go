@@ -81,13 +81,13 @@ func (r *userRepository) GetAllUsersPaginated(include []string, showDeleted *boo
 	}
 
 	if err := query.Model(&UserEntity{}).Count(&total).Error; err != nil {
-		l.Logger.Error("❌ Failed to count users", "method", "GetAllUsersPaginated", "error", err, "include", include, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("❌ Failed to count users", "method", "GetAllUsersPaginated", "error", err, "include", include, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&users).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to fetch users paginated", "method", "GetAllUsersPaginated", "error", err, "include", include, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("❌ Failed to fetch users paginated", "method", "GetAllUsersPaginated", "error", err, "include", include, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return users, total, err
@@ -112,7 +112,7 @@ func (r *userRepository) GetUserByID(id uint, include []string, showDeleted *boo
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id, "include", include)
+		l.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id, "include", include)
 		return nil, err
 	}
 
@@ -134,7 +134,7 @@ func (r *userRepository) GetAuthUserByID(id uint, includeRoles bool, includePerm
 	}
 
 	if err := query.First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id, "includeRoles", includeRoles, "includePermissions", includePermissions)
+		l.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id, "includeRoles", includeRoles, "includePermissions", includePermissions)
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (r *userRepository) GetAuthUserStatusByID(id uint) (bool, bool, *string, er
 		Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).
 		Where(c.FieldID+" = ?", id).
 		First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id)
+		l.Error("❌ Failed to fetch user by ID", "method", "GetUserByID", "error", err, "id", id)
 		return false, false, nil, err
 	}
 
@@ -159,7 +159,7 @@ func (r *userRepository) GetUserIdByEmail(email string) (*uint, error) {
 	var user UserEntity
 
 	if err := r.db.Select(c.FieldID).Where(c.UserEmail+" = ?", email).First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch userID by email", "method", "GetUserIdByEmail", "error", err, "email", email)
+		l.Error("❌ Failed to fetch userID by email", "method", "GetUserIdByEmail", "error", err, "email", email)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("Failed to fetch userID by email", err)
@@ -178,7 +178,7 @@ func (r *userRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
 		Preload(c.UserRolesCapitalized).
 		Preload(c.UserRolesPermissionsCapitalized).
 		First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by email", "method", "GetUserByEmail", "error", err, "email", email)
+		l.Error("❌ Failed to fetch user by email", "method", "GetUserByEmail", "error", err, "email", email)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("Failed to fetch user by email", err)
@@ -192,7 +192,7 @@ func (r *userRepository) GetFullUserByEmail(email string) (*UserEntity, error) {
 func (r *userRepository) CreateUser(user *UserEntity) (*UserEntity, error) {
 	err := r.db.Create(user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to create user", "method", "CreateUser", "error", err, "user", user)
+		l.Error("❌ Failed to create user", "method", "CreateUser", "error", err, "user", user)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("Failed to create user", err)
@@ -215,7 +215,7 @@ func (r *userRepository) ResetPassword(userID uint, password string) error {
 		Select(c.UserPassword, c.UserPasswordResetToken, c.UserPasswordResetExpires, c.UserVerified).
 		Updates(user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to reset user password", "method", "ResetPassword", "error", err, "userID", userID)
+		l.Error("❌ Failed to reset user password", "method", "ResetPassword", "error", err, "userID", userID)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return e.WrapServerError("Failed to reset user password", err)
@@ -235,7 +235,7 @@ func (r *userRepository) UpdateUserInfo(userID uint, user *UserEntity) error {
 		Select(c.UserName, c.UserBanned, c.UserVerified).
 		Where(c.FieldID+" = ?", userID).Updates(updatedUser).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to update user password and clear reset password token", "method", "UpdatePasswordAndClearResetPasswordToken", "error", err, "userID", userID)
+		l.Error("❌ Failed to update user password and clear reset password token", "method", "UpdatePasswordAndClearResetPasswordToken", "error", err, "userID", userID)
 	}
 	return err
 }
@@ -250,7 +250,7 @@ func (r *userRepository) UpdateNameAndPathKey(userID uint, name string, pathKey 
 
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to update user name and path key", "method", "UpdateNameAndPathKey", "error", err, "userID", userID)
+		l.Error("❌ Failed to update user name and path key", "method", "UpdateNameAndPathKey", "error", err, "userID", userID)
 	}
 	return err
 }
@@ -263,7 +263,7 @@ func (r *userRepository) UpdateUserPassword(userID uint, password string, req *m
 	}
 
 	if !user.CheckPassword(req.CurrentPassword) {
-		l.Logger.Error("❌ Invalid current password", "method", "ChangePassword", "userID", user.ID)
+		l.Error("❌ Invalid current password", "method", "ChangePassword", "userID", user.ID)
 		return errors.New("invalid current password")
 	}
 
@@ -271,7 +271,7 @@ func (r *userRepository) UpdateUserPassword(userID uint, password string, req *m
 	user.Password = req.NewPassword
 
 	if err := user.HashPassword(); err != nil {
-		l.Logger.Error("❌ Failed to hash new password", "method", "ChangePassword", "error", err, "userID", user.ID)
+		l.Error("❌ Failed to hash new password", "method", "ChangePassword", "error", err, "userID", user.ID)
 		return fmt.Errorf("failed to process new password: %w", err)
 	}
 
@@ -279,7 +279,7 @@ func (r *userRepository) UpdateUserPassword(userID uint, password string, req *m
 		Select(c.UserPasswordResetToken, c.UserPasswordResetExpires).
 		Where(c.FieldID+" = ?", userID).Updates(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to update user password", "method", "UpdateUserPassword", "error", err, "userID", userID)
+		l.Error("❌ Failed to update user password", "method", "UpdateUserPassword", "error", err, "userID", userID)
 	}
 	return err
 }
@@ -292,7 +292,7 @@ func (r *userRepository) DeleteUser(ctx context.Context, id uint) error {
 
 	err := r.db.Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to soft delete user", "method", "SoftDeleteUser", "error", err, "id", id)
+		l.Error("❌ Failed to soft delete user", "method", "SoftDeleteUser", "error", err, "id", id)
 	}
 	return err
 }
@@ -309,7 +309,7 @@ func (r *userRepository) UndoDeletedUser(ctx context.Context, id uint) error {
 		Where(c.FieldID+" = ?", id).Updates(user).Error
 
 	if err != nil {
-		l.Logger.Error("❌ Failed to undo deleted user", "method", "UndoDeletedUser", "error", err, "id", id)
+		l.Error("❌ Failed to undo deleted user", "method", "UndoDeletedUser", "error", err, "id", id)
 	}
 	return err
 }
@@ -324,7 +324,7 @@ func (r *userRepository) UserExists(id uint, showDeleted *bool) (bool, error) {
 
 	err := query.Select(c.FieldID).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to check if user exists", "method", "UserExists", "error", err, "id", id)
+		l.Error("❌ Failed to check if user exists", "method", "UserExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -341,7 +341,7 @@ func (r *userRepository) GetUserEmail(id uint, showDeleted *bool) (*string, erro
 
 	err := query.Select(c.UserEmail).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "id", id)
+		l.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -358,7 +358,7 @@ func (r *userRepository) GetUserIdAndVerifiedByEmail(email string, showDeleted *
 
 	err := query.Select(c.FieldID, c.UserEmail, c.UserVerified).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "email", email)
+		l.Error("❌ Failed to get user email", "method", "GetUserEmail", "error", err, "email", email)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, e.WrapServerError("Failed to get user email", err)
@@ -375,7 +375,7 @@ func (r *userRepository) IsUserExists(email string) (bool, error) {
 
 	err := r.db.Model(&UserEntity{}).Where(c.UserEmail+" = ?", email).Select(c.FieldID).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to check if user exists by email", "method", "IsUserExists", "error", err, "email", email)
+		l.Error("❌ Failed to check if user exists by email", "method", "IsUserExists", "error", err, "email", email)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, e.WrapServerError("Failed to check if user exists by email", err)
@@ -392,7 +392,7 @@ func (r *userRepository) GetUserPasswordByID(id uint) (string, error) {
 
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", id).Select(c.UserPassword).Take(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to get user password by ID", "method", "GetUserPasswordByID", "error", err, "id", id)
+		l.Error("❌ Failed to get user password by ID", "method", "GetUserPasswordByID", "error", err, "id", id)
 		return "", err
 	}
 
@@ -413,7 +413,7 @@ func (r *userRepository) UserExistsByEmailAndRoleId(email string, roleID uint, s
 		Take(&user).Error
 
 	if err != nil {
-		l.Logger.Error("❌ Failed to check if user exists by email and role id", "method", "UserExistsByEmailAndRoleId", "error", err, "email", email, "roleID", roleID)
+		l.Error("❌ Failed to check if user exists by email and role id", "method", "UserExistsByEmailAndRoleId", "error", err, "email", email, "roleID", roleID)
 		return false, err
 	}
 
@@ -428,7 +428,7 @@ func (r *userRepository) SetPasswordResetToken(userID uint, token string, expire
 
 	err := r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to set password reset token", "method", "SetPasswordResetToken", "error", err, "userID", userID)
+		l.Error("❌ Failed to set password reset token", "method", "SetPasswordResetToken", "error", err, "userID", userID)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return e.WrapServerError("failed to set password reset token", err)
@@ -443,7 +443,7 @@ func (r *userRepository) GetUserByResetPasswordToken(token string) (*UserEntity,
 		Select(c.FieldID, c.UserEmail, c.UserPasswordResetExpires).
 		First(&user).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to check if reset password token is valid and not expired", "method", "IsValidResetPasswordToken", "error", err, "token", token)
+		l.Error("❌ Failed to check if reset password token is valid and not expired", "method", "IsValidResetPasswordToken", "error", err, "token", token)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("failed to check if reset password token is valid and not expired", err)
@@ -464,7 +464,7 @@ func (r *userRepository) SetRefreshTokenAndLastLoginAt(userID uint, token string
 
 	err = r.db.Model(&UserEntity{}).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
+		l.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return lastLoginAt, e.WrapServerError("failed to set refresh token", err)
@@ -481,7 +481,7 @@ func (r *userRepository) SetRefreshToken(userID uint, token *string, expiresAt *
 
 	err := r.db.Model(&UserEntity{}).Select(c.UserRefreshToken, c.UserRefreshTokenExpires).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
+		l.Error("Failed to set refresh token", "method", "SetRefreshToken", "error", err, "userID", userID)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return e.WrapServerError("failed to set refresh token", err)
@@ -500,7 +500,7 @@ func (r *userRepository) SetVerifiedAndVerificationToken(userID uint, verified b
 
 	err := r.db.Model(&UserEntity{}).Select(c.UserVerificationToken, c.UserVerificationExpires, c.UserVerified).Where(c.FieldID+" = ?", userID).Updates(user).Error
 	if err != nil {
-		l.Logger.Error("Failed to set verified and verification token", "method", "SetVerifiedAndVerificationToken", "error", err, "userID", userID, "verified", verified)
+		l.Error("Failed to set verified and verification token", "method", "SetVerifiedAndVerificationToken", "error", err, "userID", userID, "verified", verified)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return e.WrapServerError("failed to set verified and verification token", err)
@@ -522,7 +522,7 @@ func (r *userRepository) GetUserByVerificationToken(token string) (*uint, error)
 		Select(c.FieldID).
 		Where(c.UserVerificationToken+" = ? AND "+c.UserVerificationExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
 		First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by verification token", "method", "GetUserByVerificationToken", "error", err, "token", token)
+		l.Error("❌ Failed to fetch user by verification token", "method", "GetUserByVerificationToken", "error", err, "token", token)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("failed to fetch user by verification token", err)
@@ -545,7 +545,7 @@ func (r *userRepository) GetUserByRefreshToken(token string) (*UserEntity, error
 	if err := r.db.Model(&UserEntity{}).Preload(c.UserRolesCapitalized).
 		Where(c.UserRefreshToken+" = ? AND "+c.UserRefreshTokenExpires+" BETWEEN ? AND ?", token, timeutil.NowUTC(), expiry).
 		First(&user).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch user by refresh token", "method", "GetUserByRefreshToken", "error", err, "token", token)
+		l.Error("❌ Failed to fetch user by refresh token", "method", "GetUserByRefreshToken", "error", err, "token", token)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.NewServerError("Failed to fetch user by refresh token")
@@ -564,7 +564,7 @@ func (r *userRepository) UpdateUserPurchaseCountAndTotalSpent(userID uint, purch
 	}).Error
 
 	if err != nil {
-		l.Logger.Error("❌ Failed to update user purchase count and total spent", "method", "UpdateUserPurchaseCountAndTotalSpent", "error", err, "userID", userID, "purchaseCount", purchaseCount, "totalSpent", totalSpent)
+		l.Error("❌ Failed to update user purchase count and total spent", "method", "UpdateUserPurchaseCountAndTotalSpent", "error", err, "userID", userID, "purchaseCount", purchaseCount, "totalSpent", totalSpent)
 	}
 	return err
 }

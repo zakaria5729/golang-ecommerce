@@ -31,7 +31,7 @@ func NewNotificationRepository(db *gorm.DB) NotificationRepository {
 
 func (r *notificationRepository) Create(ctx context.Context, notification *Notification) error {
 	if err := r.db.WithContext(ctx).Create(notification).Error; err != nil {
-		l.Logger.Error("Failed to create notification", "method", "Create", "error", err, "userID", notification.UserID)
+		l.Error("Failed to create notification", "method", "Create", "error", err, "userID", notification.UserID)
 		return err
 	}
 	return nil
@@ -50,7 +50,7 @@ func (r *notificationRepository) GetByID(ctx context.Context, id uint, showDelet
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		l.Logger.Error("Failed to get notification by ID", "method", "GetByID", "error", err, "id", id)
+		l.Error("Failed to get notification by ID", "method", "GetByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -71,13 +71,13 @@ func (r *notificationRepository) GetAllByUserIDPaginated(showDeleted *bool, user
 	}
 
 	if err := query.Count(&total).Error; err != nil {
-		l.Logger.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to count categories", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&notifications).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch categories paginated", "method", "GetAllCategoriesPaginated", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return notifications, total, err
@@ -94,7 +94,7 @@ func (r *notificationRepository) MarkAsRead(notificationID uint, userID uint) er
 		Updates(notification)
 
 	if result.Error != nil {
-		l.Logger.Error("Failed to mark notification as read", "method", "MarkAsRead", "error", result.Error, "notificationID", notificationID, "userID", userID)
+		l.Error("Failed to mark notification as read", "method", "MarkAsRead", "error", result.Error, "notificationID", notificationID, "userID", userID)
 		return result.Error
 	}
 
@@ -116,7 +116,7 @@ func (r *notificationRepository) MarkAllAsRead(userID uint) error {
 		Updates(notification)
 
 	if result.Error != nil {
-		l.Logger.Error("Failed to mark all notifications as read", "method", "MarkAllAsRead", "error", result.Error, "userID", userID)
+		l.Error("Failed to mark all notifications as read", "method", "MarkAllAsRead", "error", result.Error, "userID", userID)
 		return result.Error
 	}
 
@@ -135,7 +135,7 @@ func (r *notificationRepository) GetUnreadCount(userID uint) (int64, error) {
 		Count(&count).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to get unread notifications count", "method", "GetUnreadCount", "error", err, "userID", userID)
+		l.Error("Failed to get unread notifications count", "method", "GetUnreadCount", "error", err, "userID", userID)
 		return 0, err
 	}
 

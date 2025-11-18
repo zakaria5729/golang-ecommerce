@@ -49,7 +49,7 @@ func (r *addressRepository) GetAllAddressesByUser(userID uint, addressType *stri
 
 	err := query.Find(&addresses).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to fetch addresses", "method", "GetAllAddressesByUser", "error", err, "userID", userID, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("❌ Failed to fetch addresses", "method", "GetAllAddressesByUser", "error", err, "userID", userID, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return addresses, err
 }
@@ -80,13 +80,13 @@ func (r *addressRepository) GetAllAddressesPaginated(showDeleted *bool, userID *
 	}
 
 	if err := query.Count(&total).Error; err != nil {
-		l.Logger.Error("❌ Failed to count addresses", "method", "GetAllAddressesPaginatedByUser", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("❌ Failed to count addresses", "method", "GetAllAddressesPaginatedByUser", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&addresses).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to fetch addresses paginated", "method", "GetAllAddressesPaginatedByUser", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("❌ Failed to fetch addresses paginated", "method", "GetAllAddressesPaginatedByUser", "error", err, "userID", userID, "page", page, "pageSize", pageSize, "addressType", addressType, "isDefault", isDefault, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 
 	return addresses, total, err
@@ -105,7 +105,7 @@ func (r *addressRepository) GetAddressByID(id uint, userID *uint, showDeleted *b
 	}
 
 	if err := query.First(&address).Error; err != nil {
-		l.Logger.Error("❌ Failed to fetch address by ID", "method", "GetAddressByID", "error", err, "id", id, "userID", userID)
+		l.Error("❌ Failed to fetch address by ID", "method", "GetAddressByID", "error", err, "id", id, "userID", userID)
 		return nil, err
 	}
 
@@ -115,7 +115,7 @@ func (r *addressRepository) GetAddressByID(id uint, userID *uint, showDeleted *b
 func (r *addressRepository) CreateAddress(address *AddressEntity) error {
 	err := r.db.Create(address).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to create address", "method", "CreateAddress", "error", err, "address", address)
+		l.Error("❌ Failed to create address", "method", "CreateAddress", "error", err, "address", address)
 	}
 	return err
 }
@@ -123,7 +123,7 @@ func (r *addressRepository) CreateAddress(address *AddressEntity) error {
 func (r *addressRepository) UpdateAddress(address *AddressEntity) error {
 	err := r.db.Model(&AddressEntity{}).Where(c.FieldID+" = ?", address.ID).Updates(address).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to update address", "method", "UpdateAddress", "error", err, "address", address)
+		l.Error("❌ Failed to update address", "method", "UpdateAddress", "error", err, "address", address)
 	}
 	return err
 }
@@ -131,7 +131,7 @@ func (r *addressRepository) UpdateAddress(address *AddressEntity) error {
 func (r *addressRepository) DeleteAddress(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&AddressEntity{}).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to delete address", "method", "DeleteAddress", "error", err, "id", id)
+		l.Error("❌ Failed to delete address", "method", "DeleteAddress", "error", err, "id", id)
 	}
 	return err
 }
@@ -139,7 +139,7 @@ func (r *addressRepository) DeleteAddress(id uint) error {
 func (r *addressRepository) RemoveAddress(id uint, userID uint) error {
 	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Delete(&AddressEntity{}).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to remove address", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
+		l.Error("❌ Failed to remove address", "method", "RemoveAddress", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }
@@ -147,7 +147,7 @@ func (r *addressRepository) RemoveAddress(id uint, userID uint) error {
 func (r *addressRepository) UndoDeleteAddress(id uint) error {
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).Update(c.FieldDeletedAt, nil).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to undo delete address", "method", "UndoDeleteAddress", "error", err, "id", id)
+		l.Error("❌ Failed to undo delete address", "method", "UndoDeleteAddress", "error", err, "id", id)
 	}
 	return err
 }
@@ -155,7 +155,7 @@ func (r *addressRepository) UndoDeleteAddress(id uint) error {
 func (r *addressRepository) SetDefaultAddress(id uint, userID uint, addressType string) error {
 	err := r.db.Where(c.FieldID+" = ? AND "+c.AddressUserID+" = ?", id, userID).Update(c.AddressIsDefault, true).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
+		l.Error("❌ Failed to delete address", "method", "DeleteAddress", "error", err, "id", id, "userID", userID)
 	}
 	return err
 }
@@ -173,7 +173,7 @@ func (r *addressRepository) AddressExists(id uint, userID *uint, showDeleted *bo
 	var address AddressEntity
 	err := query.Select(c.FieldID).Take(&address).Error
 	if err != nil || address.ID == 0 {
-		l.Logger.Error("❌ Failed to check if address exists", "method", "AddressExists", "error", err, "id", id, "userID", userID)
+		l.Error("❌ Failed to check if address exists", "method", "AddressExists", "error", err, "id", id, "userID", userID)
 		return false, err
 	}
 
@@ -185,7 +185,7 @@ func (r *addressRepository) GetDefaultAddress(userID uint, addressType string) (
 
 	err := r.db.Where(c.AddressUserID+" = ? AND "+c.AddressAddressType+" = ? AND "+c.AddressIsDefault+" = ?", userID, addressType, true).First(&address).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to get default address", "method", "GetDefaultAddress", "error", err, "userID", userID, "addressType", addressType)
+		l.Error("❌ Failed to get default address", "method", "GetDefaultAddress", "error", err, "userID", userID, "addressType", addressType)
 		return nil, err
 	}
 
