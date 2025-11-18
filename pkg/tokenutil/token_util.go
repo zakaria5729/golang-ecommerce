@@ -49,7 +49,7 @@ func GenerateNewTokenWithExpiryTime(expiryHours int) (string, time.Time, error) 
 func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			l.Logger.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
+			l.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(jwtSecret), nil
@@ -65,7 +65,7 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	}
 
 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-		l.Logger.Error("❌ Jwt Token expired", "method", "VerifyJwtToken", "error", err)
+		l.Error("❌ Jwt Token expired", "method", "VerifyJwtToken", "error", err)
 		return nil, errors.New("jwt token expired")
 	}
 

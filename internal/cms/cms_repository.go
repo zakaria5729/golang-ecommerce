@@ -47,7 +47,7 @@ func (r *cmsRepository) CreatePage(page *en.CmsPageEntity) (uint, error) {
 	err := r.db.Create(page).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to create page", "error", err)
+		l.Error("Failed to create page", "error", err)
 		return 0, e.WrapServerError("Failed to create page", err)
 	}
 
@@ -58,7 +58,7 @@ func (r *cmsRepository) UpdatePage(pageID uint, page *en.CmsPageEntity) (*uint, 
 	err := r.db.Model(&en.CmsPageEntity{}).Where(c.FieldID+" = ?", pageID).Updates(page).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to update page", "error", err)
+		l.Error("Failed to update page", "error", err)
 		return nil, e.WrapServerError("Failed to update page", err)
 	}
 
@@ -71,7 +71,7 @@ func (r *cmsRepository) GetPageByTag(tag string) (*en.CmsPageEntity, error) {
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to get page by tag", "error", err)
+			l.Error("Failed to get page by tag", "error", err)
 			return nil, e.WrapServerError("Failed to get page by tag", err)
 		}
 
@@ -92,7 +92,7 @@ func (r *cmsRepository) GetPageByID(id uint, showDeleted *bool) (*en.CmsPageEnti
 	err := query.First(&page).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to get page by id", "error", err)
+			l.Error("Failed to get page by id", "error", err)
 			return nil, e.WrapServerError("Failed to get page by id", err)
 		}
 
@@ -120,13 +120,13 @@ func (r *cmsRepository) GetPagesPaginated(page int, pageSize int, sortBy string,
 	}
 
 	if err := query.Count(&total).Error; err != nil {
-		l.Logger.Error("❌ Failed to count pages", "method", "GetPagesPaginated", "error", err, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder, "title", title, "showDeleted", showDeleted)
+		l.Error("❌ Failed to count pages", "method", "GetPagesPaginated", "error", err, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder, "title", title, "showDeleted", showDeleted)
 		return nil, 0, err
 	}
 
 	err := query.Offset(utils.GetOffset(page, pageSize)).Limit(pageSize).Find(&pages).Error
 	if err != nil {
-		l.Logger.Error("❌ Failed to fetch pages paginated", "method", "GetPagesPaginated", "error", err, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder, "title", title, "showDeleted", showDeleted)
+		l.Error("❌ Failed to fetch pages paginated", "method", "GetPagesPaginated", "error", err, "page", page, "pageSize", pageSize, "sortBy", sortBy, "sortOrder", sortOrder, "title", title, "showDeleted", showDeleted)
 		return nil, 0, err
 	}
 
@@ -139,7 +139,7 @@ func (r *cmsRepository) ExistsPageByTag(tag string) (bool, error) {
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to check if page exists by tag", "error", err)
+			l.Error("Failed to check if page exists by tag", "error", err)
 			return false, e.WrapServerError("Failed to check if page exists by tag", err)
 		}
 
@@ -160,7 +160,7 @@ func (r *cmsRepository) ExistsPageByID(id uint, showDeleted bool) (bool, error) 
 	err := query.Where(c.FieldID+" = ?", id).Take(&page).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to check if page exists by id", "error", err)
+			l.Error("Failed to check if page exists by id", "error", err)
 			return false, e.WrapServerError("Failed to check if page exists by id", err)
 		}
 
@@ -176,7 +176,7 @@ func (r *cmsRepository) ExistsPageByTagAndIdNot(tag string, id uint) (bool, erro
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to check if page exists by tag and id not", "error", err)
+			l.Error("Failed to check if page exists by tag and id not", "error", err)
 			return false, e.WrapServerError("Failed to check if page exists by tag", err)
 		}
 
@@ -205,7 +205,7 @@ func (r *cmsRepository) GetSectionsByPageID(pageId uint, title *string, sortBy s
 	err := query.Model(&en.CmsSectionEntity{}).Find(&sections).Error
 	if err != nil || sections == nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to get sections by page id", "error", err)
+			l.Error("Failed to get sections by page id", "error", err)
 			return nil, e.WrapServerError("Failed to get sections by page id", err)
 		}
 
@@ -226,7 +226,7 @@ func (r *cmsRepository) GetSectionIdsByPageID(pageId uint) (*[]uint, error) {
 
 	if err != nil || sectionIds == nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to get section ids by page id", "error", err)
+			l.Error("Failed to get section ids by page id", "error", err)
 			return nil, e.WrapServerError("Failed to get section ids by page id", err)
 		}
 
@@ -242,7 +242,7 @@ func (r *cmsRepository) GetSectionByIdAndPageID(id uint, pageId uint) (*en.CmsSe
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to get section by id and page id", "error", err)
+			l.Error("Failed to get section by id and page id", "error", err)
 			return nil, e.WrapServerError("Failed to get section by id and page id", err)
 		}
 
@@ -257,7 +257,7 @@ func (r *cmsRepository) DeleteSectionsByPageID(pageId uint) error {
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to delete sections by page id", "error", err)
+			l.Error("Failed to delete sections by page id", "error", err)
 			return e.WrapServerError("Failed to delete sections by page id", err)
 		}
 
@@ -288,7 +288,7 @@ func (r *cmsRepository) DeleteSectionsByIds(ctx context.Context, sectionIds []ui
 	err := r.db.Model(&en.CmsSectionEntity{}).Where(c.FieldID+" IN ?", sectionIds).Updates(entity).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			l.Logger.Error("Failed to delete sections by ids", "error", err)
+			l.Error("Failed to delete sections by ids", "error", err)
 			return e.WrapServerError("Failed to delete sections by ids", err)
 		}
 
@@ -313,7 +313,7 @@ func (r *cmsRepository) UpsertSections(sections *[]en.CmsSectionEntity) error {
 	}).CreateInBatches(*sections, 100).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to create sections", "error", err)
+		l.Error("Failed to create sections", "error", err)
 		return e.WrapServerError("Failed to create sections", err)
 	}
 
@@ -341,7 +341,7 @@ func handlePageDeletion(r *cmsRepository, ctx context.Context, pageId uint, isUn
 		err := sectionQuery.Updates(sectionEntity).Error
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				l.Logger.Error("Failed to delete sections by page id", "error", err)
+				l.Error("Failed to delete sections by page id", "error", err)
 				return e.WrapServerError("Failed to delete sections by page id", err)
 			}
 
@@ -365,7 +365,7 @@ func handlePageDeletion(r *cmsRepository, ctx context.Context, pageId uint, isUn
 		err = pageQuery.Updates(pageEntity).Error
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				l.Logger.Error("Failed to delete page by id", "error", err)
+				l.Error("Failed to delete page by id", "error", err)
 				return e.WrapServerError("Failed to delete page by id", err)
 			}
 

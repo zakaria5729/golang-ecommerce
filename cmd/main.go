@@ -11,6 +11,7 @@ import (
 	"github.com/easy-comerce/backend/db"
 	c "github.com/easy-comerce/backend/pkg/config"
 	dl "github.com/easy-comerce/backend/pkg/data_loader"
+	"github.com/easy-comerce/backend/pkg/logger"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	m "github.com/easy-comerce/backend/pkg/middleware"
 	"github.com/easy-comerce/backend/pkg/router"
@@ -20,6 +21,8 @@ import (
 func main() {
 	cfg := c.InitConfig()
 	db.InitializeDB()
+
+	defer logger.CloseLogFile(true)
 	defer db.CloseDB()
 
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
@@ -43,9 +46,9 @@ func main() {
 	}
 
 	go func() {
-		l.Logger.Info("Server starting", "port", cfg.AppConfig.Port)
+		l.Info("Server starting", "port", cfg.AppConfig.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			l.Logger.Error("❌ Server error", "error", err)
+			l.Error("❌ Server error", "error", err)
 		}
 	}()
 
@@ -53,11 +56,11 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	l.Logger.Info("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	l.Info("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		l.Logger.Error("❌ Server forced to shutdown", "error", err)
+		l.Error("❌ Server forced to shutdown", "error", err)
 	}
 }

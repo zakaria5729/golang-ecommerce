@@ -197,7 +197,7 @@ func renderVerificationTemplate(w http.ResponseWriter, success bool, message str
 	templatePath := filepath.Join(utils.GetProjectRootPath(), "templates", "account_verification.html")
 	tmpl, err := template.ParseFiles(templatePath)
 	if err != nil {
-		l.Logger.Error("❌ Failed to parse template", "method", "renderVerificationTemplate", "error", err, "templatePath", templatePath)
+		l.Error("❌ Failed to parse template", "method", "renderVerificationTemplate", "error", err, "templatePath", templatePath)
 		http.Error(w, "Error loading template", http.StatusInternalServerError)
 		return
 	}
@@ -210,7 +210,7 @@ func renderVerificationTemplate(w http.ResponseWriter, success bool, message str
 
 	w.Header().Set(c.ContentType, "text/html")
 	if err := tmpl.Execute(w, data); err != nil {
-		l.Logger.Error("❌ Failed to execute template", "method", "renderVerificationTemplate", "error", err)
+		l.Error("❌ Failed to execute template", "method", "renderVerificationTemplate", "error", err)
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 	}
 }

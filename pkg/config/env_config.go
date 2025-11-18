@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
-	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/joho/godotenv"
 )
@@ -81,7 +80,7 @@ func loadConfig() *Config {
 	envPath := filepath.Join(utils.GetProjectRootPath(), envFileName)
 	err := godotenv.Load(envPath)
 	if err != nil {
-		l.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
+		panic(fmt.Sprintf("Environment file not found: file_name=%s, path=%s, error=%v", envFileName, envPath, err))
 	}
 
 	config := &Config{
@@ -122,7 +121,6 @@ func loadConfig() *Config {
 		},
 	}
 
-	l.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
 	return config
 }
 

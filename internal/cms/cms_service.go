@@ -275,12 +275,12 @@ func upsertSectionsByPage(ctx context.Context, repo CmsRepository, page *en.CmsP
 
 func getSectionData(ctx context.Context, pageId uint, section *en.CmsSectionEntity, request *m.CmsSectionRequest, isFromUpdate bool) (*en.CmsSectionEntity, error) {
 	if section == nil || request == nil {
-		l.Logger.Error("Invalid section request", "section", section, "request", request)
+		l.Error("Invalid section request", "section", section, "request", request)
 		return nil, errors.New("Invalid section request")
 	}
 
 	if request.Title == "" || request.Content == "" {
-		l.Logger.Error("Invalid section request", "section", section, "request", request)
+		l.Error("Invalid section request", "section", section, "request", request)
 		return nil, errors.New("Invalid section request. Title and Content is required")
 	}
 

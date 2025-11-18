@@ -63,7 +63,7 @@ func loadPermissionsStatus(pm *permissionMiddleware, permissions []string, metho
 
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
-				l.Logger.Error("❌ Token validation failed", "method", methodName, "error", err)
+				l.Error("❌ Token validation failed", "method", methodName, "error", err)
 				response.SendErrorJSON(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -81,7 +81,7 @@ func loadPermissionsStatus(pm *permissionMiddleware, permissions []string, metho
 			}
 
 			if err != nil {
-				l.Logger.Error("❌ Failed to get user status and permissions", "method", methodName, "error", err, "userID", claims.UserID, "permissions", permissions)
+				l.Error("❌ Failed to get user status and permissions", "method", methodName, "error", err, "userID", claims.UserID, "permissions", permissions)
 				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
@@ -107,7 +107,7 @@ func loadAuthUser(pm *permissionMiddleware, loadFullUser bool, includeRoles bool
 
 			claims, err := tokenutil.ValidateTokenAndGetJwtClaims(r, pm.jwtSecret)
 			if err != nil {
-				l.Logger.Error("❌ Invalid/expired jwt token", "method", "RequireAuth", "error", err)
+				l.Error("❌ Invalid/expired jwt token", "method", "RequireAuth", "error", err)
 				response.SendErrorJSON(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
@@ -129,7 +129,7 @@ func loadAuthUser(pm *permissionMiddleware, loadFullUser bool, includeRoles bool
 			}
 
 			if err != nil {
-				l.Logger.Error("❌ User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
+				l.Error("❌ User not found", "method", "RequireAuth", "error", err, "userID", claims.UserID)
 				response.SendErrorJSON(w, "User not found", http.StatusUnauthorized)
 				return
 			}

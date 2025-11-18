@@ -102,7 +102,7 @@ func (s *roleService) CreateRole(ctx context.Context, req *model.CreateRoleReque
 	role.Permissions = permissions
 
 	if role, err := s.roleRepo.CreateRole(role); err != nil {
-		logger.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
+		logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
 		return nil, fmt.Errorf("failed to create role: %w", err)
 	}
 

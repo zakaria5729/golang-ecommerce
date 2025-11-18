@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/easy-comerce/backend/pkg/config"
+	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"gorm.io/driver/postgres"
@@ -40,16 +41,16 @@ func CloseDB() {
 
 	sqlDb, err := db.DB()
 	if err != nil {
-		logger.Logger.Error("❌ Failed to get database instance", "error", err)
+		logger.Error("❌ Failed to get database instance", "error", err)
 		return
 	}
 
 	if err := sqlDb.Close(); err != nil {
-		logger.Logger.Error("❌ Database connection closing failed", "error", err)
+		logger.Error("❌ Database connection closing failed", "error", err)
 		return
 	}
 
-	logger.Logger.Info("Database connection closed successfully")
+	logger.Info("Database connection closed successfully")
 	db = nil
 }
 
@@ -78,21 +79,21 @@ func loadDB() *gorm.DB {
 	})
 
 	if err != nil {
-		logger.Logger.Error("❌ Database connection failed", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
+		logger.Error("❌ Database connection failed", "error", err, "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 		panic(err)
 	}
 
 	sqlDB, err := gormDB.DB()
 	if err != nil || sqlDB == nil {
-		logger.Logger.Error("❌ Failed to get database instance", "error", err)
+		logger.Error("❌ Failed to get database instance", "error", err)
 		panic(err)
 	}
 
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetMaxOpenConns(20)
-	sqlDB.SetConnMaxLifetime(1 * time.Hour)
-	sqlDB.SetConnMaxIdleTime(15 * time.Minute)
+	sqlDB.SetMaxIdleConns(c.DBMaxIdleConns)
+	sqlDB.SetMaxOpenConns(c.DBMaxOpenConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(c.DBConnMaxLifeTimeHour) * time.Hour)
+	sqlDB.SetConnMaxIdleTime(time.Duration(c.DBConnMaxIdleTimeMinute) * time.Minute)
 
-	logger.Logger.Info("Database connection successful", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
+	logger.Info("Database connection successful", "host", cfg.DBHost, "port", cfg.DBPort, "username", cfg.DBUser, "dbname", cfg.DBName, "env", config.GetActiveProfile(), "show_log", cfg.DBShowLog)
 	return gormDB
 }
