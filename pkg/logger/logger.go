@@ -53,30 +53,23 @@ func createNewAsyncWritersLogger() {
 	createNewLogFile()
 	requireCurrentLogFile()
 
-	var logWriters []io.Writer
-	var activeProfile = config.GetActiveProfile()
-
-	asyncFileWriter = diode.NewWriter(currentLogFile, 10000, 10*time.Millisecond, func(missed int) {
-		fmt.Fprintf(os.Stderr, "File log dropped %d messages\n", missed)
-	})
-	logWriters = append(logWriters, asyncFileWriter)
-
-	if activeProfile == c.EnvLocal || activeProfile == c.EnvDev {
-		consoleWriter := zerolog.ConsoleWriter{
-			Out:        os.Stdout,
-			TimeFormat: "2006-01-02 T 15:04:05 Z07:00",
-			NoColor:    false,
-		}
-		logWriters = append(logWriters, consoleWriter)
-	}
-
-	output := zerolog.MultiLevelWriter(logWriters...)
-
 	zerolog.TimeFieldFormat = time.RFC3339
 	zerolog.TimestampFieldName = "time_utc"
 	zerolog.LevelFieldName = "level"
 	zerolog.MessageFieldName = "msg"
 
+	var logWriters []io.Writer
+	var activeProfile = config.GetActiveProfile()
+
+	asyncFileWriter = diode.NewWriter(currentLogFile, 15_000, 0, nil)
+	logWriters = append(logWriters, asyncFileWriter)
+
+	if activeProfile == c.EnvLocal || activeProfile == c.EnvDev {
+		consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 T 15:04:05 Z07:00", NoColor: false}
+		logWriters = append(logWriters, consoleWriter)
+	}
+
+	output := zerolog.MultiLevelWriter(logWriters...)
 	logger = zerolog.New(output).
 		Level(zerolog.InfoLevel).
 		With().
@@ -95,7 +88,7 @@ func CloseLogFile(writeLog bool) {
 			asyncFileWriter = nil
 		}
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		currentLogFile.Close()
 		currentLogFile = nil
 	}
