@@ -14,7 +14,6 @@ require (
 	golang.org/x/oauth2 v0.31.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
-	gorm.io/hints v1.1.2
 )
 
 require (

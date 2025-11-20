@@ -16,6 +16,7 @@ import (
 	"github.com/easy-comerce/backend/pkg/option"
 	"github.com/easy-comerce/backend/pkg/response"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func ParseCommaSeparatedString(input string) []string {
@@ -378,4 +379,46 @@ func ExtractNameFromEmail(email string, capitalize bool) string {
 		name = CapitalizeFirst(name)
 	}
 	return name
+}
+
+func GetRawSqlCreate[T any](db *gorm.DB, entity *T) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Create(entity)
+	})
+}
+
+func GetRawSqlUpdate[T any](db *gorm.DB, entity *T) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Updates(entity)
+	})
+}
+
+func GetRawSqlDelete[T any](db *gorm.DB, entity *T) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Delete(entity)
+	})
+}
+
+func GetRawSqlFirst[T any](db *gorm.DB, entity *T) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.First(entity)
+	})
+}
+
+func GetRawSqlFind[T any](db *gorm.DB, entity *T) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Find(entity)
+	})
+}
+
+func GetRawSqlCount(db *gorm.DB, count *int64) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Count(count)
+	})
+}
+
+func GetRawSqlExists(db *gorm.DB, exists *bool) string {
+	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Scan(exists)
+	})
 }

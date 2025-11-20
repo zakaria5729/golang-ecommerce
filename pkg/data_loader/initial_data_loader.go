@@ -64,7 +64,6 @@ func createSuperAdminRoleAndUserIfNotExists(ps p.PermissionService, rr role.Role
 
 	if exists {
 		logger.Info("Super Admin user ALREADY EXISTS", "method", "createSuperAdminRoleAndUserIfNotExists", "email", superAdminEmail)
-		logger.Info("Super Admin user ALREADY EXISTS", "method", "createSuperAdminRoleAndUserIfNotExists", "email", superAdminEmail)
 		return nil
 	}
 
@@ -157,8 +156,6 @@ func createSuperAdminRoleIfNotExists(roleRepo role.RoleRepository, permissionSer
 			logger.Error("❌ Failed to add permissions to super admin role", "method", "createSuperAdminRoleIfNotExists", "error", err)
 			return nil, err
 		}
-
-		logger.Info("Super Admin role ALREADY EXISTS", "method", "createSuperAdminRoleIfNotExists", "type", c.RoleTypeSuperAdmin)
 	}
 
 	return superAdminRole, nil

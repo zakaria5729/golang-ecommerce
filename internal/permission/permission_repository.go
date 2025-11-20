@@ -2,15 +2,12 @@ package permission
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/easy-comerce/backend/internal/permission/model"
 	"github.com/easy-comerce/backend/pkg/base"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PermissionRepository interface {
@@ -74,7 +71,6 @@ func (r *permissionRepository) HasAnyPermission(userID uint, permissions []strin
 func (r *permissionRepository) GetUserStatusAndPermission(userID uint, permission string, sqlComment ...string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	var userStatus model.PermissionUserStatus
 	query := r.db.Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).Where("id = ?", userID)
-	query = appendSqlComment(query, sqlComment...)
 
 	err = query.First(&userStatus).Error
 	if err != nil {
@@ -106,7 +102,7 @@ func (r *permissionRepository) GetUserStatusAndPermission(userID uint, permissio
 func (r *permissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string, sqlComment ...string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	var userStatus model.PermissionUserStatus
 	query := r.db.Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).Where("id = ?", userID)
-	query = appendSqlComment(query, sqlComment...)
+	// query = appendSqlComment(query, sqlComment...)
 
 	err = query.First(&userStatus).Error
 	if err != nil {
@@ -139,12 +135,12 @@ func buildPermissionJoinQuery(db *gorm.DB) *gorm.DB {
 // 	return db
 // }
 
-func appendSqlComment(db *gorm.DB, sqlComment ...string) *gorm.DB {
-	if len(sqlComment) > 0 {
-		comment := strings.Join(sqlComment, ", ")
-		return db.Clauses(clause.Expr{
-			SQL: fmt.Sprintf("/* %s */", comment),
-		})
-	}
-	return db
-}
+// func appendSqlComment(db *gorm.DB, sqlComment ...string) *gorm.DB {
+// 	if len(sqlComment) > 0 {
+// 		comment := strings.Join(sqlComment, ", ")
+// 		return db.Clauses(clause.Expr{
+// 			SQL: fmt.Sprintf("/* %s */", comment),
+// 		})
+// 	}
+// 	return db
+// }
