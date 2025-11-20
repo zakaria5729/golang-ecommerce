@@ -10,12 +10,13 @@ import (
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	"github.com/easy-comerce/backend/pkg/logger"
+	"github.com/easy-comerce/backend/pkg/option"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
 type RoleService interface {
-	GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]RoleEntity, error)
-	GetRoleByID(id uint, includeStr string, showDeletedStr string) (*RoleEntity, error)
+	GetAllRoles(ctx context.Context, includeStr string, showDeletedStr string, roleTypeFilter string, sortBy string, sortOrder string) ([]RoleEntity, error)
+	GetRoleByID(ctx context.Context, id uint, includeStr string, showDeletedStr string) (*RoleEntity, error)
 	CreateRole(ctx context.Context, req *model.CreateRoleRequest) (*RoleEntity, error)
 	UpdateRole(ctx context.Context, id uint, req *model.UpdateRoleRequest) (*RoleEntity, error)
 	DeleteRole(ctx context.Context, id uint) error
@@ -26,18 +27,18 @@ type RoleService interface {
 }
 
 type roleService struct {
-	roleRepo       RoleRepository
-	permissionRepo permission.PermissionRepository
+	roleRepo          RoleRepository
+	permissionService permission.PermissionService
 }
 
-func NewRoleService(roleRepo RoleRepository, permissionRepo permission.PermissionRepository) RoleService {
+func NewRoleService(roleRepo RoleRepository, permissionService permission.PermissionService) RoleService {
 	return &roleService{
-		roleRepo:       roleRepo,
-		permissionRepo: permissionRepo,
+		roleRepo:          roleRepo,
+		permissionService: permissionService,
 	}
 }
 
-func (s *roleService) GetAllRoles(includeStr string, showDeletedStr string, roleTypeFilter string, sortBy, sortOrder string) ([]RoleEntity, error) {
+func (s *roleService) GetAllRoles(ctx context.Context, includeStr string, showDeletedStr string, roleTypeFilter string, sortBy string, sortOrder string) ([]RoleEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
 
@@ -47,17 +48,40 @@ func (s *roleService) GetAllRoles(includeStr string, showDeletedStr string, role
 		}
 	}
 
-	roles, err := s.roleRepo.GetAllRoles(include, showDeleted, &roleTypeFilter, sortBy, sortOrder)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch roles: %w", err)
+	options := option.QueryOptions{
+		ShowDeleted:    showDeleted,
+		SortBy:         sortBy,
+		SortOrder:      sortOrder,
+		SortableFields: []string{c.RoleRoleName, c.RoleRoleType, c.RoleDescription},
 	}
 
-	return roles, nil
+	if roleTypeFilter != "" {
+		options.AddFilter(c.RoleRoleType+" = ?", roleTypeFilter)
+	}
+
+	if utils.ContainsString(include, c.RolePermissions) {
+		options.Preloads = append(options.Preloads, c.RolePermissionsCapitalized)
+	}
+
+	return s.roleRepo.GetAll(ctx, &options)
 }
 
-func (s *roleService) GetRoleByID(id uint, includeStr string, showDeletedStr string) (*RoleEntity, error) {
+func (s *roleService) GetRoleByID(ctx context.Context, id uint, includeStr string, showDeletedStr string) (*RoleEntity, error) {
 	include := utils.ParseCommaSeparatedString(includeStr)
 	showDeleted := utils.ParseBoolPtr(showDeletedStr)
+
+	options := option.QueryOptions{
+		ShowDeleted: showDeleted,
+	}
+
+	if utils.ContainsString(include, c.RolePermissions) {
+		options.Preloads = append(options.Preloads, c.RolePermissionsCapitalized)
+	}
+
+	// if err := s.roleRepo.Get(ctx, &options, id); err != nil {
+	// 	l.Error("Failed to fetch role by ID", "method", "GetRoleByID", "error", err, "id", id, "include", include)
+	// 	return nil, err
+	// }
 
 	role, err := s.roleRepo.GetRoleByID(id, include, showDeleted)
 	if err != nil {
@@ -92,7 +116,7 @@ func (s *roleService) CreateRole(ctx context.Context, req *model.CreateRoleReque
 	userID, _ := cu.GetUserIDFromContext(ctx)
 	role.CreatedBy = userID
 
-	permissions, err := s.permissionRepo.GetPermissionsByIDs(req.PermissionIDs)
+	permissions, err := s.permissionService.GetPermissionsByIDs(ctx, req.PermissionIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch permissions: %w", err)
 	}
@@ -140,7 +164,7 @@ func (s *roleService) UpdateRole(ctx context.Context, id uint, req *model.Update
 	existingRole.CreatedBy = userID
 
 	if len(req.PermissionIDs) > 0 {
-		permissions, err := s.permissionRepo.GetPermissionsByIDs(req.PermissionIDs)
+		permissions, err := s.permissionService.GetPermissionsByIDs(ctx, req.PermissionIDs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch permissions: %w", err)
 		}

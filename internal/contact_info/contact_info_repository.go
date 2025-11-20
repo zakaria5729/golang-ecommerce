@@ -16,13 +16,11 @@ type ContactInfoRepository interface {
 
 type contactInfoRepository struct {
 	base.BaseRepository[ContactInfoEntity]
-	db *gorm.DB
 }
 
 func NewContactInfoRepository(db *gorm.DB) ContactInfoRepository {
 	return &contactInfoRepository{
 		base.NewBaseRepository[ContactInfoEntity](db),
-		db,
 	}
 }
 

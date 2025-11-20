@@ -39,7 +39,7 @@ func (h *roleHandler) GetAllRoles(w http.ResponseWriter, r *http.Request) {
 	sortOrder := q.Get(c.SortOrder)
 	showDeleted := q.Get(c.ShowDeleted)
 
-	roles, err := h.service.GetAllRoles(include, showDeleted, roleType, sortBy, sortOrder)
+	roles, err := h.service.GetAllRoles(r.Context(), include, showDeleted, roleType, sortBy, sortOrder)
 	response.SendResponse(w, roles, err, http.StatusInternalServerError)
 }
 
@@ -54,7 +54,7 @@ func (h *roleHandler) GetRoleByID(w http.ResponseWriter, r *http.Request) {
 	include := q.Get(c.Include)
 	showDeleted := q.Get(c.ShowDeleted)
 
-	role, err := h.service.GetRoleByID(*id, include, showDeleted)
+	role, err := h.service.GetRoleByID(r.Context(), *id, include, showDeleted)
 	response.SendResponse(w, role, err, http.StatusNotFound)
 }
 

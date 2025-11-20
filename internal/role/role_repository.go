@@ -6,6 +6,7 @@ import (
 
 	"github.com/easy-comerce/backend/internal/permission"
 	e "github.com/easy-comerce/backend/pkg/app_error"
+	"github.com/easy-comerce/backend/pkg/base"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -15,6 +16,7 @@ import (
 )
 
 type RoleRepository interface {
+	base.BaseRepository[RoleEntity]
 	GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]RoleEntity, error)
 	GetRoleByID(id uint, include []string, showDeleted *bool) (*RoleEntity, error)
 	GetRoleWithPermissionsByType(roleType string) (*RoleEntity, error)
@@ -32,12 +34,14 @@ type RoleRepository interface {
 }
 
 type roleRepository struct {
+	base.BaseRepository[RoleEntity]
 	db *gorm.DB
 }
 
 func NewRoleRepository(db *gorm.DB) RoleRepository {
 	return &roleRepository{
-		db: db,
+		base.NewBaseRepository[RoleEntity](db),
+		db,
 	}
 }
 

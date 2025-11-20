@@ -29,8 +29,8 @@ func (h *permissionHandler) GetAllPermissions(w http.ResponseWriter, r *http.Req
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	permissions, err := h.service.GetAllPermissions(sortBy, sortOrder)
-	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
+	permissions, err := h.service.GetAllPermissions(r.Context(), sortBy, sortOrder, nil)
+	response.SendApiResponse(w, permissions, err)
 }
 
 func (h *permissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +38,8 @@ func (h *permissionHandler) GetAllPermissionsGroup(w http.ResponseWriter, r *htt
 	sortBy := q.Get(c.SortBy)
 	sortOrder := q.Get(c.SortOrder)
 
-	permissions, err := h.service.GetAllPermissionsGroup(sortBy, sortOrder)
-	response.SendResponse(w, permissions, err, http.StatusInternalServerError)
+	permissions, err := h.service.GetAllPermissionsGroup(r.Context(), sortBy, sortOrder)
+	response.SendApiResponse(w, permissions, err)
 }
 
 func (h *permissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Request) {
@@ -49,6 +49,6 @@ func (h *permissionHandler) GetPermissionByID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	permission, err := h.service.GetPermissionByID(*id)
-	response.SendResponse(w, permission, err, http.StatusNotFound)
+	permission, err := h.service.GetPermissionByID(r.Context(), *id)
+	response.SendApiResponse(w, permission, err)
 }

@@ -1,6 +1,7 @@
 package permission
 
 import (
+	"github.com/easy-comerce/backend/internal/permission/model"
 	"github.com/easy-comerce/backend/pkg/base"
 	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -28,5 +29,14 @@ func (p *PermissionEntity) Sanitize() {
 	if p.GroupName != nil && *p.GroupName != "" {
 		sanitized := utils.Trim(*p.GroupName)
 		p.GroupName = &sanitized
+	}
+}
+
+func (p *PermissionEntity) ToResponse() model.PermissionResponse {
+	return model.PermissionResponse{
+		ID:          p.ID,
+		Description: p.Description,
+		GroupName:   p.GroupName,
+		Name:        p.Name,
 	}
 }

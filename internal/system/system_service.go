@@ -12,6 +12,7 @@ import (
 
 	"github.com/easy-comerce/backend/db"
 	m "github.com/easy-comerce/backend/internal/system/model"
+	se "github.com/easy-comerce/backend/pkg/app_error"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -70,7 +71,7 @@ func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileRes
 	files, err := os.ReadDir(utils.GetLogFolderPath())
 	if err != nil {
 		l.Error("failed to read logs directory", err)
-		return nil, fmt.Errorf("failed to read logs directory: %v", err)
+		return nil, se.WrapServerError("Failed to read logs directory", err)
 	}
 
 	var logFiles []m.SystemLogFileResponse
@@ -105,17 +106,17 @@ func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileRes
 
 func (s *systemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
 	if !strings.HasSuffix(fileName, "."+c.LogFileExt) {
-		return nil, fmt.Errorf("invalid log file name")
+		return nil, fmt.Errorf("Invalid log file name")
 	}
 
 	logFilePath := filepath.Join(utils.GetLogFolderPath(), fileName)
 	if !isFileExists(logFilePath) {
-		return nil, fmt.Errorf("log file not found")
+		return nil, fmt.Errorf("Log file not found")
 	}
 
 	content, err := os.ReadFile(logFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load log file: %v", err)
+		return nil, se.WrapServerError("Failed to load log file", err)
 	}
 
 	return content, nil
@@ -123,17 +124,17 @@ func (s *systemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
 
 func (s *systemService) DeleteSystemLogFile(fileName string) error {
 	if !strings.HasSuffix(fileName, "."+c.LogFileExt) {
-		return fmt.Errorf("invalid log file name")
+		return fmt.Errorf("Invalid log file name")
 	}
 
 	logFileTime, err := time.Parse(c.LogFileFormat, strings.TrimSuffix(strings.TrimPrefix(fileName, "app-"), "."+c.LogFileExt))
 	if err != nil {
-		return fmt.Errorf("failed to parse log file name: %v", err)
+		return se.WrapServerError("Failed to parse log file name", err)
 	}
 
 	logFilePath := filepath.Join(utils.GetLogFolderPath(), fileName)
 	if !isFileExists(logFilePath) {
-		return fmt.Errorf("log file not found")
+		return fmt.Errorf("Log file not found")
 	}
 
 	limit := c.LogFileDeleteProhibitedLimit
@@ -147,7 +148,7 @@ func (s *systemService) DeleteSystemLogFile(fileName string) error {
 
 	err = os.Remove(logFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to delete log file: %v", err)
+		return se.WrapServerError("Failed to delete log file", err)
 	}
 
 	return nil

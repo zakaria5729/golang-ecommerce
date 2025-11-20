@@ -75,9 +75,9 @@ func loadPermissionsStatus(pm *permissionMiddleware, permissions []string, metho
 			var refreshToken *string
 
 			if len(permissions) == 1 {
-				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndPermission(claims.UserID, permissions[0])
+				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndPermission(claims.UserID, permissions[0], "permission check")
 			} else {
-				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndAnyPermission(claims.UserID, permissions)
+				banned, verified, refreshToken, hasPermission, err = pm.permissionService.GetUserStatusAndAnyPermission(claims.UserID, permissions, "permission check")
 			}
 
 			if err != nil {

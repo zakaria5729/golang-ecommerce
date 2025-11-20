@@ -35,11 +35,12 @@ func (q *QueryOptions) AddFilter(condition string, value any) {
 }
 
 // USAGE: q.AddInFilter("id", []any{1, 2, 3})
-func (q *QueryOptions) AddInFilter(field string, values []any) {
+func (q *QueryOptions) AddInFilter(field string, values ...any) {
 	addInNotInFilter(q, field, values, false)
 }
 
-func (q *QueryOptions) AddNotInFilter(field string, values []any) {
+// USAGE: q.AddNotInFilter("id", []any{1, 2, 3})
+func (q *QueryOptions) AddNotInFilter(field string, values ...any) {
 	addInNotInFilter(q, field, values, true)
 }
 
@@ -89,7 +90,7 @@ func addLikeFilter(q *QueryOptions, searchTerm string, condition string, orAnd s
 }
 
 func addInNotInFilter(q *QueryOptions, field string, values []any, isNotIn bool) {
-	if q == nil || field == "" || len(values) == 0 {
+	if q == nil || field == "" || values == nil || len(values) == 0 {
 		return
 	}
 

@@ -38,7 +38,7 @@ func (h *systemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request
 
 	if req.HealthToken != nil && *req.HealthToken == config.GetConfig().SecretConfig.AppHealthCheckToken {
 		healthResponse := h.service.SystemHealthCheck(r.Context())
-		response.SendResponse(w, healthResponse, nil, http.StatusOK)
+		response.SendApiResponse(w, healthResponse, nil)
 		return
 	}
 
@@ -48,19 +48,19 @@ func (h *systemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request
 func (h *systemHandler) GetSystemLogFiles(w http.ResponseWriter, r *http.Request) {
 	fileName := r.URL.Query().Get(c.FileName)
 	logFiles, err := h.service.GetSystemLogFiles(fileName)
-	response.SendResponse(w, logFiles, err, http.StatusInternalServerError)
+	response.SendApiResponse(w, logFiles, err)
 }
 
 func (h *systemHandler) DownloadSystemLogFile(w http.ResponseWriter, r *http.Request) {
 	filename := r.PathValue(c.FileName)
 	if filename == "" {
-		response.SendErrorJSON(w, "filename parameter is required", http.StatusBadRequest)
+		response.SendErrorJSON(w, "Invalid filename provided", http.StatusBadRequest)
 		return
 	}
 
 	content, err := h.service.DownloadSystemLogFile(filename)
 	if err != nil {
-		response.SendErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		response.SendApiResponse(w, nil, err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *systemHandler) DeleteSystemLogFile(w http.ResponseWriter, r *http.Reque
 	if err == nil {
 		msg = "Log file deleted successfully"
 	}
-	response.SendResponse(w, msg, err, http.StatusInternalServerError)
+	response.SendApiResponse(w, msg, err)
 }
 
 func (h *systemHandler) HandleSocialFlowTemp(w http.ResponseWriter, r *http.Request) {
