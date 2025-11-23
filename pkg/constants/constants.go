@@ -19,6 +19,9 @@ const (
 const (
 	EnvSuperAdminEmail               string = "SUPER_ADMIN_EMAIL"
 	EnvSuperAdminPassword            string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyUuidType                   string = "UUID_TYPE"
+	EnvKeyWriteLogWhen               string = "WRITE_LOG_WHEN"
+	EnvKeyDBStatsLogType             string = "DB_STATS_LOG_TYPE"
 	EnvKeyDomainURL                  string = "DOMAIN_URL"
 	EnvKeyJWTSecret                  string = "JWT_SECRET"
 	EnvKeyFcmUrl                     string = "FCM_URL"
@@ -37,8 +40,14 @@ const (
 )
 
 const (
-	Bearer        string = "Bearer"
-	Authorization string = "Authorization"
+	Bearer               string = "Bearer"
+	Authorization        string = "Authorization"
+	UuidRandom           string = "random"
+	UuidSequence         string = "sequence"
+	DBStatsLogSql        string = "sql"
+	DBStatsLogSqlAnalyze string = "sql_analyze"
+	WriteLogWhenAlways   string = "always"
+	WriteLogWhenError    string = "error"
 )
 
 const (
@@ -114,6 +123,7 @@ const (
 	MaxReviewCommentLength int = 1000
 	MaxPriorityLimit       int = 100
 	SubcategoryDepthLimit  int = 10
+	RetryLimit             int = 2
 )
 
 const (

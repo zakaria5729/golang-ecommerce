@@ -102,7 +102,6 @@ func (r *permissionRepository) GetUserStatusAndPermission(userID uint, permissio
 func (r *permissionRepository) GetUserStatusAndAnyPermission(userID uint, permissions []string, sqlComment ...string) (banned bool, verified bool, refreshToken *string, hasPermission bool, err error) {
 	var userStatus model.PermissionUserStatus
 	query := r.db.Select(c.UserBanned, c.UserVerified, c.UserRefreshToken).Where("id = ?", userID)
-	// query = appendSqlComment(query, sqlComment...)
 
 	err = query.First(&userStatus).Error
 	if err != nil {
@@ -127,20 +126,3 @@ func buildPermissionJoinQuery(db *gorm.DB) *gorm.DB {
 		Joins("INNER JOIN " + c.TablePermission + " p ON rp.permission_id = p.id AND p.deleted_at IS NULL").
 		Where("u.deleted_at IS NULL")
 }
-
-// func appendSqlComment(db *gorm.DB, sqlComment ...string) *gorm.DB {
-// 	if len(sqlComment) > 0 {
-// 		db = db.Clauses(hints.Comment("sql-comment", strings.Join(sqlComment, ", ")))
-// 	}
-// 	return db
-// }
-
-// func appendSqlComment(db *gorm.DB, sqlComment ...string) *gorm.DB {
-// 	if len(sqlComment) > 0 {
-// 		comment := strings.Join(sqlComment, ", ")
-// 		return db.Clauses(clause.Expr{
-// 			SQL: fmt.Sprintf("/* %s */", comment),
-// 		})
-// 	}
-// 	return db
-// }

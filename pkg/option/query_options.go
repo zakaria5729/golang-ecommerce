@@ -5,13 +5,13 @@ import (
 )
 
 type QueryOptions struct {
-	ShowDeleted    *bool
-	SortBy         string
-	SortOrder      string
-	SortableFields []string
-	SortOptions    []SortOption
-	Preloads       []string
-	Filters        map[string]any
+	ShowDeleted    *bool          `json:"show_deleted,omitempty"`
+	SortBy         string         `json:"sort_by,omitempty"`
+	SortOrder      string         `json:"sort_order,omitempty"`
+	SortableFields []string       `json:"sortable_fields,omitempty"`
+	SortOptions    []SortOption   `json:"sort_options,omitempty"`
+	Preloads       []string       `json:"preloads,omitempty"`
+	Filters        map[string]any `json:"filters,omitempty"`
 }
 
 // USAGE: q.AddFilter("contact_type = ?", contactType)

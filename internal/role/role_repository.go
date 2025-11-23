@@ -3,6 +3,7 @@ package role
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/easy-comerce/backend/internal/permission"
 	e "github.com/easy-comerce/backend/pkg/app_error"
@@ -222,7 +223,7 @@ func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 			return errors.New("user not found")
 		}
 
-		if *userEmail == config.GetConfig().AppConfig.SuperAdminEmail {
+		if strings.EqualFold(*userEmail, config.GetConfig().AppConfig.SuperAdminEmail) {
 			return errors.New("You can not assign/change super admin user role")
 		}
 

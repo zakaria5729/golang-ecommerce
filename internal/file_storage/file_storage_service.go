@@ -64,7 +64,7 @@ func (s *fileStorageService) DeleteFile(ctx context.Context, key string) error {
 func isValidFileType(contentType string, allowedTypes string) bool {
 	types := strings.SplitSeq(allowedTypes, ",")
 	for allowedType := range types {
-		if strings.TrimSpace(allowedType) == contentType {
+		if strings.EqualFold(strings.TrimSpace(allowedType), contentType) {
 			return true
 		}
 	}

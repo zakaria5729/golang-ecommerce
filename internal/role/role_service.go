@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/easy-comerce/backend/internal/permission"
 	"github.com/easy-comerce/backend/internal/role/model"
@@ -98,7 +99,7 @@ func (s *roleService) CreateRole(ctx context.Context, req *model.CreateRoleReque
 		return nil, errors.New("invalid role type")
 	}
 
-	if req.RoleType == c.RoleTypeSuperAdmin {
+	if strings.EqualFold(req.RoleType, c.RoleTypeSuperAdmin) {
 		return nil, errors.New("Super admin role already exists, you can't create role with this role type")
 	}
 
@@ -141,7 +142,7 @@ func (s *roleService) UpdateRole(ctx context.Context, id uint, req *model.Update
 		return nil, fmt.Errorf("role not found: %w", err)
 	}
 
-	if existingRole.RoleType == c.RoleTypeSuperAdmin {
+	if strings.EqualFold(existingRole.RoleType, c.RoleTypeSuperAdmin) {
 		return nil, errors.New("cannot update super admin role")
 	}
 
@@ -191,7 +192,7 @@ func (s *roleService) DeleteRole(ctx context.Context, id uint) error {
 		return fmt.Errorf("role not found: %w", err)
 	}
 
-	if role.RoleType == c.RoleTypeSuperAdmin {
+	if strings.EqualFold(role.RoleType, c.RoleTypeSuperAdmin) {
 		return errors.New("cannot delete super admin role")
 	}
 

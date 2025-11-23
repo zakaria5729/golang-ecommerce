@@ -25,7 +25,8 @@ import (
 )
 
 type SystemService interface {
-	SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse
+	GetSystemHealthCheck(ctx context.Context) *m.SystemHealthResponse
+	GetSystemDbStats(ctx context.Context) (*m.SystemDbStatsResponse, error)
 	GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error)
 	DownloadSystemLogFile(fileName string) ([]byte, error)
 	DeleteSystemLogFile(fileName string) error
@@ -45,26 +46,40 @@ func NewSystemService(cfg *config.Config) SystemService {
 	}
 }
 
-func (s *systemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
+func (s *systemService) GetSystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
 	dbStatus := "healthy"
 	sqlDB, err := db.GetDB().DB()
 
-	if err != nil {
+	if err != nil || sqlDB == nil {
 		dbStatus = "unhealthy"
+		l.Error("❌ Failed to get db instance", err)
 	} else {
 		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
 
 		if err := sqlDB.PingContext(pingCtx); err != nil {
 			dbStatus = "unhealthy"
+			l.Error("❌ Failed to db ping", err)
 		}
 	}
 
 	return &m.SystemHealthResponse{
 		ServerStatus: "healthy",
 		DBStatus:     dbStatus,
-		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+		Timestamp:    timeutil.NowUTC().Format(time.RFC3339),
 	}
+}
+
+func (s *systemService) GetSystemDbStats(ctx context.Context) (*m.SystemDbStatsResponse, error) {
+	sqlDB, err := db.GetDB().DB()
+	if err != nil || sqlDB == nil {
+		l.Error("❌ Failed to get db instance", err)
+		return nil, se.WrapServerError("Failed to get db stats", err)
+	}
+
+	return &m.SystemDbStatsResponse{
+		DbStats: sqlDB.Stats(),
+	}, nil
 }
 
 func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error) {

@@ -51,7 +51,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 			if err := recover(); err != nil {
 				errStack := string(debug.Stack())
 
-				if config.GetActiveProfile() == c.EnvLocal {
+				if strings.EqualFold(config.GetActiveProfile(), c.EnvLocal) {
 					fmt.Printf(`"❌ Panic recovered", "error" %v, "method" %v, "path" %v`, errStack, r.Method, r.URL.Path)
 				} else {
 					l.Error("❌ Panic recovered", "error", errStack, "method", r.Method, "path", r.URL.Path)

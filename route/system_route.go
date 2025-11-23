@@ -12,7 +12,11 @@ func RegisterSystemRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	service := system.NewSystemService(config.GetConfig())
 	h := system.NewSystemHandler(service)
 
-	r.POST("/system/health", h.SystemHealthCheck).Register()
+	r.POST("/system/health", h.GetSystemHealthCheck).Register()
+
+	r.GET("/system/db-stats", h.GetSystemDbStats).Use(
+		pm.RequirePermission(c.PermissionSystemDbStatsRead),
+	).Register()
 
 	r.GET("/system/logs", h.GetSystemLogFiles).Use(
 		pm.RequirePermission(c.PermissionSystemLogRead),

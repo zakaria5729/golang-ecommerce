@@ -8,6 +8,7 @@ const (
 	PermissionSystemLogRead     string = "system_log.read"
 	PermissionSystemLogDownload string = "system_log.download"
 	PermissionSystemLogDelete   string = "system_log.delete"
+	PermissionSystemDbStatsRead string = "system_db_stats.read"
 
 	PermissionUserCreate     string = "user.create"
 	PermissionUserRead       string = "user.read"
@@ -114,6 +115,10 @@ var PermissionMap = map[string]PermissionDetails{
 	PermissionSystemLogDelete: {
 		Desc:      "Delete System Log",
 		GroupName: "System Log",
+	},
+	PermissionSystemDbStatsRead: {
+		Desc:      "Read System DB Stats",
+		GroupName: "System DB Stats",
 	},
 
 	// User

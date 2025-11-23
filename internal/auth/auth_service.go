@@ -179,7 +179,7 @@ func (s *authService) ResetPassword(req *model.ResetPasswordRequest) error {
 		return e.NewServerError("invalid or expired reset token")
 	}
 
-	if user.Email == config.GetConfig().AppConfig.SuperAdminEmail {
+	if strings.EqualFold(user.Email, config.GetConfig().AppConfig.SuperAdminEmail) {
 		return errors.New("can not reset super admin password")
 	}
 
@@ -209,7 +209,7 @@ func (s *authService) RefreshToken(req *model.RefreshTokenRequest) (*model.Login
 		return nil, errors.New("account is banned")
 	}
 
-	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, s.jwtSecret)
+	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user.ID, user.Email, user.Name, getRoleTypesOfUser(user.Roles), s.jwtSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func createLoginResponse(user *user.UserEntity, userRepo user.UserRepository, jw
 		return nil, errors.New("account is banned")
 	}
 
-	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, jwtSecret)
+	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user.ID, user.Email, user.Name, getRoleTypesOfUser(user.Roles), jwtSecret)
 	if err != nil {
 		return nil, apperror.WrapServerError("failed to generate token: %w", err)
 	}
@@ -434,4 +434,11 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 	}
 
 	return &response.PathKey
+}
+
+func getRoleTypesOfUser(roles []role.RoleEntity) (roleTypes []string) {
+	for _, role := range roles {
+		roleTypes = append(roleTypes, role.RoleType)
+	}
+	return roleTypes
 }

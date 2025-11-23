@@ -1,13 +1,13 @@
 package constants
 
 const (
-	EnvKeyDBHost     string = "DB_HOST"
-	EnvKeyDBPort     string = "DB_PORT"
-	EnvKeyDBUser     string = "DB_USER"
-	EnvKeyDBPassword string = "DB_PASSWORD"
-	EnvKeyDBName     string = "DB_NAME"
-	EnvKeyDBSSLMode  string = "DB_SSL_MODE"
-	EnvKeyDBShowLog  string = "DB_SHOW_LOG"
+	EnvKeyDBHost           string = "DB_HOST"
+	EnvKeyDBPort           string = "DB_PORT"
+	EnvKeyDBUser           string = "DB_USER"
+	EnvKeyDBPassword       string = "DB_PASSWORD"
+	EnvKeyDBName           string = "DB_NAME"
+	EnvKeyDBSSLMode        string = "DB_SSL_MODE"
+	EnvKeyDBShowConsoleLog string = "DB_SHOW_CONSOLE_LOG"
 )
 
 const (
@@ -19,6 +19,7 @@ const (
 	TableUserStatus      string = "user_status"
 	TableCategory        string = "categories"
 	TableAddress         string = "addresses"
+	TableNotification    string = "notifications"
 	TableReview          string = "reviews"
 	TableWishlist        string = "wishlists"
 	TableProductStats    string = "product_stats"
@@ -36,6 +37,7 @@ const (
 
 const (
 	FieldID        string = "id"
+	FieldUuid      string = "uuid"
 	FieldCreatedAt string = "created_at"
 	FieldCreatedBy string = "created_by"
 	FieldUpdatedAt string = "updated_at"

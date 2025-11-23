@@ -12,19 +12,22 @@ type AppConfig struct {
 	Host                       string
 	Port                       string
 	DomainURL                  string
+	UuidType                   string
+	WriteLogWhen               string
+	DBStatsLogType             string
 	SuperAdminEmail            string
 	SuperAdminPassword         string
 	SocialLoginDefaultPassword string
 }
 
 type DBConfig struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
-	DBShowLog  string
+	DBHost           string
+	DBPort           string
+	DBUser           string
+	DBPassword       string
+	DBName           string
+	DBSSLMode        string
+	DBShowConsoleLog string
 }
 
 type SecretConfig struct {

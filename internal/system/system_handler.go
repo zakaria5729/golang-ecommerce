@@ -12,7 +12,8 @@ import (
 )
 
 type SystemHandler interface {
-	SystemHealthCheck(w http.ResponseWriter, r *http.Request)
+	GetSystemHealthCheck(w http.ResponseWriter, r *http.Request)
+	GetSystemDbStats(w http.ResponseWriter, r *http.Request)
 	GetSystemLogFiles(w http.ResponseWriter, r *http.Request)
 	DownloadSystemLogFile(w http.ResponseWriter, r *http.Request)
 	DeleteSystemLogFile(w http.ResponseWriter, r *http.Request)
@@ -30,19 +31,24 @@ func NewSystemHandler(service SystemService) SystemHandler {
 	}
 }
 
-func (h *systemHandler) SystemHealthCheck(w http.ResponseWriter, r *http.Request) {
+func (h *systemHandler) GetSystemHealthCheck(w http.ResponseWriter, r *http.Request) {
 	var req m.SystemHealthRequest
 	if !utils.DecodeJSON(w, r, &req, "SystemHealthCheck") {
 		return
 	}
 
 	if req.HealthToken != nil && *req.HealthToken == config.GetConfig().SecretConfig.AppHealthCheckToken {
-		healthResponse := h.service.SystemHealthCheck(r.Context())
+		healthResponse := h.service.GetSystemHealthCheck(r.Context())
 		response.SendApiResponse(w, healthResponse, nil)
 		return
 	}
 
 	response.SendErrorJSON(w, "Invalid health token", http.StatusForbidden)
+}
+
+func (h *systemHandler) GetSystemDbStats(w http.ResponseWriter, r *http.Request) {
+	dbStats, err := h.service.GetSystemDbStats(r.Context())
+	response.SendApiResponse(w, dbStats, err)
 }
 
 func (h *systemHandler) GetSystemLogFiles(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,7 +39,7 @@ func requireCurrentLogFile() {
 }
 
 func createFileIfNotExists() {
-	if currentLogFile != nil && filepath.Base(currentLogFile.Name()) == getLogFileName() {
+	if currentLogFile != nil && strings.EqualFold(filepath.Base(currentLogFile.Name()), getLogFileName()) {
 		return
 	}
 
@@ -64,7 +65,7 @@ func createNewAsyncWritersLogger() {
 	asyncFileWriter = diode.NewWriter(currentLogFile, 15_000, 0, nil)
 	logWriters = append(logWriters, asyncFileWriter)
 
-	if activeProfile == c.EnvLocal || activeProfile == c.EnvDev {
+	if strings.EqualFold(activeProfile, c.EnvLocal) || strings.EqualFold(activeProfile, c.EnvDev) {
 		consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "2006-01-02 T 15:04:05 Z07:00", NoColor: false}
 		logWriters = append(logWriters, consoleWriter)
 	}
@@ -127,6 +128,12 @@ func applyLog(ev *zerolog.Event, fields []any) *zerolog.Event {
 	for i := 0; i < len(fields); i += 2 {
 		key := fmt.Sprintf("%v", fields[i])
 		val := fields[i+1]
+		if val == nil {
+			continue
+		}
+		if str, ok := val.(string); ok && str == "" {
+			continue
+		}
 		ev = ev.Interface(key, val)
 	}
 

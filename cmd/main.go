@@ -24,6 +24,8 @@ func main() {
 	defer l.CloseLogFile(true)
 	defer db.CloseDB()
 
+	// InitMigrateUUID()
+
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
 		panic("❌ Failed to create initial role and user: " + err.Error())
 	}

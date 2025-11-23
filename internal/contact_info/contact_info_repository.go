@@ -39,7 +39,8 @@ func (r *contactInfoRepository) GetContactInfosPaginated(ctx context.Context, pa
 	}
 
 	selectFields := []string{
-		c.FieldID, c.FieldCreatedAt, c.FieldUpdatedAt, c.ContactInfoName,
+		c.FieldID, c.FieldUuid, c.FieldCreatedAt,
+		c.FieldUpdatedAt, c.ContactInfoName,
 		c.ContactInfoEmail, c.ContactInfoType, c.ContactInfoPhone,
 	}
 

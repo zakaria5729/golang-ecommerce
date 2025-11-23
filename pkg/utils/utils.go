@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/option"
@@ -381,44 +382,139 @@ func ExtractNameFromEmail(email string, capitalize bool) string {
 	return name
 }
 
+func Retry[T any](fn func() (T, error), maxAttempts int) (T, error) {
+	return RetryWithDelay(fn, maxAttempts, 0)
+}
+
+func RetryWithDelay[T any](fn func() (T, error), maxAttempts int, delayMillis int) (T, error) {
+	baseDelayMillis := time.Duration(0)
+	if delayMillis > 0 {
+		baseDelayMillis = time.Duration(delayMillis) * time.Millisecond
+	}
+
+	var result T
+	var err error
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		result, err = fn()
+		if err == nil {
+			return result, nil
+		}
+
+		if attempt == maxAttempts {
+			break
+		}
+
+		if baseDelayMillis > 0 {
+			delayMillis := baseDelayMillis * time.Duration(attempt)
+			time.Sleep(delayMillis)
+		}
+	}
+
+	return result, fmt.Errorf("failed after %d attempts: %w", maxAttempts, err)
+}
+
 func GetRawSqlCreate[T any](db *gorm.DB, entity *T) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || entity == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Create(entity)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlUpdate[T any](db *gorm.DB, entity *T) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || entity == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Updates(entity)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlDelete[T any](db *gorm.DB, entity *T) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || entity == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Delete(entity)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlFirst[T any](db *gorm.DB, entity *T) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || entity == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.First(entity)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlFind[T any](db *gorm.DB, entity *T) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || entity == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Find(entity)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlCount(db *gorm.DB, count *int64) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || count == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Count(count)
 	})
+	return cleanSQLForLogs(sql)
 }
 
 func GetRawSqlExists(db *gorm.DB, exists *bool) string {
-	return db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	if db == nil || exists == nil {
+		return ""
+	}
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Scan(exists)
 	})
+	return cleanSQLForLogs(sql)
+}
+
+func GetSqlExplainAnalyze(db *gorm.DB, sql string) string {
+	if db == nil || sql == "" {
+		return ""
+	}
+
+	explainSQL := `EXPLAIN (ANALYZE true, COSTS true, BUFFERS true, TIMING true, FORMAT TEXT) ` + sql
+	rows, err := db.Raw(explainSQL).Rows()
+	if err != nil {
+		return ""
+	}
+	defer rows.Close()
+
+	var plan strings.Builder
+	for rows.Next() {
+		var line string
+		if err := rows.Scan(&line); err != nil {
+			continue
+		}
+		plan.WriteString(Trim(line))
+		plan.WriteString("\n")
+	}
+
+	return plan.String()
+}
+
+func cleanSQLForLogs(sql string) string {
+	if sql == "" {
+		return ""
+	}
+	s := strings.ReplaceAll(sql, `\"`, `"`)
+	re := regexp.MustCompile(`"([^"]+)"`)
+	s = re.ReplaceAllString(s, "$1")
+	return s
 }
