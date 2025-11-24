@@ -23,14 +23,14 @@ func RunMigrations() error {
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".sql") {
 			filePath := filepath.Join(migrationsDir, file.Name())
-			logger.Logger.Info("Running migration", "file", file.Name())
+			logger.Info("Running migration", "file", file.Name())
 
 			if err := executeSQLFile(database, filePath); err != nil {
-				logger.Logger.Error("❌ Failed to execute migration", "error", err, "file", file.Name())
+				logger.Error("❌ Failed to execute migration", "error", err, "file", file.Name())
 				return fmt.Errorf("failed to execute migration %s: %w", file.Name(), err)
 			}
 
-			logger.Logger.Info("Migration completed", "file", file.Name())
+			logger.Info("Migration completed", "file", file.Name())
 		}
 	}
 

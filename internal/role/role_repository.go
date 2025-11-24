@@ -3,9 +3,11 @@ package role
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/easy-comerce/backend/internal/permission"
 	e "github.com/easy-comerce/backend/pkg/app_error"
+	"github.com/easy-comerce/backend/pkg/base"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
@@ -15,6 +17,7 @@ import (
 )
 
 type RoleRepository interface {
+	base.BaseRepository[RoleEntity]
 	GetAllRoles(include []string, showDeleted *bool, roleType *string, sortBy, sortOrder string) ([]RoleEntity, error)
 	GetRoleByID(id uint, include []string, showDeleted *bool) (*RoleEntity, error)
 	GetRoleWithPermissionsByType(roleType string) (*RoleEntity, error)
@@ -32,12 +35,14 @@ type RoleRepository interface {
 }
 
 type roleRepository struct {
+	base.BaseRepository[RoleEntity]
 	db *gorm.DB
 }
 
 func NewRoleRepository(db *gorm.DB) RoleRepository {
 	return &roleRepository{
-		db: db,
+		base.NewBaseRepository[RoleEntity](db),
+		db,
 	}
 }
 
@@ -64,7 +69,7 @@ func (r *roleRepository) GetAllRoles(include []string, showDeleted *bool, roleTy
 
 	err := query.Find(&roles).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch roles", "method", "GetAllRoles", "error", err, "include", include, "roleType", roleType, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch roles", "method", "GetAllRoles", "error", err, "include", include, "roleType", roleType, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return roles, err
 }
@@ -82,7 +87,7 @@ func (r *roleRepository) GetRoleByID(id uint, include []string, showDeleted *boo
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&role).Error; err != nil {
-		l.Logger.Error("Failed to fetch role by ID", "method", "GetRoleByID", "error", err, "id", id, "include", include)
+		l.Error("Failed to fetch role by ID", "method", "GetRoleByID", "error", err, "id", id, "include", include)
 		return nil, err
 	}
 
@@ -96,7 +101,7 @@ func (r *roleRepository) GetRoleWithPermissionsByType(roleType string) (*RoleEnt
 		Preload(c.RolePermissionsCapitalized).
 		Where(c.RoleRoleType+" = ?", roleType).
 		First(&role).Error; err != nil {
-		l.Logger.Error("Failed to fetch role by type", "method", "GetRoleWithPermissionsByType", "error", err, "roleType", roleType)
+		l.Error("Failed to fetch role by type", "method", "GetRoleWithPermissionsByType", "error", err, "roleType", roleType)
 
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, e.WrapServerError("failed to fetch role by type", err)
@@ -117,7 +122,7 @@ func (r *roleRepository) GetRoleByType(roleType string, showDeleted *bool) (*Rol
 	}
 
 	if err := query.Preload(c.RolePermissionsCapitalized).First(&role).Error; err != nil {
-		l.Logger.Error("Failed to fetch role by type", "method", "GetRoleByType", "error", err, "roleType", roleType)
+		l.Error("Failed to fetch role by type", "method", "GetRoleByType", "error", err, "roleType", roleType)
 		return nil, err
 	}
 
@@ -127,7 +132,7 @@ func (r *roleRepository) GetRoleByType(roleType string, showDeleted *bool) (*Rol
 func (r *roleRepository) CreateRole(role *RoleEntity) (*RoleEntity, error) {
 	err := r.db.Create(role).Error
 	if err != nil {
-		l.Logger.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
+		l.Error("Failed to create role", "method", "CreateRole", "error", err, "role", role)
 		return nil, err
 	}
 	return role, nil
@@ -147,7 +152,7 @@ func (r *roleRepository) UpdateRole(role *RoleEntity) error {
 	})
 
 	if err != nil {
-		l.Logger.Error("Failed to update role", "method", "UpdateRole", "error", err, "role", role)
+		l.Error("Failed to update role", "method", "UpdateRole", "error", err, "role", role)
 	}
 
 	return err
@@ -163,7 +168,7 @@ func (r *roleRepository) UpdateRoleWithoutPermissions(role *RoleEntity) error {
 
 	err := r.db.Model(&RoleEntity{}).Where(c.FieldID+" = ?", role.ID).Updates(updatedRole).Error
 	if err != nil {
-		l.Logger.Error("Failed to update role", "method", "UpdateRoleWithoutPermissions", "error", err, "role", role)
+		l.Error("Failed to update role", "method", "UpdateRoleWithoutPermissions", "error", err, "role", role)
 	}
 	return err
 }
@@ -178,7 +183,7 @@ func (r *roleRepository) DeleteRole(ctx context.Context, id uint) error {
 
 	err := r.db.Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id).Updates(role).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete role", "method", "DeleteRole", "error", err, "id", id)
+		l.Error("Failed to delete role", "method", "DeleteRole", "error", err, "id", id)
 	}
 
 	return err
@@ -198,7 +203,7 @@ func (r *roleRepository) UndoDeletedRole(ctx context.Context, id uint) error {
 		Where(c.FieldID+" = ?", id).Updates(role).Error
 
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted role", "method", "UndoDeletedRole", "error", err, "id", id)
+		l.Error("Failed to undo deleted role", "method", "UndoDeletedRole", "error", err, "id", id)
 	}
 
 	return err
@@ -218,7 +223,7 @@ func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 			return errors.New("user not found")
 		}
 
-		if *userEmail == config.GetConfig().AppConfig.SuperAdminEmail {
+		if strings.EqualFold(*userEmail, config.GetConfig().AppConfig.SuperAdminEmail) {
 			return errors.New("You can not assign/change super admin user role")
 		}
 
@@ -230,7 +235,7 @@ func (r *roleRepository) AssignRoleToUser(userID uint, roleID uint) error {
 	})
 
 	if err != nil {
-		l.Logger.Error("Failed to assign roles to user", "method", "AssignRolesToUser", "error", err, "userID", userID, "roleID", roleID)
+		l.Error("Failed to assign roles to user", "method", "AssignRolesToUser", "error", err, "userID", userID, "roleID", roleID)
 	}
 
 	return err
@@ -254,7 +259,7 @@ func (r *roleRepository) RoleExists(id uint, showDeleted *bool) (bool, error) {
 
 	err := query.Select(c.FieldID).Take(&role).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if role exists", "method", "RoleExists", "error", err, "id", id)
+		l.Error("Failed to check if role exists", "method", "RoleExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -271,7 +276,7 @@ func (r *roleRepository) RoleExistsByName(name string, excludeID ...uint) (bool,
 
 	err := query.Select(c.FieldID).Take(&role).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if role exists by name", "method", "RoleExistsByName", "error", err, "name", name)
+		l.Error("Failed to check if role exists by name", "method", "RoleExistsByName", "error", err, "name", name)
 		return false, err
 	}
 
@@ -328,7 +333,7 @@ func appendPermissionsToRole(db *gorm.DB, roleID uint, permissionNames *[]string
 	})
 
 	if err != nil {
-		l.Logger.Error("Failed to add permissions to role", "method", "AppendPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", permissionNames)
+		l.Error("Failed to add permissions to role", "method", "AppendPermissionsToRole", "error", err, "roleID", roleID, "permissionNames", permissionNames)
 	}
 
 	return err

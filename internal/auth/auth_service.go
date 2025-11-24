@@ -179,7 +179,7 @@ func (s *authService) ResetPassword(req *model.ResetPasswordRequest) error {
 		return e.NewServerError("invalid or expired reset token")
 	}
 
-	if user.Email == config.GetConfig().AppConfig.SuperAdminEmail {
+	if strings.EqualFold(user.Email, config.GetConfig().AppConfig.SuperAdminEmail) {
 		return errors.New("can not reset super admin password")
 	}
 
@@ -209,7 +209,7 @@ func (s *authService) RefreshToken(req *model.RefreshTokenRequest) (*model.Login
 		return nil, errors.New("account is banned")
 	}
 
-	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, s.jwtSecret)
+	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user.ID, user.Email, user.Name, getRoleTypesOfUser(user.Roles), s.jwtSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func createLoginResponse(user *user.UserEntity, userRepo user.UserRepository, jw
 		return nil, errors.New("account is banned")
 	}
 
-	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user, jwtSecret)
+	accessToken, expiresAt, err := tokenutil.GenerateNewJwtToken(user.ID, user.Email, user.Name, getRoleTypesOfUser(user.Roles), jwtSecret)
 	if err != nil {
 		return nil, apperror.WrapServerError("failed to generate token: %w", err)
 	}
@@ -321,13 +321,13 @@ func createRegisterResponse(user *user.UserEntity, userRepo user.UserRepository,
 func setVerificationToken(userID uint, userRepo user.UserRepository) (string, error) {
 	verificationToken, expiresAt, err := tokenutil.GenerateNewTokenWithExpiryTime(c.VerificationTokenExpiryHours)
 	if err != nil {
-		l.Logger.Error("❌ Failed to generate verification token", "method", "Register", "error", err, "userID", userID)
+		l.Error("❌ Failed to generate verification token", "method", "Register", "error", err, "userID", userID)
 		return "", e.WrapServerError("Failed to generate verification token", err)
 	}
 
 	if verificationToken != "" {
 		if err := userRepo.SetVerifiedAndVerificationToken(userID, false, &verificationToken, &expiresAt); err != nil {
-			l.Logger.Error("❌ Failed to set verification token", "method", "Register", "error", err, "userID", userID)
+			l.Error("❌ Failed to set verification token", "method", "Register", "error", err, "userID", userID)
 
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return "", e.WrapServerError("Failed to set verification token", err)
@@ -392,19 +392,19 @@ func getUserInfoFromFacebook(accessToken string) (name string, email string, ima
 		return "", "", nil, fmt.Errorf("❌ failed to get user info from Facebook: %v", err)
 	}
 
-	l.Logger.Info("✅ Got user info from Facebook", "method", "getUserInfoFromFacebook", "res", res)
+	l.Info("✅ Got user info from Facebook", "method", "getUserInfoFromFacebook", "res", res)
 	return name, email, imageUrl, nil
 }
 
 func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *string {
 	if imageUrl == "" {
-		l.Logger.Error("❌ Failed to create object storage client", "error", "empty image url", "method", "getProfilePicPathKeyFromImageUrl")
+		l.Error("❌ Failed to create object storage client", "error", "empty image url", "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
 	storage, err := file_storage.NewObjectStorage()
 	if err != nil {
-		l.Logger.Error("❌ Failed to create object storage client", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Error("❌ Failed to create object storage client", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
@@ -415,7 +415,7 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 		Response: &imgData,
 	})
 	if err != nil {
-		l.Logger.Error("❌ Failed to get image from url", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Error("❌ Failed to get image from url", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
@@ -429,9 +429,16 @@ func getProfilePicPathKeyFromImageUrl(ctx context.Context, imageUrl string) *str
 	repo := file_storage.NewFileStorageRepository(storage)
 	response, err := repo.UploadRaw(ctx, &uploadReq)
 	if err != nil {
-		l.Logger.Error("❌ Failed to upload image", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
+		l.Error("❌ Failed to upload image", "error", err, "image_url", imageUrl, "method", "getProfilePicPathKeyFromImageUrl")
 		return nil
 	}
 
 	return &response.PathKey
+}
+
+func getRoleTypesOfUser(roles []role.RoleEntity) (roleTypes []string) {
+	for _, role := range roles {
+		roleTypes = append(roleTypes, role.RoleType)
+	}
+	return roleTypes
 }

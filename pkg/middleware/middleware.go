@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
-	"slices"
 	"strings"
 	"time"
 
@@ -23,10 +22,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		}
 
 		start := timeutil.NowUTC()
-		l.Logger.Info("🟢 START-REQUEST 🟢", "path", r.URL.Path, "http-method", r.Method)
+		l.Info("🟢 START-REQUEST 🟢", "path", r.URL.Path, "http-method", r.Method)
 
 		next.ServeHTTP(w, r)
-		l.Logger.Info("✅ END-REQUEST ✅", "path", r.URL.Path, "http-method", r.Method, "duration", time.Since(start).String())
+		l.Info("✅ END-REQUEST ✅", "path", r.URL.Path, "http-method", r.Method, "duration", time.Since(start).String())
 	})
 }
 
@@ -52,10 +51,10 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 			if err := recover(); err != nil {
 				errStack := string(debug.Stack())
 
-				if config.GetActiveProfile() == c.EnvLocal {
+				if strings.EqualFold(config.GetActiveProfile(), c.EnvLocal) {
 					fmt.Printf(`"❌ Panic recovered", "error" %v, "method" %v, "path" %v`, errStack, r.Method, r.URL.Path)
 				} else {
-					l.Logger.Error("❌ Panic recovered", "error", errStack, "method", r.Method, "path", r.URL.Path)
+					l.Error("❌ Panic recovered", "error", errStack, "method", r.Method, "path", r.URL.Path)
 				}
 
 				w.Header().Set("Content-Type", "application/json")
@@ -78,11 +77,20 @@ func TrailingSlashMiddleware(next http.Handler) http.Handler {
 }
 
 func isExcludedPath(path string) bool {
-	return slices.Contains([]string{
+	excluded := []string{
 		"/favicon.ico",
 		"/app-health",
 		"/metrics",
+		"/system/logs",
 		"/auth/social-flow",
 		"/auth/social-flow/callback",
-	}, path)
+	}
+
+	for _, prefix := range excluded {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+
+	return false
 }

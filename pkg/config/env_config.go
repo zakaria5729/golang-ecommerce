@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	c "github.com/easy-comerce/backend/pkg/constants"
-	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/utils"
 	"github.com/joho/godotenv"
 )
@@ -35,6 +35,14 @@ func GetActiveProfile() string {
 	return getEnv(c.EnvKeyActiveProfile, c.EnvLocal)
 }
 
+func GetUuidType() string {
+	uuidType := GetConfig().AppConfig.UuidType
+	if strings.EqualFold(uuidType, c.UuidRandom) {
+		return c.UuidRandom
+	}
+	return c.UuidSequence
+}
+
 func loadConfig() *Config {
 	envVars := []string{
 		c.EnvKeyHost,
@@ -45,7 +53,9 @@ func loadConfig() *Config {
 		c.EnvKeyDBPassword,
 		c.EnvKeyDBName,
 		c.EnvKeyDBSSLMode,
-		c.EnvKeyDBShowLog,
+		c.EnvKeyDBShowConsoleLog,
+		c.EnvKeyUuidType,
+		c.EnvKeyDBStatsLogType,
 		c.EnvKeyJWTSecret,
 		c.EnvKeyDomainURL,
 		c.EnvKeyFcmServerKey,
@@ -81,7 +91,7 @@ func loadConfig() *Config {
 	envPath := filepath.Join(utils.GetProjectRootPath(), envFileName)
 	err := godotenv.Load(envPath)
 	if err != nil {
-		l.Logger.Warn("Environment file not found", "file", envFileName, "path", envPath, "error", err)
+		panic(fmt.Sprintf("Environment file not found: file_name=%s, path=%s, error=%v", envFileName, envPath, err))
 	}
 
 	config := &Config{
@@ -89,18 +99,21 @@ func loadConfig() *Config {
 			Host:                       getEnvWithPanic(c.EnvKeyHost),
 			Port:                       getEnvWithPanic(c.EnvKeyPort),
 			DomainURL:                  getEnv(c.EnvKeyDomainURL, ""),
+			UuidType:                   getEnv(c.EnvKeyUuidType, ""),
+			WriteLogWhen:               getEnv(c.EnvKeyWriteLogWhen, ""),
+			DBStatsLogType:             getEnv(c.EnvKeyDBStatsLogType, ""),
 			SuperAdminEmail:            getEnvWithPanic(c.EnvSuperAdminEmail),
 			SuperAdminPassword:         getEnvWithPanic(c.EnvSuperAdminPassword),
 			SocialLoginDefaultPassword: getEnvWithPanic(c.EnvKeySocialLoginDefaultPassword),
 		},
 		DBConfig: DBConfig{
-			DBHost:     getEnvWithPanic(c.EnvKeyDBHost),
-			DBPort:     getEnvWithPanic(c.EnvKeyDBPort),
-			DBUser:     getEnvWithPanic(c.EnvKeyDBUser),
-			DBPassword: getEnvWithPanic(c.EnvKeyDBPassword),
-			DBName:     getEnvWithPanic(c.EnvKeyDBName),
-			DBSSLMode:  getEnvWithPanic(c.EnvKeyDBSSLMode),
-			DBShowLog:  getEnvWithPanic(c.EnvKeyDBShowLog),
+			DBHost:           getEnvWithPanic(c.EnvKeyDBHost),
+			DBPort:           getEnvWithPanic(c.EnvKeyDBPort),
+			DBUser:           getEnvWithPanic(c.EnvKeyDBUser),
+			DBPassword:       getEnvWithPanic(c.EnvKeyDBPassword),
+			DBName:           getEnvWithPanic(c.EnvKeyDBName),
+			DBSSLMode:        getEnvWithPanic(c.EnvKeyDBSSLMode),
+			DBShowConsoleLog: getEnvWithPanic(c.EnvKeyDBShowConsoleLog),
 		},
 		SecretConfig: SecretConfig{
 			JWTSecret:           getEnvWithPanic(c.EnvKeyJWTSecret),
@@ -122,7 +135,6 @@ func loadConfig() *Config {
 		},
 	}
 
-	l.Logger.Info("Config initialized successfully", "env", GetActiveProfile())
 	return config
 }
 

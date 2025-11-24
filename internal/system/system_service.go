@@ -2,7 +2,6 @@ package system
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,8 +12,10 @@ import (
 
 	"github.com/easy-comerce/backend/db"
 	m "github.com/easy-comerce/backend/internal/system/model"
+	se "github.com/easy-comerce/backend/pkg/app_error"
 	"github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
+	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/response"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/easy-comerce/backend/pkg/utils"
@@ -24,7 +25,8 @@ import (
 )
 
 type SystemService interface {
-	SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse
+	GetSystemHealthCheck(ctx context.Context) *m.SystemHealthResponse
+	GetSystemDbStats(ctx context.Context) (*m.SystemDbStatsResponse, error)
 	GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error)
 	DownloadSystemLogFile(fileName string) ([]byte, error)
 	DeleteSystemLogFile(fileName string) error
@@ -44,38 +46,52 @@ func NewSystemService(cfg *config.Config) SystemService {
 	}
 }
 
-func (s *systemService) SystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
+func (s *systemService) GetSystemHealthCheck(ctx context.Context) *m.SystemHealthResponse {
 	dbStatus := "healthy"
-
 	sqlDB, err := db.GetDB().DB()
-	if err != nil {
+
+	if err != nil || sqlDB == nil {
 		dbStatus = "unhealthy"
+		l.Error("❌ Failed to get db instance", err)
 	} else {
 		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
 
 		if err := sqlDB.PingContext(pingCtx); err != nil {
 			dbStatus = "unhealthy"
+			l.Error("❌ Failed to db ping", err)
 		}
 	}
 
 	return &m.SystemHealthResponse{
 		ServerStatus: "healthy",
 		DBStatus:     dbStatus,
-		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+		Timestamp:    timeutil.NowUTC().Format(time.RFC3339),
 	}
 }
 
+func (s *systemService) GetSystemDbStats(ctx context.Context) (*m.SystemDbStatsResponse, error) {
+	sqlDB, err := db.GetDB().DB()
+	if err != nil || sqlDB == nil {
+		l.Error("❌ Failed to get db instance", err)
+		return nil, se.WrapServerError("Failed to get db stats", err)
+	}
+
+	return &m.SystemDbStatsResponse{
+		DbStats: sqlDB.Stats(),
+	}, nil
+}
+
 func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileResponse, error) {
-	logsDir := filepath.Join(utils.GetProjectRootPath(), "logs")
-	files, err := os.ReadDir(logsDir)
+	files, err := os.ReadDir(utils.GetLogFolderPath())
 	if err != nil {
-		return nil, fmt.Errorf("failed to read logs directory: %v", err)
+		l.Error("failed to read logs directory", err)
+		return nil, se.WrapServerError("Failed to read logs directory", err)
 	}
 
 	var logFiles []m.SystemLogFileResponse
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".log") {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), c.LogFileExt) {
 			if fileName != "" && !strings.Contains(file.Name(), fileName) {
 				continue
 			}
@@ -104,40 +120,66 @@ func (s *systemService) GetSystemLogFiles(fileName string) ([]m.SystemLogFileRes
 }
 
 func (s *systemService) DownloadSystemLogFile(fileName string) ([]byte, error) {
-	if !strings.HasSuffix(fileName, ".log") {
-		return nil, fmt.Errorf("invalid log file name")
+	if !strings.HasSuffix(fileName, "."+c.LogFileExt) {
+		return nil, fmt.Errorf("Invalid log file name")
 	}
 
-	logPath := filepath.Join(utils.GetProjectRootPath(), "logs", fileName)
-	content, err := os.ReadFile(logPath)
+	logFilePath := filepath.Join(utils.GetLogFolderPath(), fileName)
+	if !isFileExists(logFilePath) {
+		return nil, fmt.Errorf("Log file not found")
+	}
+
+	content, err := os.ReadFile(logFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load log file: %v", err)
+		return nil, se.WrapServerError("Failed to load log file", err)
 	}
 
 	return content, nil
 }
 
 func (s *systemService) DeleteSystemLogFile(fileName string) error {
-	if !strings.HasSuffix(fileName, ".log") {
-		return fmt.Errorf("invalid log file name")
+	if !strings.HasSuffix(fileName, "."+c.LogFileExt) {
+		return fmt.Errorf("Invalid log file name")
 	}
 
-	logFileTime, err := time.Parse(c.LogFileFormat, strings.TrimSuffix(strings.TrimPrefix(fileName, "app-"), ".log"))
+	logFileTime, err := time.Parse(c.LogFileFormat, strings.TrimSuffix(strings.TrimPrefix(fileName, "app-"), "."+c.LogFileExt))
 	if err != nil {
-		return fmt.Errorf("failed to parse log file name: %v", err)
+		return se.WrapServerError("Failed to parse log file name", err)
 	}
 
-	if logFileTime.After(timeutil.AddDaysUTC(-1)) {
-		return errors.New("you can not delete today and yesterday's log files")
+	logFilePath := filepath.Join(utils.GetLogFolderPath(), fileName)
+	if !isFileExists(logFilePath) {
+		return fmt.Errorf("Log file not found")
 	}
 
-	logPath := filepath.Join(utils.GetProjectRootPath(), "logs", fileName)
-	err = os.Remove(logPath)
+	limit := c.LogFileDeleteProhibitedLimit
+	if limit < 0 {
+		limit = -limit
+	}
+
+	if logFileTime.After(timeutil.AddDaysUTC(-limit)) {
+		return fmt.Errorf("You can not delete last %v day's log files", limit)
+	}
+
+	err = os.Remove(logFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to delete log file: %v", err)
+		return se.WrapServerError("Failed to delete log file", err)
 	}
 
 	return nil
+}
+
+func isFileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return false
 }
 
 func (s *systemService) HandleGoogleLoginTemp(w http.ResponseWriter, r *http.Request) {

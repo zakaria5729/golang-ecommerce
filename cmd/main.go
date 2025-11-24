@@ -20,7 +20,11 @@ import (
 func main() {
 	cfg := c.InitConfig()
 	db.InitializeDB()
+
+	defer l.CloseLogFile(true)
 	defer db.CloseDB()
+
+	// InitMigrateUUID()
 
 	if err := dl.InitRoleAndSuperAdmin(); err != nil {
 		panic("❌ Failed to create initial role and user: " + err.Error())
@@ -43,9 +47,10 @@ func main() {
 	}
 
 	go func() {
-		l.Logger.Info("Server starting", "port", cfg.AppConfig.Port)
+		l.Info("Server started successfully", "port", cfg.AppConfig.Port)
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			l.Logger.Error("❌ Server error", "error", err)
+			l.Error("❌ Server starting error", "error", err)
 		}
 	}()
 
@@ -53,11 +58,11 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	l.Logger.Info("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	l.Info("Graceful shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		l.Logger.Error("❌ Server forced to shutdown", "error", err)
+		l.Error("❌ Server forced to shutdown error", "error", err)
 	}
 }

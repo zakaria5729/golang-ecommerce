@@ -38,7 +38,7 @@ func (h *contactInfoHandler) PostNewsLetter(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err := h.service.PostNewsLetter(req.Email)
+	err := h.service.PostNewsLetter(r.Context(), req.Email)
 	response.SendApiResponse(w, "NewsLetter added successfully", err)
 }
 
@@ -53,7 +53,7 @@ func (h *contactInfoHandler) CreateContactUs(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err := h.service.CreateContactUs(&req)
+	err := h.service.CreateContactUs(r.Context(), &req)
 	response.SendApiResponse(w, "Contact info added successfully", err)
 }
 
@@ -67,7 +67,7 @@ func (h *contactInfoHandler) GetContactInfosPaginated(w http.ResponseWriter, r *
 	showDeleted := utils.ParseBoolPtr(q.Get(c.ShowDeleted))
 	showMessage := utils.ParseBoolPtr(q.Get("show_message"))
 
-	page, err := h.service.GetContactInfosPaginated(pageStr, pageSizeStr, sortBy, sortOrder, &contactType, showMessage, showDeleted)
+	page, err := h.service.GetContactInfosPaginated(r.Context(), pageStr, pageSizeStr, sortBy, sortOrder, &contactType, showMessage, showDeleted)
 	response.SendApiResponse(w, page, err)
 }
 
@@ -78,7 +78,7 @@ func (h *contactInfoHandler) GetContactInfoById(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	contactInfo, err := h.service.GetContactInfoById(*id)
+	contactInfo, err := h.service.GetContactInfoById(r.Context(), *id)
 	response.SendApiResponse(w, contactInfo, err)
 }
 

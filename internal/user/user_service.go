@@ -202,7 +202,7 @@ func (s *userService) UpdateUser(authUserID uint, updateUserID uint, req *model.
 		return errors.New("cannot update self banned or unverified status")
 	}
 
-	if superAdminEmail != "" && *email == superAdminEmail {
+	if superAdminEmail != "" && strings.EqualFold(*email, superAdminEmail) {
 		return errors.New("cannot update super admin user")
 	}
 

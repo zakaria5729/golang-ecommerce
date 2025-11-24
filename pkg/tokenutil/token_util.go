@@ -8,19 +8,20 @@ import (
 	"strings"
 	"time"
 
-	userEntity "github.com/easy-comerce/backend/internal/user"
 	e "github.com/easy-comerce/backend/pkg/app_error"
+	cfg "github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	l "github.com/easy-comerce/backend/pkg/logger"
 	"github.com/easy-comerce/backend/pkg/timeutil"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type JwtClaims struct {
-	UserID   uint     `json:"user_id"`
-	Roles    []string `json:"roles"`
-	Email    string   `json:"email"`
-	Username string   `json:"username"`
+	UserID     uint     `json:"user_id"`
+	RoleTypess []string `json:"role_types"`
+	Email      string   `json:"email"`
+	Username   string   `json:"username"`
 	jwt.RegisteredClaims
 }
 
@@ -49,7 +50,7 @@ func GenerateNewTokenWithExpiryTime(expiryHours int) (string, time.Time, error) 
 func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			l.Logger.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
+			l.Error("❌ unexpected signing method: %v", token.Header["alg"], "method", "VerifyJwtToken")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(jwtSecret), nil
@@ -65,34 +66,29 @@ func VerifyJwtToken(tokenString string, jwtSecret string) (*JwtClaims, error) {
 	}
 
 	if claims.ExpiresAt.Before(timeutil.NowUTC()) {
-		l.Logger.Error("❌ Jwt Token expired", "method", "VerifyJwtToken", "error", err)
+		l.Error("❌ Jwt Token expired", "method", "VerifyJwtToken", "error", err)
 		return nil, errors.New("jwt token expired")
 	}
 
 	return nil, errors.New("jwt token invalid")
 }
 
-func GenerateNewJwtToken(user *userEntity.UserEntity, jwtSecret string) (string, int64, error) {
+func GenerateNewJwtToken(userID uint, userEmail string, userName string, roleTypes []string, jwtSecret string) (string, int64, error) {
 	now := timeutil.NowUTC()
 	expirationTime := timeutil.AddHoursUTC(c.AccessTokenExpiryHours)
 	expiresAt := expirationTime.Unix()
 
-	var roleNames []string
-	for _, role := range user.Roles {
-		roleNames = append(roleNames, role.RoleType)
-	}
-
 	claims := &JwtClaims{
-		UserID:   user.ID,
-		Email:    user.Email,
-		Roles:    roleNames,
-		Username: user.Name,
+		UserID:     userID,
+		Email:      userEmail,
+		RoleTypess: roleTypes,
+		Username:   userName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    c.ProjectName,
-			Subject:   fmt.Sprintf("%d", user.ID),
+			Subject:   fmt.Sprintf("%d", userID),
 		},
 	}
 
@@ -129,4 +125,11 @@ func ValidateTokenAndGetJwtClaims(r *http.Request, jwtSecret string) (*JwtClaims
 		return nil, e.WrapServerError("Invalid/expired jwt token", err)
 	}
 	return claims, nil
+}
+
+func GenerateNewUUID() (uuid.UUID, error) {
+	if strings.EqualFold(cfg.GetUuidType(), c.UuidSequence) {
+		return uuid.NewV7()
+	}
+	return uuid.NewRandom()
 }

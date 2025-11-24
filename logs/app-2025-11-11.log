@@ -1,0 +1,10 @@
+{"time":"2025-11-11T19:44:09.650473+06:00","level":"INFO","msg":"Config initialized successfully","env":"dev"}
+{"time":"2025-11-11T19:44:09.667295+06:00","level":"ERROR","msg":"❌ Database connection failed","error":"failed to connect to `user=puser database=eascos`:\n\t[::1]:5432 (localhost): server error: FATAL: role \"puser\" does not exist (SQLSTATE 28000)\n\t127.0.0.1:5432 (localhost): server error: FATAL: role \"puser\" does not exist (SQLSTATE 28000)","host":"localhost","port":"5432","username":"puser","dbname":"eascos","env":"dev","show_log":"true"}
+{"time":"2025-11-11T19:45:34.459505+06:00","level":"INFO","msg":"Config initialized successfully","env":"local"}
+{"time":"2025-11-11T19:45:34.474604+06:00","level":"INFO","msg":"Database connection successful","host":"localhost","port":"5432","username":"postgres","dbname":"easy_commerce","env":"local","show_log":"true"}
+{"time":"2025-11-11T19:45:34.489053+06:00","level":"INFO","msg":"User role ALREADY EXISTS","method":"createUserRoleIfNotExists","type":"USER"}
+{"time":"2025-11-11T19:45:34.5679+06:00","level":"INFO","msg":"Super Admin role ALREADY EXISTS","method":"createSuperAdminRoleIfNotExists","type":"SUPER_ADMIN"}
+{"time":"2025-11-11T19:45:34.571912+06:00","level":"INFO","msg":"Super Admin user ALREADY EXISTS","method":"createSuperAdminRoleAndUserIfNotExists","email":"super123@admin.com"}
+{"time":"2025-11-11T19:45:34.572957+06:00","level":"INFO","msg":"Server starting","port":"8080"}
+{"time":"2025-11-11T19:45:39.060321+06:00","level":"INFO","msg":"Shutting down server..."}
+{"time":"2025-11-11T19:45:39.060891+06:00","level":"INFO","msg":"Database connection closed successfully"}

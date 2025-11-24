@@ -19,6 +19,9 @@ const (
 const (
 	EnvSuperAdminEmail               string = "SUPER_ADMIN_EMAIL"
 	EnvSuperAdminPassword            string = "SUPER_ADMIN_PASSWORD"
+	EnvKeyUuidType                   string = "UUID_TYPE"
+	EnvKeyWriteLogWhen               string = "WRITE_LOG_WHEN"
+	EnvKeyDBStatsLogType             string = "DB_STATS_LOG_TYPE"
 	EnvKeyDomainURL                  string = "DOMAIN_URL"
 	EnvKeyJWTSecret                  string = "JWT_SECRET"
 	EnvKeyFcmUrl                     string = "FCM_URL"
@@ -37,8 +40,14 @@ const (
 )
 
 const (
-	Bearer        string = "Bearer"
-	Authorization string = "Authorization"
+	Bearer               string = "Bearer"
+	Authorization        string = "Authorization"
+	UuidRandom           string = "random"
+	UuidSequence         string = "sequence"
+	DBStatsLogSql        string = "sql"
+	DBStatsLogSqlAnalyze string = "sql_analyze"
+	WriteLogWhenAlways   string = "always"
+	WriteLogWhenError    string = "error"
 )
 
 const (
@@ -49,10 +58,11 @@ const (
 )
 
 const (
-	DefaultDBTimeout       int = 30
-	MaxDBConnections       int = 100
-	DefaultRateLimit       int = 100
-	DefaultRateLimitWindow int = 60
+	DBMaxIdleConns               int   = 5
+	DBMaxOpenConns               int   = 20
+	DBConnMaxLifeTimeHour        int64 = 1
+	DBConnMaxIdleTimeMinute      int   = 15
+	LogFileDeleteProhibitedLimit int   = 2
 )
 
 const (
@@ -60,6 +70,8 @@ const (
 	AllowedImageTypes string = "image/jpeg,image/jpg,image/png,image/gif,image/svg+xml"
 	AllowedDocTypes   string = "application/pdf"
 	LogFileFormat     string = "2006-01-02"
+	LogFolderName     string = "logs"
+	LogFileExt        string = "jsonl"
 )
 
 const (
@@ -111,6 +123,7 @@ const (
 	MaxReviewCommentLength int = 1000
 	MaxPriorityLimit       int = 100
 	SubcategoryDepthLimit  int = 10
+	RetryLimit             int = 2
 )
 
 const (

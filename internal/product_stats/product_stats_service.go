@@ -115,6 +115,6 @@ func parseTimeFilter(timeStr string) *time.Time {
 		}
 	}
 
-	l.Logger.Warn("Failed to parse time filter", "timeStr", timeStr)
+	l.Warn("Failed to parse time filter", "timeStr", timeStr)
 	return nil
 }

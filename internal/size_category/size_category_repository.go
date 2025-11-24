@@ -42,7 +42,7 @@ func (r *sizeCategoryRepository) GetAllSizeCategories(showDeleted *bool, sortBy,
 
 	err := query.Find(&sizeCategories).Error
 	if err != nil {
-		l.Logger.Error("Failed to fetch size categories", "method", "GetAllSizeCategories", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
+		l.Error("Failed to fetch size categories", "method", "GetAllSizeCategories", "error", err, "sortBy", sortBy, "sortOrder", sortOrder)
 	}
 	return sizeCategories, err
 }
@@ -56,7 +56,7 @@ func (r *sizeCategoryRepository) GetSizeCategoryByID(id uint, showDeleted *bool)
 	}
 
 	if err := query.Where(c.FieldID+" = ?", id).First(&sizeCategory).Error; err != nil {
-		l.Logger.Error("Failed to fetch size category by ID", "method", "GetSizeCategoryByID", "error", err, "id", id)
+		l.Error("Failed to fetch size category by ID", "method", "GetSizeCategoryByID", "error", err, "id", id)
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func (r *sizeCategoryRepository) GetSizeCategoryByID(id uint, showDeleted *bool)
 func (r *sizeCategoryRepository) CreateSizeCategory(sizeCategory *SizeCategoryEntity) (*SizeCategoryEntity, error) {
 	err := r.db.Create(sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to create size category", "method", "CreateSizeCategory", "error", err, "sizeCategory", sizeCategory)
+		l.Error("Failed to create size category", "method", "CreateSizeCategory", "error", err, "sizeCategory", sizeCategory)
 		return nil, err
 	}
 	return sizeCategory, nil
@@ -75,7 +75,7 @@ func (r *sizeCategoryRepository) CreateSizeCategory(sizeCategory *SizeCategoryEn
 func (r *sizeCategoryRepository) UpdateSizeCategory(sizeCategory *SizeCategoryEntity) error {
 	err := r.db.Save(sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to update size category", "method", "UpdateSizeCategory", "error", err, "sizeCategory", sizeCategory)
+		l.Error("Failed to update size category", "method", "UpdateSizeCategory", "error", err, "sizeCategory", sizeCategory)
 	}
 	return err
 }
@@ -83,7 +83,7 @@ func (r *sizeCategoryRepository) UpdateSizeCategory(sizeCategory *SizeCategoryEn
 func (r *sizeCategoryRepository) DeleteSizeCategory(id uint) error {
 	err := r.db.Where(c.FieldID+" = ?", id).Delete(&SizeCategoryEntity{}).Error
 	if err != nil {
-		l.Logger.Error("Failed to delete size category", "method", "DeleteSizeCategory", "error", err, "id", id)
+		l.Error("Failed to delete size category", "method", "DeleteSizeCategory", "error", err, "id", id)
 	}
 
 	return err
@@ -93,14 +93,14 @@ func (r *sizeCategoryRepository) UndoDeletedSizeCategory(id uint) error {
 	var sizeCategory SizeCategoryEntity
 	err := r.db.Unscoped().Where(c.FieldID+" = ?", id).First(&sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to find deleted size category", "method", "UndoDeletedSizeCategory", "error", err, "id", id)
+		l.Error("Failed to find deleted size category", "method", "UndoDeletedSizeCategory", "error", err, "id", id)
 		return err
 	}
 
 	sizeCategory.DeletedAt = nil
 	err = r.db.Unscoped().Save(&sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to undo deleted size category", "method", "UndoDeletedSizeCategory", "error", err, "id", id)
+		l.Error("Failed to undo deleted size category", "method", "UndoDeletedSizeCategory", "error", err, "id", id)
 	}
 
 	return err
@@ -116,7 +116,7 @@ func (r *sizeCategoryRepository) SizeCategoryExists(id uint, showDeleted *bool) 
 
 	err := query.Select(c.FieldID).Take(&sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if size category exists", "method", "SizeCategoryExists", "error", err, "id", id)
+		l.Error("Failed to check if size category exists", "method", "SizeCategoryExists", "error", err, "id", id)
 		return false, err
 	}
 
@@ -133,7 +133,7 @@ func (r *sizeCategoryRepository) SizeCategoryExistsByName(name string, excludeID
 
 	err := query.Select(c.FieldID).Take(&sizeCategory).Error
 	if err != nil {
-		l.Logger.Error("Failed to check if size category exists by name", "method", "SizeCategoryExistsByName", "error", err, "name", name)
+		l.Error("Failed to check if size category exists by name", "method", "SizeCategoryExistsByName", "error", err, "name", name)
 		return false, err
 	}
 

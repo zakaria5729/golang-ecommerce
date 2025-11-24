@@ -12,7 +12,8 @@ import (
 func RegisterRoleRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	roleRepo := role.NewRoleRepository(db.GetDB())
 	permissionRepo := p.NewPermissionRepository(db.GetDB())
-	service := role.NewRoleService(roleRepo, permissionRepo)
+	permissionService := p.NewPermissionService(permissionRepo)
+	service := role.NewRoleService(roleRepo, permissionService)
 	h := role.NewRoleHandler(service)
 
 	r.GET("/roles", h.GetAllRoles).Use(

@@ -4,127 +4,195 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 
 	e "github.com/easy-comerce/backend/pkg/app_error"
+	cfg "github.com/easy-comerce/backend/pkg/config"
 	c "github.com/easy-comerce/backend/pkg/constants"
 	cu "github.com/easy-comerce/backend/pkg/contextutil"
 	l "github.com/easy-comerce/backend/pkg/logger"
-	"github.com/easy-comerce/backend/pkg/timeutil"
+	op "github.com/easy-comerce/backend/pkg/option"
+	tu "github.com/easy-comerce/backend/pkg/timeutil"
+	u "github.com/easy-comerce/backend/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type BaseRepository[T any] interface {
 	Create(ctx context.Context, entity *T) (err error)
+	CreateInBatch(ctx context.Context, entities *[]T) (err error)
 	Update(ctx context.Context, id uint, entity *T) (err error)
 	SoftDelete(ctx context.Context, id uint) (err error)
 	UndoSoftDelete(ctx context.Context, id uint) (err error)
 	HardDelete(ctx context.Context, id uint) (err error)
-	Count(ctx context.Context, options *QueryOptions) (count int64, err error)
-	ExistsByID(ctx context.Context, id uint, options *QueryOptions) (exists bool, err error)
-	GetSingleByID(ctx context.Context, id uint, options *QueryOptions, selectFields ...string) (entity *T, err error)
-	GetAll(ctx context.Context, options *QueryOptions, selectFields ...string) (entities []T, err error)
-	GetAllPaginated(ctx context.Context, page int, pageSize int, options *QueryOptions, selectFields ...string) (entities []T, count int64, err error)
+	Count(ctx context.Context, options *op.QueryOptions) (count int64, err error)
+	ExistsByID(ctx context.Context, id uint, options *op.QueryOptions) (exists bool, err error)
+	GetSingleByID(ctx context.Context, id uint, options *op.QueryOptions, selectFields ...string) (entity *T, err error)
+	GetSingleBy(ctx context.Context, options *op.QueryOptions, selectFields ...string) (entity *T, err error)
+	GetAll(ctx context.Context, options *op.QueryOptions, selectFields ...string) (entities []T, err error)
+	GetAllPaginated(ctx context.Context, pageNo int, pageSize int, options *op.QueryOptions, selectFields ...string) (entities []T, count int64, err error)
 	GetDB() (db *gorm.DB)
 	WithTx(tx *gorm.DB) (repo BaseRepository[T])
 	Transaction(ctx context.Context, fn func(repo BaseRepository[T]) error) (err error)
 }
 
 type baseRepository[T any] struct {
-	db *gorm.DB
+	db         *gorm.DB
+	entity     T
+	entityName string
+	AppConfig  cfg.AppConfig
 }
 
 func NewBaseRepository[T any](db *gorm.DB) BaseRepository[T] {
-	return &baseRepository[T]{db: db}
+	var entity T
+	name := reflect.TypeOf(entity).Name()
+	if name == "" {
+		name = reflect.TypeOf(entity).Elem().Name()
+	}
+
+	return &baseRepository[T]{
+		db:         db,
+		entity:     entity,
+		entityName: name,
+		AppConfig:  cfg.GetConfig().AppConfig,
+	}
 }
 
 func (r *baseRepository[T]) Create(ctx context.Context, entity *T) (err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
 	userID, _ := cu.GetUserIDFromContext(ctx)
-	findAndSetActionValue(r, ctx, entity, c.FieldCreatedBy, userID)
-	err = r.db.WithContext(ctx).Omit(c.FieldUpdatedAt).Create(entity).Error
 
-	if err != nil {
-		l.Logger.Error("❌ Failed to create entity", "error", err, "userID", userID, "entity", entity, "method", "Create")
+	findAndSetActionValue(r, ctx, entity, c.FieldCreatedBy, userID)
+	query := r.db.WithContext(ctx).Model(&entity).Omit(c.FieldUpdatedAt)
+	sql := u.GetRawSqlCreate(query, &r.entity)
+
+	if err = query.Create(&entity).Error; err != nil {
+		if !isWriteAlways {
+			l.Error("❌ Failed to create entity", "entityName", r.entityName, "error", err, "userID", userID, "entity", entity, "method", "Create", "sql", sql)
+		}
 		return e.WrapServerError("Failed to create record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Create entity", "entityName", r.entityName, "userID", userID, "entity", entity, "method", "Create", "sql", sql)
+	}
+	return nil
+}
+
+func (r *baseRepository[T]) CreateInBatch(ctx context.Context, entities *[]T) (err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	findAndSetActionValuesInBatch(r, ctx, entities, c.FieldCreatedBy, userID)
+	query := r.db.WithContext(ctx).Model(&entities).Omit(c.FieldUpdatedAt)
+	sql := u.GetRawSqlCreate(query, &r.entity)
+
+	if err = query.Create(&entities).Error; err != nil {
+		if !isWriteAlways {
+			l.Error("❌ Failed to create entity in batch", "entityName", r.entityName, "error", err, "userID", userID, "entities", entities, "method", "CreateInBatch", "sql", sql)
+		}
+		return e.WrapServerError("Failed to create record in batch", err)
+	}
+
+	if isWriteAlways {
+		l.Info("✅ Create entity in batch", "entityName", r.entityName, "userID", userID, "entities", entities, "method", "CreateInBatch", "sql", sql)
+	}
 	return nil
 }
 
 func (r *baseRepository[T]) Update(ctx context.Context, id uint, entity *T) (err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
 	userID, _ := cu.GetUserIDFromContext(ctx)
-	findAndSetActionValue(r, ctx, entity, c.FieldUpdatedBy, userID)
-	err = r.db.WithContext(ctx).Model(&entity).Where(c.FieldID+" = ?", id).Updates(entity).Error
 
-	if err != nil {
+	findAndSetActionValue(r, ctx, entity, c.FieldUpdatedBy, userID)
+	query := r.db.WithContext(ctx).Model(&entity).Where(c.FieldID+" = ?", id)
+	sql := u.GetRawSqlUpdate(query, &r.entity)
+
+	if err = query.Updates(&entity).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to update entity", "error", err, "id", id, "userID", userID, "entity", entity, "method", "Update")
-			err = e.WrapServerError("Failed to update record", err)
+			return errors.New("No record found with this id")
 		}
 
-		return err
+		if !isWriteAlways {
+			l.Error("❌ Failed to update entity", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "entity", entity, "method", "Update", "sql", sql)
+		}
+		return e.WrapServerError("Failed to update record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Update entity", "entityName", r.entityName, "id", id, "userID", userID, "entity", entity, "method", "Update", "sql", sql)
+	}
 	return nil
 }
 
 func (r *baseRepository[T]) HardDelete(ctx context.Context, id uint) (err error) {
-	singleEntity, err := r.GetSingleByID(ctx, id, &QueryOptions{ShowDeleted: true})
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	showDeleted := true
+	singleEntity, err := r.GetSingleByID(ctx, id, &op.QueryOptions{ShowDeleted: &showDeleted})
 	if err != nil || singleEntity == nil {
 		return err
 	}
 
-	var entity T
-	userID, _ := cu.GetUserIDFromContext(ctx)
-	err = r.db.WithContext(ctx).Unscoped().Where(c.FieldID+" = ?", id).Delete(entity).Error
+	query := r.db.WithContext(ctx).Unscoped().Model(&r.entity).Where(c.FieldID+" = ?", id)
+	sql := u.GetRawSqlDelete(query, &r.entity)
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to hard delete entity", "error", err, "id", id, "userID", userID, "entity", singleEntity, "method", "HardDelete")
-			err = e.WrapServerError("Failed to delete record", err)
+	if err = query.Delete(&r.entity).Error; err != nil {
+		if isNotFoundError(err) {
+			return errors.New("No record found with this id")
 		}
 
-		return err
+		if !isWriteAlways {
+			l.Error("❌ Failed to hard delete entity", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "entity", r.entity, "method", "HardDelete", "sql", sql)
+		}
+		return e.WrapServerError("Failed to delete record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Hard delete entity", "entityName", r.entityName, "id", id, "userID", userID, "entity", r.entity, "method", "HardDelete", "sql", sql)
+	}
 	return nil
 }
 
 func (r *baseRepository[T]) SoftDelete(ctx context.Context, id uint) (err error) {
-	var entity T
+	isWriteAlways := isWriteLogWhenAlways(r)
 	userID, _ := cu.GetUserIDFromContext(ctx)
-	findAndSetActionValue(r, ctx, &entity, c.FieldDeletedBy, userID)
-	findAndSetActionValue(r, ctx, &entity, c.FieldDeletedAt, timeutil.GormNowUTC())
 
-	err = r.db.WithContext(ctx).Unscoped().Omit(c.FieldUpdatedAt).Model(&entity).Where(c.FieldID+" = ?", id).Updates(entity).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to soft delete entity", "error", err, "id", id, "userID", userID, "entity", entity, "method", "SoftDelete")
-			err = e.WrapServerError("Failed to soft delete record", err)
+	findAndSetActionValue(r, ctx, &r.entity, c.FieldDeletedBy, userID)
+	findAndSetActionValue(r, ctx, &r.entity, c.FieldDeletedAt, tu.GormNowUTC())
+	query := r.db.WithContext(ctx).Unscoped().Omit(c.FieldUpdatedAt).Model(&r.entity).Where(c.FieldID+" = ?", id)
+	sql := u.GetRawSqlUpdate(query, &r.entity)
+
+	if err = query.Updates(&r.entity).Error; err != nil {
+		if isNotFoundError(err) {
+			return errors.New("No record found with this id")
 		}
 
-		return err
+		if !isWriteAlways {
+			l.Error("❌ Failed to soft delete entity", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "entity", r.entity, "method", "SoftDelete", "sql", sql)
+		}
+		return e.WrapServerError("Failed to soft delete record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Soft delete entity", "entityName", r.entityName, "id", id, "userID", userID, "entity", r.entity, "method", "SoftDelete", "sql", sql)
+	}
 	return nil
 }
 
 func (r *baseRepository[T]) UndoSoftDelete(ctx context.Context, id uint) (err error) {
-	singleEntity, err := r.GetSingleByID(ctx, id, &QueryOptions{ShowDeleted: true})
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	showDeleted := true
+	singleEntity, err := r.GetSingleByID(ctx, id, &op.QueryOptions{ShowDeleted: &showDeleted})
 	if err != nil || singleEntity == nil {
 		return err
 	}
-	userID, _ := cu.GetUserIDFromContext(ctx)
 
-	var entity T
-	deletedAtExists := findAndSetActionValue(r, ctx, &entity, c.FieldDeletedAt, nil)
-	deletedByExists := findAndSetActionValue(r, ctx, &entity, c.FieldDeletedBy, nil)
-	query := r.db.WithContext(ctx).Unscoped().Model(&entity)
+	deletedAtExists := findAndSetActionValue(r, ctx, &r.entity, c.FieldDeletedAt, nil)
+	deletedByExists := findAndSetActionValue(r, ctx, &r.entity, c.FieldDeletedBy, nil)
+	query := r.db.WithContext(ctx).Unscoped().Model(&r.entity).Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id)
 
 	if deletedAtExists && deletedByExists {
 		query = query.Select(c.FieldDeletedAt, c.FieldDeletedBy)
@@ -133,149 +201,221 @@ func (r *baseRepository[T]) UndoSoftDelete(ctx context.Context, id uint) (err er
 	} else if deletedByExists {
 		query = query.Select(c.FieldDeletedBy)
 	}
+	sql := u.GetRawSqlUpdate(query, &r.entity)
 
-	err = query.Omit(c.FieldUpdatedAt).Where(c.FieldID+" = ?", id).Updates(entity).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to undo soft delete entity", "error", err, "id", id, "userID", userID, "entity", singleEntity, "method", "UndoSoftDelete")
-			err = e.WrapServerError("Failed to undo deleted record", err)
+	if err = query.Updates(&r.entity).Error; err != nil {
+		if isNotFoundError(err) {
+			return errors.New("No record found with this id")
 		}
 
-		return err
+		if !isWriteAlways {
+			l.Error("❌ Failed to undo soft delete entity", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "entity", r.entity, "method", "UndoSoftDelete", "sql", sql)
+		}
+		return e.WrapServerError("Failed to undo deleted record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Undo soft delete entity", "entityName", r.entityName, "id", id, "userID", userID, "entity", r.entity, "method", "UndoSoftDelete", "sql", sql)
+	}
 	return nil
 }
 
-func (r *baseRepository[T]) ExistsByID(ctx context.Context, id uint, options *QueryOptions) (exists bool, err error) {
-	entity := new(T)
-	db := r.db.WithContext(ctx).Model(&entity)
-	db = unscopedQueryOptions(db, options)
-	db = whereQueryOptions(db, options)
+func (r *baseRepository[T]) ExistsByID(ctx context.Context, id uint, options *op.QueryOptions) (exists bool, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
 
-	if err = db.Select(c.FieldID).Where(c.FieldID+" = ?", id).Take(&entity).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to check if entity exists", "error", err, "id", id, "options", options, "entity", entity, "method", "ExistsByID")
-			err = e.WrapServerError("Failed to check if record exists", err)
+	query := r.db.WithContext(ctx).Model(&r.entity)
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	query = query.Select("1").Where(c.FieldID+" = ?", id).Limit(1).Scan(&exists)
+	sql := u.GetRawSqlExists(query, &exists)
+
+	if err = query.Error; err != nil {
+		if isNotFoundError(err) {
+			return false, errors.New("No record found with this id")
 		}
 
-		return false, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to check if entity exists", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "options", options, "method", "ExistsByID", "sql", sql)
+		}
+		return false, e.WrapServerError("Failed to check if record exists", err)
 	}
 
-	return true, nil
+	if isWriteAlways {
+		l.Info("✅ Check if entity exists", "entityName", r.entityName, "id", id, "userID", userID, "exists", exists, "options", options, "method", "ExistsByID", "sql", sql)
+	}
+	return exists, nil
 }
 
-func (r *baseRepository[T]) Count(ctx context.Context, options *QueryOptions) (count int64, err error) {
-	entity := new(T)
-	db := r.db.WithContext(ctx).Model(&entity)
-	db = unscopedQueryOptions(db, options)
-	db = whereQueryOptions(db, options)
+func (r *baseRepository[T]) Count(ctx context.Context, options *op.QueryOptions) (count int64, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
 
-	if err = db.Count(&count).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found")
-		} else {
-			l.Logger.Error("❌ Failed to count entities", "error", err, "options", options, "entity", entity, "method", "Count")
-			err = e.WrapServerError("Failed to count records", err)
+	query := r.db.WithContext(ctx).Model(&r.entity)
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	sql := u.GetRawSqlCount(query, &count)
+
+	if err = query.Count(&count).Error; err != nil {
+		if isNotFoundError(err) {
+			return 0, errors.New("No record found")
 		}
 
-		return 0, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to count entities", "entityName", r.entityName, "error", err, "userID", userID, "options", options, "method", "Count", "sql", sql)
+		}
+		return 0, e.WrapServerError("Failed to count records", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Count entities", "entityName", r.entityName, "userID", userID, "count", count, "options", options, "method", "Count", "sql", sql)
+	}
 	return count, nil
 }
 
-func (r *baseRepository[T]) GetSingleByID(ctx context.Context, id uint, options *QueryOptions, selectFields ...string) (entity *T, err error) {
-	entity = new(T)
-	db := r.db.WithContext(ctx).Model(&entity).Where(c.FieldID+" = ?", id)
+func (r *baseRepository[T]) GetSingleBy(ctx context.Context, options *op.QueryOptions, selectFields ...string) (entity *T, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	query := r.db.WithContext(ctx).Model(&r.entity)
 	if len(selectFields) > 0 {
-		db = db.Select(selectFields)
+		query = query.Select(selectFields)
 	}
 
-	db = unscopedQueryOptions(db, options)
-	db = whereQueryOptions(db, options)
-	db = preloadQueryOptions(db, options)
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	query = orderByQueryOptions(query, options)
+	query = preloadQueryOptions(query, options)
+	sql := u.GetRawSqlFirst(query, &r.entity)
 
-	if err = db.First(&entity).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found with this id")
-		} else {
-			l.Logger.Error("❌ Failed to get entity", "error", err, "id", id, "options", options, "entity", entity, "method", "GetSingleByID")
-			err = e.WrapServerError("Failed to get record", err)
+	if err = query.First(&entity).Error; err != nil {
+		if isNotFoundError(err) {
+			return nil, errors.New("No record found with this id")
 		}
 
-		return nil, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to get entity", "entityName", r.entityName, "error", err, "userID", userID, "options", options, "entity", entity, "method", "GetSingleBy", "sql", sql)
+		}
+		return nil, e.WrapServerError("Failed to get record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Get entity", "entityName", r.entityName, "userID", userID, "options", options, "entity", entity, "method", "GetSingleBy", "sql", sql)
+	}
 	return entity, nil
 }
 
-func (r *baseRepository[T]) GetAll(ctx context.Context, options *QueryOptions, selectFields ...string) (entities []T, err error) {
-	entities = make([]T, 0)
-	db := r.db.WithContext(ctx).Model(&entities)
+func (r *baseRepository[T]) GetSingleByID(ctx context.Context, id uint, options *op.QueryOptions, selectFields ...string) (entity *T, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	query := r.db.WithContext(ctx).Model(&r.entity).Where(c.FieldID+" = ?", id)
 	if len(selectFields) > 0 {
-		db = db.Select(selectFields)
+		query = query.Select(selectFields)
 	}
 
-	db = unscopedQueryOptions(db, options)
-	db = whereQueryOptions(db, options)
-	db = preloadQueryOptions(db, options)
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	query = orderByQueryOptions(query, options)
+	query = preloadQueryOptions(query, options)
+	sql := u.GetRawSqlFirst(query, &r.entity)
 
-	if err = db.Find(&entities).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found")
-		} else {
-			l.Logger.Error("❌ Failed to get entities", "error", err, "options", options, "method", "GetAll")
-			err = e.WrapServerError("Failed to get records", err)
+	if err = query.First(&entity).Error; err != nil {
+		if isNotFoundError(err) {
+			return nil, errors.New("No record found with this id")
 		}
 
-		return nil, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to get entity", "entityName", r.entityName, "error", err, "id", id, "userID", userID, "options", options, "entity", entity, "method", "GetSingleByID", "sql", sql)
+		}
+		return nil, e.WrapServerError("Failed to get record", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Get entity", "entityName", r.entityName, "id", id, "userID", userID, "options", options, "entity", entity, "method", "GetSingleByID", "sql", sql)
+	}
+	return entity, nil
+}
+
+func (r *baseRepository[T]) GetAll(ctx context.Context, options *op.QueryOptions, selectFields ...string) (entities []T, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	query := r.db.WithContext(ctx).Model(&entities)
+	if len(selectFields) > 0 {
+		query = query.Select(selectFields)
+	}
+
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	query = orderByQueryOptions(query, options)
+	query = preloadQueryOptions(query, options)
+	sql := u.GetRawSqlFind(query, &r.entity)
+
+	if err = query.Find(&entities).Error; err != nil {
+		if isNotFoundError(err) {
+			return nil, errors.New("No record found")
+		}
+
+		if !isWriteAlways {
+			l.Error("❌ Failed to get entities", "entityName", r.entityName, "error", err, "userID", userID, "options", options, "method", "GetAll", "sql", getRawSqlWithAnalyze(r, sql))
+		}
+		return nil, e.WrapServerError("Failed to get records", err)
+	}
+
+	if isWriteAlways {
+		l.Info("✅ Get entities", "entityName", r.entityName, "userID", userID, "options", options, "method", "GetAll", "sql", getRawSqlWithAnalyze(r, sql))
+	}
 	return entities, nil
 }
 
-func (r *baseRepository[T]) GetAllPaginated(ctx context.Context, page int, pageSize int, options *QueryOptions, selectFields ...string) (entities []T, count int64, err error) {
-	db := r.db.WithContext(ctx).Model(new(T))
+func (r *baseRepository[T]) GetAllPaginated(ctx context.Context, pageNo int, pageSize int, options *op.QueryOptions, selectFields ...string) (entities []T, count int64, err error) {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	query := r.db.WithContext(ctx).Model(&entities)
 	if len(selectFields) > 0 {
-		db = db.Select(selectFields)
+		query = query.Select(selectFields)
 	}
 
-	db = unscopedQueryOptions(db, options)
-	db = whereQueryOptions(db, options)
+	query = unscopedQueryOptions(query, options)
+	query = whereQueryOptions(query, options)
+	countSql := u.GetRawSqlCount(query, &count)
 
-	if err := db.Count(&count).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found")
-		} else {
-			l.Logger.Error("❌ Failed to count entities", "error", err, "page", page, "pageSize", pageSize, "options", options, "method", "GetAllPaginated")
-			err = e.WrapServerError("Failed to count records", err)
+	if err := query.Count(&count).Error; err != nil {
+		if isNotFoundError(err) {
+			return nil, 0, errors.New("No record found")
 		}
 
-		return nil, 0, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to count entities", "entityName", r.entityName, "error", err, "userID", userID, "options", options, "method", "GetAllPaginated", "countSql", countSql)
+		}
+		return nil, 0, e.WrapServerError("Failed to count records", err)
 	}
 
-	db = preloadQueryOptions(db, options)
-	db = orderQueryOptions(db, options)
+	if isWriteAlways {
+		l.Info("✅ Count entities", "entityName", r.entityName, "userID", userID, "options", options, "method", "GetAllPaginated", "countSql", countSql)
+	}
 
-	offset := (page - 1) * pageSize
-	entities = make([]T, 0)
+	query = orderByQueryOptions(query, options)
+	query = preloadQueryOptions(query, options)
+	query = query.Offset(u.GetOffset(pageNo, pageSize)).Limit(pageSize)
+	rawSql := u.GetRawSqlFind(query, &r.entity)
 
-	if err := db.Offset(offset).Limit(pageSize).Find(&entities).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("No record found")
-		} else {
-			l.Logger.Error("❌ Failed to get entities", "error", err, "page", page, "pageSize", pageSize, "options", options, "method", "GetAllPaginated")
-			err = e.WrapServerError("Failed to get records", err)
+	if err := query.Find(&entities).Error; err != nil {
+		if isNotFoundError(err) {
+			return nil, 0, errors.New("No record found")
 		}
 
-		return nil, 0, err
+		if !isWriteAlways {
+			l.Error("❌ Failed to get entities", "entityName", r.entityName, "error", err, "userID", userID, "pageNo", pageNo, "pageSize", pageSize, "options", options, "method", "GetAllPaginated", "sql", getRawSqlWithAnalyze(r, rawSql))
+		}
+		return nil, 0, e.WrapServerError("Failed to get records", err)
 	}
 
+	if isWriteAlways {
+		l.Info("✅ Get entities", "entityName", r.entityName, "userID", userID, "pageNo", pageNo, "pageSize", pageSize, "options", options, "method", "GetAllPaginated", "sql", getRawSqlWithAnalyze(r, rawSql))
+	}
 	return entities, count, nil
 }
 
@@ -284,24 +424,59 @@ func (r *baseRepository[T]) GetDB() (db *gorm.DB) {
 }
 
 func (r *baseRepository[T]) WithTx(tx *gorm.DB) (repo BaseRepository[T]) {
-	return &baseRepository[T]{db: tx}
+	return &baseRepository[T]{
+		db:         tx,
+		entity:     r.entity,
+		entityName: r.entityName,
+		AppConfig:  r.AppConfig,
+	}
 }
 
 func (r *baseRepository[T]) Transaction(ctx context.Context, fn func(r BaseRepository[T]) error) (err error) {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	isWriteAlways := isWriteLogWhenAlways(r)
+	userID, _ := cu.GetUserIDFromContext(ctx)
+
+	err = r.db.Transaction(func(tx *gorm.DB) error {
 		txRepo := r.WithTx(tx)
 		return fn(txRepo)
 	})
+
+	if err != nil {
+		if !isWriteAlways {
+			l.Error("❌ Failed to execute transaction", "entityName", r.entityName, "error", err, "userID", userID, "method", "Transaction")
+		}
+		return err
+	}
+
+	if isWriteAlways {
+		l.Info("✅ Execute transaction", "entityName", r.entityName, "userID", userID, "method", "Transaction")
+	}
+	return nil
 }
 
-func unscopedQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
-	if options != nil && options.ShowDeleted {
+func getRawSqlWithAnalyze[T any](r *baseRepository[T], rawSql string) any {
+	if rawSql == "" {
+		return nil
+	}
+
+	if rawSql != "" && strings.EqualFold(r.AppConfig.DBStatsLogType, c.DBStatsLogSqlAnalyze) {
+		return &map[string]string{
+			"rawSql":     rawSql,
+			"analyzeSql": u.GetSqlExplainAnalyze(r.db, rawSql),
+		}
+	}
+
+	return rawSql
+}
+
+func unscopedQueryOptions(db *gorm.DB, options *op.QueryOptions) *gorm.DB {
+	if options != nil && options.ShowDeleted != nil && *options.ShowDeleted {
 		db = db.Unscoped()
 	}
 	return db
 }
 
-func whereQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
+func whereQueryOptions(db *gorm.DB, options *op.QueryOptions) *gorm.DB {
 	if options != nil && options.Filters != nil {
 		for condition, value := range options.Filters {
 			if value != nil {
@@ -317,7 +492,7 @@ func whereQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
 	return db
 }
 
-func preloadQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
+func preloadQueryOptions(db *gorm.DB, options *op.QueryOptions) *gorm.DB {
 	if options != nil {
 		for _, preload := range options.Preloads {
 			db = db.Preload(preload)
@@ -326,26 +501,67 @@ func preloadQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
 	return db
 }
 
-func orderQueryOptions(db *gorm.DB, options *QueryOptions) *gorm.DB {
-	if options != nil && options.SortBy != "" {
-		order := options.SortBy
-		if options.SortOrder != "" {
-			order += " " + options.SortOrder
+func orderByQueryOptions(db *gorm.DB, options *op.QueryOptions) *gorm.DB {
+	if options == nil {
+		return db
+	}
+	if len(options.SortOptions) > 0 {
+		if orderClause := u.BuildSortingOrders(options.SortOptions, &options.SortableFields); orderClause != "" {
+			db = db.Order(orderClause)
 		}
-		db = db.Order(order)
+	} else {
+		if orderClause := u.BuildSortingOrder(options.SortBy, options.SortOrder, &options.SortableFields); orderClause != "" {
+			db = db.Order(orderClause)
+		}
 	}
 	return db
 }
 
-func findAndSetActionValue[T any](r *baseRepository[T], ctx context.Context, entity *T, field string, value any) (fieldExists bool) {
-	stmt := &gorm.Statement{DB: r.db}
-	stmt.Parse(entity)
+func isWriteLogWhenAlways[T any](r *baseRepository[T]) bool {
+	return strings.EqualFold(r.AppConfig.WriteLogWhen, c.WriteLogWhenAlways)
+}
 
-	if field := stmt.Schema.LookUpField(field); field != nil {
-		v := reflect.ValueOf(entity).Elem()
-		field.Set(ctx, v, value)
-		return true
+func isNotFoundError(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+func findAndSetActionValue[T any](r *baseRepository[T], ctx context.Context, entity *T, fieldName string, value any) bool {
+	if entity == nil {
+		return false
 	}
 
-	return false
+	slice := []T{*entity}
+	fieldExists := findAndSetActionValuesInBatch(r, ctx, &slice, fieldName, value)
+
+	if fieldExists {
+		*entity = slice[0]
+	}
+
+	return fieldExists
+}
+
+func findAndSetActionValuesInBatch[T any](r *baseRepository[T], ctx context.Context, entities *[]T, fieldName string, value any) (fieldExists bool) {
+	if entities == nil || len(*entities) <= 0 {
+		return false
+	}
+
+	var entity T
+	stmt := &gorm.Statement{DB: r.db}
+	if err := stmt.Parse(&entity); err != nil {
+		return false
+	}
+
+	field := stmt.Schema.LookUpField(fieldName)
+	if field == nil {
+		return false
+	}
+
+	v := reflect.ValueOf(entities).Elem()
+	for i := 0; i < v.Len(); i++ {
+		if err := field.Set(ctx, v.Index(i), value); err != nil {
+			continue
+		}
+	}
+
+	return true
 }

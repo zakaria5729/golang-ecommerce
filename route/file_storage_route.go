@@ -10,7 +10,7 @@ import (
 func RegisterFileRoute(r *router.Router, pm middleware.PermissionMiddleware) {
 	storage, err := fs.NewObjectStorage()
 	if err != nil {
-		l.Logger.Error("❌ Failed to create object storage client", "error", err)
+		l.Error("❌ Failed to create object storage client", "error", err)
 		return
 	}
 

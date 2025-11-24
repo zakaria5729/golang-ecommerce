@@ -2,6 +2,7 @@ package address
 
 import (
 	"github.com/easy-comerce/backend/pkg/base"
+	"github.com/easy-comerce/backend/pkg/constants"
 	"github.com/easy-comerce/backend/pkg/utils"
 )
 
@@ -15,6 +16,10 @@ type AddressEntity struct {
 	Country     string  `gorm:"not null; column:country"`
 	AddressType string  `gorm:"column:address_type"`
 	IsDefault   bool    `gorm:"column:is_default"`
+}
+
+func (AddressEntity) TableName() string {
+	return constants.TableAddress
 }
 
 func (a *AddressEntity) Sanitize() {

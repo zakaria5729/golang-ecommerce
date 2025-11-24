@@ -2,6 +2,7 @@ package notification
 
 import (
 	"github.com/easy-comerce/backend/pkg/base"
+	"github.com/easy-comerce/backend/pkg/constants"
 	// "gorm.io/datatypes"
 )
 
@@ -13,6 +14,10 @@ type Notification struct {
 	Type    string `json:"type" gorm:"column:type"`
 	IsRead  bool   `json:"is_read" gorm:"default:false; column:is_read"`
 	// Data    *datatypes.JSON `json:"data" gorm:"type:json; column:data"`
+}
+
+func (Notification) TableName() string {
+	return constants.TableNotification
 }
 
 type FCMMessage struct {
